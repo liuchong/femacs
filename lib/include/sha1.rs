@@ -12,7 +12,7 @@ pub const GL_OPENSSL_NAME: c_int = 1;
 
 pub const SHA1_DIGEST_SIZE: c_int = 20;
 
-pub type sha1_ctx = femacs_pure::sha1::Sha1Ctx;
+pub type sha1_ctx = ::femacs_sys::sha1::Sha1Ctx;
 
 pub mod sha1_decls {
     use super::*;

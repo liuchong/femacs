@@ -1,5 +1,5 @@
 // femacs: port of lib/filevercmp.c @ fd7afced403.
-//! Thin C-ABI boundary wrapper delegating version comparison to `femacs_pure::filevercmp`.
+//! Thin C-ABI boundary wrapper delegating version comparison to `femacs_sys::filevercmp`.
 #![deny(unsafe_op_in_unsafe_fn)]
 use crate::common::*;
 
@@ -31,5 +31,5 @@ pub unsafe extern "C" fn filenvercmp(
 ) -> c_int {
     // SAFETY: Caller guarantees `(a, alen)` and `(b, blen)` obey `filenvercmp` pointer/length rules.
     let (sa, sb) = unsafe { (version_slice(a, alen), version_slice(b, blen)) };
-    femacs_pure::filevercmp::filenvercmp_slice(sa, sb)
+    ::femacs_sys::filevercmp::filenvercmp_slice(sa, sb)
 }

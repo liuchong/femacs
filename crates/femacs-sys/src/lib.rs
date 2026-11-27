@@ -1,6 +1,20 @@
 #![deny(static_mut_refs, unsafe_op_in_unsafe_fn)]
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe, unexpected_cfgs, ambiguous_glob_reexports)]
-pub use femacs_pure;
+extern crate self as femacs_sys;
+pub mod bitops;
+pub mod c_ctype;
+pub mod filemode;
+pub mod filevercmp;
+pub mod md5;
+pub mod memmem;
+pub mod mini_gmp;
+pub mod sha1;
+pub mod sha256;
+pub mod sha3;
+pub mod sha512;
+pub mod signal_names;
+pub mod strcase;
+pub mod timespec;
 pub mod globals_cell;
 pub use globals_cell::VmGlobal;
 #[macro_use] pub mod common;

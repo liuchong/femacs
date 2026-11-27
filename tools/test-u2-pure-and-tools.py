@@ -2,8 +2,8 @@
 """AU2 integration and functional acceptance for U2 pure modules and companion tools.
 
 Verifies:
-  1. `#![forbid(unsafe_code)]` enforcement across `crates/femacs-pure`, all active
-     `lib-src/` tools (`make-fingerprint`, `hexl`, `asset-directory-tool`, `emacsclient`),
+  1. `#![forbid(unsafe_code)]` enforcement across the 14 safe core modules in `crates/femacs-sys`,
+     all active `lib-src/` tools (`make-fingerprint`, `hexl`, `asset-directory-tool`, `emacsclient`),
      and pure `lib/` leaves, plus 100% `SAFETY:` coverage on thin boundary wrappers.
   2. Real Lisp consumers (`md5`, `secure-hash` across MD5/SHA-1/SHA-2/SHA-3, `buffer-hash`,
      `string-version-lessp`, `string-search`, `file-attributes` mode strings) on ASCII,
@@ -31,7 +31,20 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 
 FORBID_TARGETS = (
-    "crates/femacs-pure",
+    "crates/femacs-sys/src/bitops.rs",
+    "crates/femacs-sys/src/c_ctype.rs",
+    "crates/femacs-sys/src/filemode.rs",
+    "crates/femacs-sys/src/filevercmp.rs",
+    "crates/femacs-sys/src/md5.rs",
+    "crates/femacs-sys/src/memmem.rs",
+    "crates/femacs-sys/src/mini_gmp.rs",
+    "crates/femacs-sys/src/sha1.rs",
+    "crates/femacs-sys/src/sha256.rs",
+    "crates/femacs-sys/src/sha3.rs",
+    "crates/femacs-sys/src/sha512.rs",
+    "crates/femacs-sys/src/signal_names.rs",
+    "crates/femacs-sys/src/strcase.rs",
+    "crates/femacs-sys/src/timespec.rs",
     "lib-src/make-fingerprint.rs",
     "lib-src/hexl.rs",
     "lib-src/asset-directory-tool.rs",

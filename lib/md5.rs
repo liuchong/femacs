@@ -1,5 +1,5 @@
 // femacs: port of lib/md5.c @ fd7afced403.
-//! Thin C-ABI boundary wrapper delegating MD5 computation to `#![forbid(unsafe_code)]` `femacs_pure::md5`.
+//! Thin C-ABI boundary wrapper delegating MD5 computation to `#![forbid(unsafe_code)]` `femacs_sys::md5`.
 #![deny(unsafe_op_in_unsafe_fn)]
 use crate::common::*;
 
@@ -54,7 +54,7 @@ pub unsafe extern "C" fn md5_buffer(
 ) -> *mut c_void {
     // SAFETY: `[buffer, buffer + len)` is readable when `len > 0`, and `resblock` holds 16 bytes.
     let data = unsafe { raw_bytes(buffer.cast::<c_void>(), len) };
-    let out = femacs_pure::md5::md5_digest(data);
+    let out = ::femacs_sys::md5::md5_digest(data);
     // SAFETY: `resblock` points to at least `MD5_DIGEST_SIZE` (16) writable bytes.
     unsafe {
         core::ptr::copy_nonoverlapping(out.as_ptr(), resblock.cast::<u8>(), 16);

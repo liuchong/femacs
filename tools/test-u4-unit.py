@@ -13,7 +13,7 @@ Compiles `crates/femacs-vm/src/roots.rs` and `lib/include/stdcountof.rs` verbati
      `femacs_sizeof_ptr`, `femacs_array_ptr`, `femacs_array_mut_ptr`) on `static mut` arrays
      with zero `static_mut_refs` violations.
 Also runs `check-unsafe-boundary.py --selftest`, `#![forbid(unsafe_code)]` crate unit suites
-(`femacs-pure`, `femacs` CLI), and structural regression checks for the exact defects fixed in U4.
+(`femacs-sys`, `femacs` CLI), and structural regression checks for the exact defects fixed in U4.
 """
 
 from __future__ import annotations
@@ -1135,7 +1135,7 @@ fn main() {
         run_checked([sys.executable, str(REPO / "tools/check-unsafe-boundary.py"), "--selftest"], timeout=30)
         run_checked([sys.executable, str(REPO / "tools/test-u3-unit.py")], timeout=90)
         run_checked(
-            ["cargo", "test", "--target-dir", "build/cargo", "-p", "femacs-pure", "-p", "femacs", "--lib"],
+            ["cargo", "test", "--target-dir", "build/cargo", "-p", "femacs-sys", "-p", "femacs", "--lib"],
             timeout=120,
         )
 
@@ -1152,7 +1152,9 @@ fn main() {
             assert "deny(static_mut_refs, unsafe_op_in_unsafe_fn)" in txt, f"missing deny gate in {rel}"
 
         for rel in (
-            "crates/femacs-pure/src/lib.rs",
+            "crates/femacs-sys/src/bitops.rs",
+            "crates/femacs-sys/src/c_ctype.rs",
+            "crates/femacs-sys/src/mini_gmp.rs",
             "crates/femacs-vm/src/safe_domain.rs",
             "crates/femacs-host/src/lib.rs",
             "cli/src/lib.rs",

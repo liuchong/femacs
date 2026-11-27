@@ -28,5 +28,5 @@ macro_rules! u64bswap { ($x:expr) => { bswap_64! ($x) } }
 
 #[inline(always)]
 pub const fn u64rol(x: u64, n: c_int) -> u64 {
-    femacs_pure::bitops::u64_rol(x, n)
+    ::femacs_sys::bitops::u64_rol(x, n)
 }

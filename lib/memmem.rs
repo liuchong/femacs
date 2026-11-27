@@ -1,5 +1,5 @@
 // femacs: port of lib/memmem.c @ fd7afced403.
-//! Thin C-ABI boundary wrapper delegating Two-Way substring search to `femacs_pure::memmem`.
+//! Thin C-ABI boundary wrapper delegating Two-Way substring search to `femacs_sys::memmem`.
 #![deny(unsafe_op_in_unsafe_fn)]
 use crate::common::*;
 
@@ -23,7 +23,7 @@ pub unsafe extern "C" fn memmem(
             core::slice::from_raw_parts(needle_start.cast::<u8>(), needle_len),
         )
     };
-    match femacs_pure::memmem::memmem_find(haystack, needle) {
+    match ::femacs_sys::memmem::memmem_find(haystack, needle) {
         // SAFETY: `offset <= haystack_len` stays within the caller's `haystack_start` object.
         Some(offset) => unsafe { haystack_start.cast::<u8>().add(offset) as *mut c_void },
         None => core::ptr::null_mut(),

@@ -1,5 +1,5 @@
 // femacs: port of lib/c-strncasecmp.c @ fd7afced403.
-//! Thin C-ABI boundary wrapper delegating bounded ASCII case-insensitive comparison to `femacs_pure::strcase`.
+//! Thin C-ABI boundary wrapper delegating bounded ASCII case-insensitive comparison to `femacs_sys::strcase`.
 #![deny(unsafe_op_in_unsafe_fn)]
 use crate::common::*;
 
@@ -25,5 +25,5 @@ pub unsafe extern "C" fn c_strncasecmp(s1: *const c_char, s2: *const c_char, n: 
     }
     // SAFETY: `s1` and `s2` are readable up to NUL or `n` bytes per `c_strncasecmp` contract.
     let (b1, b2) = unsafe { (bounded_c_bytes(s1, n), bounded_c_bytes(s2, n)) };
-    femacs_pure::strcase::c_strncasecmp_bytes(b1, b2, n)
+    ::femacs_sys::strcase::c_strncasecmp_bytes(b1, b2, n)
 }

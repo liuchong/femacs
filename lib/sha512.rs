@@ -1,5 +1,5 @@
 // femacs: port of lib/sha512.c @ fd7afced403.
-//! Thin C-ABI boundary wrapper delegating SHA-384/SHA-512 computation to `femacs_pure::sha512`.
+//! Thin C-ABI boundary wrapper delegating SHA-384/SHA-512 computation to `femacs_sys::sha512`.
 #![deny(unsafe_op_in_unsafe_fn)]
 use crate::common::*;
 
@@ -92,7 +92,7 @@ pub unsafe extern "C" fn sha512_buffer(
 ) -> *mut c_void {
     // SAFETY: `[buffer, buffer + len)` is readable when `len > 0`.
     let data = unsafe { raw_bytes(buffer.cast::<c_void>(), len) };
-    let out = femacs_pure::sha512::sha512_digest(data);
+    let out = ::femacs_sys::sha512::sha512_digest(data);
     // SAFETY: `resblock` points to at least 64 writable bytes.
     unsafe {
         core::ptr::copy_nonoverlapping(out.as_ptr(), resblock.cast::<u8>(), 64);
@@ -108,7 +108,7 @@ pub unsafe extern "C" fn sha384_buffer(
 ) -> *mut c_void {
     // SAFETY: `[buffer, buffer + len)` is readable when `len > 0`.
     let data = unsafe { raw_bytes(buffer.cast::<c_void>(), len) };
-    let out = femacs_pure::sha512::sha384_digest(data);
+    let out = ::femacs_sys::sha512::sha384_digest(data);
     // SAFETY: `resblock` points to at least 48 writable bytes.
     unsafe {
         core::ptr::copy_nonoverlapping(out.as_ptr(), resblock.cast::<u8>(), 48);

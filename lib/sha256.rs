@@ -1,5 +1,5 @@
 // femacs: port of lib/sha256.c @ fd7afced403.
-//! Thin C-ABI boundary wrapper delegating SHA-224/SHA-256 computation to `femacs_pure::sha256`.
+//! Thin C-ABI boundary wrapper delegating SHA-224/SHA-256 computation to `femacs_sys::sha256`.
 #![deny(unsafe_op_in_unsafe_fn)]
 use crate::common::*;
 
@@ -92,7 +92,7 @@ pub unsafe extern "C" fn sha256_buffer(
 ) -> *mut c_void {
     // SAFETY: `[buffer, buffer + len)` is readable when `len > 0`.
     let data = unsafe { raw_bytes(buffer.cast::<c_void>(), len) };
-    let out = femacs_pure::sha256::sha256_digest(data);
+    let out = ::femacs_sys::sha256::sha256_digest(data);
     // SAFETY: `resblock` points to at least 32 writable bytes.
     unsafe {
         core::ptr::copy_nonoverlapping(out.as_ptr(), resblock.cast::<u8>(), 32);
@@ -108,7 +108,7 @@ pub unsafe extern "C" fn sha224_buffer(
 ) -> *mut c_void {
     // SAFETY: `[buffer, buffer + len)` is readable when `len > 0`.
     let data = unsafe { raw_bytes(buffer.cast::<c_void>(), len) };
-    let out = femacs_pure::sha256::sha224_digest(data);
+    let out = ::femacs_sys::sha256::sha224_digest(data);
     // SAFETY: `resblock` points to at least 28 writable bytes.
     unsafe {
         core::ptr::copy_nonoverlapping(out.as_ptr(), resblock.cast::<u8>(), 28);

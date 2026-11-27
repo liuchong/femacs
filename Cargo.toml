@@ -4,7 +4,6 @@ members = [
     "xtask",
     "packaging",
     "cli",
-    "crates/femacs-pure",
     "crates/femacs-sys",
     "crates/femacs-vm",
     "crates/femacs-host",
@@ -31,10 +30,6 @@ opt-level = 2
 overflow-checks = false
 debug-assertions = false
 codegen-units = 1
-
-[profile.release.package.femacs-pure]
-opt-level = 2
-overflow-checks = true
 
 [profile.release.package.femacs-tools]
 opt-level = 2

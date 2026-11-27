@@ -21,5 +21,4 @@ femacs_gc_generational = []
 femacs_gc_observer_test_hooks = []
 
 [dependencies]
-femacs-pure = { path = "../femacs-pure" }
 femacs-sys = { path = "../femacs-sys" }

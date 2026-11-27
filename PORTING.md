@@ -18,6 +18,11 @@
 
 ## 0. 总则
 
+### P-489：解散 `crates/femacs-pure` 与引入原生 Lisp 测试框架工具政策（2026-11-27）
+
+1. **解散无明确边界的 `crates/femacs-pure`**：经全仓消费者核实，`crates/femacs-tools` 对 `femacs_pure` 零代码引用，`src/include/macuvs.rs` 属于 `src/` 头文件镜像，其余 `14` 个 `#![forbid(unsafe_code)]` 模块（`c_ctype`、`bitops`、`filemode`、`filevercmp`、`md5`、`memmem`、`mini_gmp`、`sha1`、`sha256`、`sha3`、`sha512`、`signal_names`、`strcase`、`timespec`）`100%` 仅服务于 `crates/femacs-sys` 内的 `lib/*.rs` 与 `lib/include/*.rs`。现彻底解散 `crates/femacs-pure`，将上述 `14` 个 `#![forbid(unsafe_code)]` 安全模块直接归位至 `crates/femacs-sys/src/`（借助 `extern crate self as femacs_sys;` 使 `lib/include/*.rs` 在 `femacs-sys` 与 `femacs-vm` 中统一解析为 `::femacs_sys::*`），将 `src/include/macuvs.rs` 挂载归位至 `crates/femacs-vm/src/lib.rs`（保留编译期与单测长度断言），并移除 `Cargo.toml`、`femacs-tools`、`xtask` 与门禁脚本中的 `femacs-pure` 依赖与旧名。全部 `14` 份模块与 `macuvs.rs` 继续保持 `#![forbid(unsafe_code)]` 与全量单元测试；release 构建随 `femacs-sys` 统一使用默认 `overflow-checks = false`（`cargo test` 与 `FEMACS_OVERFLOW_CHECKS=on` 仍开启溢出检查，算法内显式使用 `wrapping_*`/`saturating_*`/`checked_*`）。
+2. **修订工具与测试控制语言政策（更新 `P-102` 与 `AGENTS.md` §2）**：正式将**构建/链接/进程与门禁底层原语 = Rust（`xtask`）** 与 **测试编排/调度/断言/门禁驱动 = `femacs-lisp`（纯 Elisp，见 `docs/design/test-framework.md` 与 `tools/testing/`）** 确立为官方主工具语言；新增测试与控制脚手架统一使用 Rust (`xtask`) + `femacs-lisp`，不再新增 Python 控制脚本，既有 Python 门禁、验收与数据生成器按迁移节奏保留或渐进替换并在 `maintenance/tooling-inventory.json` / `docs/retired-scaffolding.md` 登记。
+
 ### P-488：AU8 终审四项问题闭环裁定（2026-11-23）
 
 针对独立终审对 `8b459250` 指出的三项阻断及一项性能门禁缺口，按用户授权的最佳实践、最佳安全与最佳性能原则作出以下最终裁定与实施闭合：

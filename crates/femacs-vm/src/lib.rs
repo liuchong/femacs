@@ -1,6 +1,5 @@
 #![deny(static_mut_refs, unsafe_op_in_unsafe_fn)]
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe, unexpected_cfgs, ambiguous_glob_reexports)]
-pub use femacs_pure;
 pub(crate) use femacs_sys;
 pub(crate) use femacs_sys::VmGlobal;
 #[macro_use] pub(crate) mod common;
@@ -32,6 +31,8 @@ pub(crate) mod safe_textprop;
 pub(crate) mod safe_undo;
 pub(crate) mod safe_window;
 #[path = "../../../src/include/buildobj.rs"] pub(crate) mod buildobj;
+#[path = "../../../src/include/macuvs.rs"] pub(crate) mod macuvs;
+const _: () = assert!(macuvs::mac_uvs_table_adobe_japan1_bytes.len() == 73655);
 #[cfg(feature = "have_window_system")]
 pub(crate) use common::frame_image_accessors;
 #[path = "../../../src/dispnew.rs"] pub(crate) mod dispnew;

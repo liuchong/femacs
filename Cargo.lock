@@ -212,21 +212,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "femacs-pure"
-version = "0.1.0"
-
-[[package]]
 name = "femacs-sys"
 version = "0.1.0"
-dependencies = [
- "femacs-pure",
-]
 
 [[package]]
 name = "femacs-tools"
 version = "0.1.0"
 dependencies = [
- "femacs-pure",
  "femacs-sys",
 ]
 
@@ -234,7 +226,6 @@ dependencies = [
 name = "femacs-vm"
 version = "0.1.0"
 dependencies = [
- "femacs-pure",
  "femacs-sys",
 ]
 

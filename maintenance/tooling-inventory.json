@@ -2460,7 +2460,7 @@
     {
       "path": "tools/check-ledger-ticks.py",
       "sha256": "e3b90746a8b82e0f9be33cf76b51d5369c4506b31b75d71d677fae5cabf55d01",
-      "bytes": 11043,
+      "bytes": 12096,
       "git_blob": "5b28ca0ebc1f4fe0bba2efaba936b419a99a1962",
       "family": "comparison-gate",
       "readers": [
@@ -2474,7 +2474,7 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "76b7e1919256a3ff75c0caee67bf86c11137a75945a12ba1a03d19ac6ba64d1f",
+      "current_sha256": "10249bbe2958a9124343fa7d043f2a5e969b064ef590bed96fc07e8a140b404e",
       "current_bytes": 12018
     },
     {
@@ -8265,8 +8265,8 @@
     },
     {
       "path": "tools/test-u2-pure-and-tools.py",
-      "sha256": "19185f201f2611a33eccda4498e0dc5b51c99fbdc631c823ce05250fe588c6a0",
-      "bytes": 28366,
+      "sha256": "33d0eba5a3ce0ccae7b12800cff3bca9176132592888ab0740238a44483da1ee",
+      "bytes": 28924,
       "family": "test",
       "decision": "retain",
       "replacement": null,
@@ -8496,8 +8496,8 @@
     },
     {
       "path": "tools/test-u4-unit.py",
-      "sha256": "e88e8c2e01d8bb3808e5973ec1ad60baf2568bac53136631c94129e1cd09dc5a",
-      "bytes": 53815,
+      "sha256": "6264ec78427d29bf4f4e2378d4fbd764ed21d6bbae56fe20f1b298a4ba558441",
+      "bytes": 53912,
       "family": "test",
       "decision": "retain",
       "replacement": null,
@@ -8642,8 +8642,8 @@
     },
     {
       "path": "tools/unsafe-boundary-manifest.json",
-      "sha256": "f8533982e93b503b7320b64214ee73f4ca1d754b2cba1a562b949588e1453eec",
-      "bytes": 145953,
+      "sha256": "15b3a4c00bf8c0eaf5a2635f4622020941be1ac1777d5d91d24db52e34864a38",
+      "bytes": 146484,
       "family": "fixture",
       "decision": "retain",
       "replacement": null,

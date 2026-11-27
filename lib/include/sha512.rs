@@ -13,7 +13,7 @@ pub const GL_OPENSSL_NAME: c_int = 512;
 pub const SHA384_DIGEST_SIZE: c_int = 384 / 8;
 pub const SHA512_DIGEST_SIZE: c_int = 512 / 8;
 
-pub type sha512_ctx = femacs_pure::sha512::Sha512Ctx;
+pub type sha512_ctx = ::femacs_sys::sha512::Sha512Ctx;
 
 pub mod sha512_decls {
     use super::*;

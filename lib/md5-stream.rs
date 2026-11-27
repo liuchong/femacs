@@ -1,5 +1,5 @@
 // femacs: port of lib/md5-stream.c @ fd7afced403.
-//! Stream wrapper feeding `FILE *` chunks into safe `femacs_pure::md5::Md5Ctx` with RAII buffer ownership.
+//! Stream wrapper feeding `FILE *` chunks into safe `femacs_sys::md5::Md5Ctx` with RAII buffer ownership.
 #![deny(unsafe_op_in_unsafe_fn)]
 use crate::common::*;
 
@@ -14,7 +14,7 @@ const _: () = core::assert!(BLOCKSIZE % 64 == 0, "invalid BLOCKSIZE");
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn md5_stream(stream: *mut FILE, resblock: *mut c_void) -> c_int {
     let mut buffer = vec![0u8; BLOCKSIZE];
-    let mut ctx = femacs_pure::md5::Md5Ctx::new();
+    let mut ctx = ::femacs_sys::md5::Md5Ctx::new();
     let mut sum: usize;
 
     'process_partial_block: loop {

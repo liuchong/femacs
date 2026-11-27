@@ -290,3 +290,67 @@ pub fn sha224_digest(bytes: &[u8]) -> [u8; 28] {
     ctx.finish_224_into(&mut out);
     out
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{sha1, sha512};
+
+    fn hex(bytes: &[u8]) -> String {
+        let mut s = String::with_capacity(bytes.len() * 2);
+        for &b in bytes {
+            use core::fmt::Write as _;
+            let _ = write!(s, "{b:02x}");
+        }
+        s
+    }
+
+    #[test]
+    fn sha1_and_sha2_fips180_vectors_and_streaming_splits() {
+        assert_eq!(
+            hex(&sha1::sha1_digest(b"abc")),
+            "a9993e364706816aba3e25717850c26c9cd0d89d"
+        );
+        assert_eq!(
+            hex(&sha224_digest(b"abc")),
+            "23097d223405d8228642a477bda255b32aadbce4bda0b3f7e36c9da7"
+        );
+        assert_eq!(
+            hex(&sha256_digest(b"abc")),
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        );
+        assert_eq!(
+            hex(&sha512::sha384_digest(b"abc")),
+            "cb00753f45a35e8bb5a03d699ac65007272c32ab0eded1631a8b605a43ff5bed8086072ba1e7cc2358baeca134c825a7"
+        );
+        assert_eq!(
+            hex(&sha512::sha512_digest(b"abc")),
+            "ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a2192992a274fc1a836ba3c23a3feebbd454d4423643ce80e2a9ac94fa54ca49f"
+        );
+
+        for len in [55usize, 56, 64, 111, 112, 128, 300] {
+            let payload: Vec<u8> = (0..len).map(|i| (i.wrapping_mul(13) ^ 0x5c) as u8).collect();
+            let exp1 = sha1::sha1_digest(&payload);
+            let exp256 = sha256_digest(&payload);
+            let exp512 = sha512::sha512_digest(&payload);
+
+            let mut c1 = sha1::Sha1Ctx::new();
+            let mut c256 = Sha256Ctx::new_256();
+            let mut c512 = sha512::Sha512Ctx::new_512();
+            for chunk in payload.chunks(11) {
+                c1.process_bytes(chunk);
+                c256.process_bytes(chunk);
+                c512.process_bytes(chunk);
+            }
+            let mut g1 = [0u8; 20];
+            let mut g256 = [0u8; 32];
+            let mut g512 = [0u8; 64];
+            c1.finish_into(&mut g1);
+            c256.finish_256_into(&mut g256);
+            c512.finish_512_into(&mut g512);
+            assert_eq!(g1, exp1);
+            assert_eq!(g256, exp256);
+            assert_eq!(g512, exp512);
+        }
+    }
+}

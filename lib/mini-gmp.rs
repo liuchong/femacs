@@ -1,6 +1,6 @@
 // femacs: port of lib/mini-gmp.c @ fd7afced403.
 //! Thin C-ABI boundary adapter delegating all arbitrary-precision arithmetic to
-//! `#![forbid(unsafe_code)]` `femacs_pure::mini_gmp`.
+//! `#![forbid(unsafe_code)]` `femacs_sys::mini_gmp`.
 #![deny(static_mut_refs, unsafe_op_in_unsafe_fn)]
 #![allow(
     non_camel_case_types,
@@ -12,7 +12,7 @@
 
 use crate::common::*;
 use core::sync::atomic::{AtomicPtr, Ordering};
-use femacs_pure::mini_gmp::{self as pure_gmp, DivRoundMode, Mpz, MpzRef};
+use ::femacs_sys::mini_gmp::{self as pure_gmp, DivRoundMode, Mpz, MpzRef};
 
 pub const MINI_GMP_ENABLE_FLOAT: c_int = 1;
 pub const GMP_LIMB_BITS: usize = pure_gmp::GMP_LIMB_BITS;
@@ -783,7 +783,7 @@ pub unsafe extern "C-unwind" fn mpz_get_str(
     base: c_int,
     u: *const __mpz_struct,
 ) -> *mut c_char {
-    // SAFETY: Formats `u` via `femacs_pure::mini_gmp` and copies NUL-terminated bytes into `sp`
+    // SAFETY: Formats `u` via `femacs_sys::mini_gmp` and copies NUL-terminated bytes into `sp`
     // (or allocates via registered GMP allocator when `sp` is null).
     unsafe {
         let Some(bytes) = pure_gmp::mpz_get_str_bytes(base, read_mpz(u)) else {
@@ -856,7 +856,7 @@ pub unsafe extern "C-unwind" fn mpz_export(
     nails: usize,
     u: *const __mpz_struct,
 ) -> *mut c_void {
-    // SAFETY: Exports `u` via `femacs_pure::mini_gmp` into caller buffer `r` (or GMP-allocated buffer when null).
+    // SAFETY: Exports `u` via `femacs_sys::mini_gmp` into caller buffer `r` (or GMP-allocated buffer when null).
     unsafe {
         let (bytes, count) = pure_gmp::mpz_export_bytes(order, size, endian, nails, read_mpz(u));
         if count > 0 {
@@ -874,7 +874,7 @@ pub unsafe extern "C-unwind" fn mpz_export(
 
 // ---- Safe Rust re-exports & wrappers for the remaining 95 `mini-gmp` functions ----
 
-pub use femacs_pure::mini_gmp::{
+pub use ::femacs_sys::mini_gmp::{
     mpn_add, mpn_add_1, mpn_add_n, mpn_addmul_1, mpn_cmp, mpn_com, mpn_copyd, mpn_copyi, mpn_gcd,
     mpn_get_str, mpn_invert_3by2, mpn_lshift, mpn_mul, mpn_mul_1, mpn_mul_n, mpn_neg,
     mpn_perfect_square_p, mpn_popcount, mpn_rshift, mpn_scan0, mpn_scan1, mpn_set_str, mpn_sqr,

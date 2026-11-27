@@ -28,7 +28,7 @@ macro_rules! __md5_process_bytes { () => { md5_process_bytes } }
 macro_rules! __md5_read_ctx { () => { md5_read_ctx } }
 macro_rules! __md5_stream { () => { md5_stream } }
 
-pub type md5_ctx = femacs_pure::md5::Md5Ctx;
+pub type md5_ctx = ::femacs_sys::md5::Md5Ctx;
 
 pub mod md5_decls {
     use super::*;

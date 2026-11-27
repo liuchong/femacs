@@ -1,7 +1,7 @@
 #![deny(static_mut_refs, unsafe_op_in_unsafe_fn)]
 //! femacs build and gate driver.
 //!
-//! Orchestrates Cargo workspace builds (`femacs-pure`, `femacs-sys`, `femacs-vm`,
+//! Orchestrates Cargo workspace builds (`femacs-sys`, `femacs-vm`,
 //! `femacs-host`, `femacs-tools`), generates target-local configuration mirrors and
 //! layout assertions from the frozen baselines, and runs the mechanical gates.
 //!

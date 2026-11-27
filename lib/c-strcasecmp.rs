@@ -1,5 +1,5 @@
 // femacs: port of lib/c-strcasecmp.c @ fd7afced403.
-//! Thin C-ABI boundary wrapper delegating ASCII case-insensitive comparison to `femacs_pure::strcase`.
+//! Thin C-ABI boundary wrapper delegating ASCII case-insensitive comparison to `femacs_sys::strcase`.
 #![deny(unsafe_op_in_unsafe_fn)]
 use crate::common::*;
 
@@ -10,5 +10,5 @@ pub unsafe extern "C" fn c_strcasecmp(s1: *const c_char, s2: *const c_char) -> c
     }
     // SAFETY: `s1` and `s2` are valid NUL-terminated C strings per `c_strcasecmp` contract.
     let (b1, b2) = unsafe { (CStr::from_ptr(s1).to_bytes(), CStr::from_ptr(s2).to_bytes()) };
-    femacs_pure::strcase::c_strcasecmp_bytes(b1, b2)
+    ::femacs_sys::strcase::c_strcasecmp_bytes(b1, b2)
 }

@@ -7,6 +7,3 @@ publish = false
 
 [lib]
 path = "src/lib.rs"
-
-[dependencies]
-femacs-pure = { path = "../femacs-pure" }

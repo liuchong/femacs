@@ -1,5 +1,5 @@
 // femacs: port of lib/sigdescr_np.c @ fd7afced403.
-//! Safe signal-description table lookup (`lib/sigdescr_np.c`) backed by `femacs_pure::signal_names`.
+//! Safe signal-description table lookup (`lib/sigdescr_np.c`) backed by `femacs_sys::signal_names`.
 #![deny(static_mut_refs, unsafe_op_in_unsafe_fn)]
 
 use crate::common::*;
@@ -40,7 +40,7 @@ static SIGDESCR_TABLE: [(c_int, &'static CStr); 31] = [
 
 #[unsafe(no_mangle)]
 pub extern "C" fn sigdescr_np(sig: c_int) -> *const c_char {
-    match femacs_pure::signal_names::sigdescr_lookup(sig, &SIGDESCR_TABLE) {
+    match ::femacs_sys::signal_names::sigdescr_lookup(sig, &SIGDESCR_TABLE) {
         Some(desc) => desc.as_ptr(),
         None => core::ptr::null(),
     }

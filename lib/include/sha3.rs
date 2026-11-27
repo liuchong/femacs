@@ -14,7 +14,7 @@ pub const SHA3_384_BLOCK_SIZE: c_int = 832 / 8;
 pub const SHA3_512_BLOCK_SIZE: c_int = 576 / 8;
 
 #[cfg(not(feature = "openssl_sha3"))]
-pub type sha3_ctx = femacs_pure::sha3::Sha3Ctx;
+pub type sha3_ctx = ::femacs_sys::sha3::Sha3Ctx;
 
 #[cfg(feature = "openssl_sha3")]
 #[repr(C)]

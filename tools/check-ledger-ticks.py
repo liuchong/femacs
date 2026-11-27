@@ -110,12 +110,13 @@ MODERNIZED_INTERNAL_INLINES = {
 
 
 def is_modernized_safe_helper(target: str, target_text: str, name: str, is_static: bool) -> bool:
-    """Under P-480/P-481/P-486 (U1/U2/U7), standalone `#![forbid(unsafe_code)]` tools in `lib-src/`
-    bind only `main`, and thin C-ABI wrappers delegating to `femacs_pure::` or `crate::safe_` bind
-    all public extern C / DEFUN entry points while retiring C-private `static`/`INLINE` helpers."""
+    """Under P-480/P-481/P-486/P-489 (U1/U2/U7), standalone `#![forbid(unsafe_code)]` tools in
+    `lib-src/` bind only `main`, and thin C-ABI wrappers in `lib/` delegating to `femacs_sys::` or
+    `src/` wrappers delegating to `crate::safe_` bind all public extern C / DEFUN entry points while
+    retiring C-private `static`/`INLINE` helpers."""
     if target.startswith("lib-src/") and "#![forbid(unsafe_code)]" in target_text:
         return name != "main"
-    if "femacs_pure::" in target_text or "crate::safe_" in target_text:
+    if (target.startswith("lib/") and "femacs_sys::" in target_text) or "crate::safe_" in target_text:
         if is_static or (target, name) in MODERNIZED_INTERNAL_INLINES:
             return True
     return False
@@ -157,8 +158,8 @@ def main() -> int:
         mod_ok = (
             is_modernized_safe_helper("lib-src/emacsclient.rs", "#![forbid(unsafe_code)]\nfn main() {}", "decode_options", True)
             and not is_modernized_safe_helper("lib-src/emacsclient.rs", "#![forbid(unsafe_code)]\nfn main() {}", "main", False)
-            and is_modernized_safe_helper("lib/sha256.rs", "use femacs_pure::sha256;", "set_uint32", True)
-            and not is_modernized_safe_helper("lib/sha256.rs", "use femacs_pure::sha256;", "sha256_buffer", False)
+            and is_modernized_safe_helper("lib/sha256.rs", "use femacs_sys::sha256;", "set_uint32", True)
+            and not is_modernized_safe_helper("lib/sha256.rs", "use femacs_sys::sha256;", "sha256_buffer", False)
             and is_modernized_safe_helper("src/casetab.rs", "crate::safe_casetab::set_case_table", "set_case_table", True)
             and not is_modernized_safe_helper("src/casetab.rs", "crate::safe_casetab::Fcase_table_p", "Fcase_table_p", False)
             and is_modernized_safe_helper("src/json.rs", "crate::safe_json::json_serialize", "json_make_object_workspace_for", False)

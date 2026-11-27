@@ -7,15 +7,15 @@ pub const _GL_BYTESWAP_H: c_int = 1;
 
 #[inline(always)]
 pub const fn bswap_16(x: uint_least16_t) -> uint_least16_t {
-    femacs_pure::bitops::bswap_16(x)
+    ::femacs_sys::bitops::bswap_16(x)
 }
 
 #[inline(always)]
 pub const fn bswap_32(x: uint_least32_t) -> uint_least32_t {
-    femacs_pure::bitops::bswap_32(x)
+    ::femacs_sys::bitops::bswap_32(x)
 }
 
 #[inline(always)]
 pub const fn bswap_64(x: uint_least64_t) -> uint_least64_t {
-    femacs_pure::bitops::bswap_64(x)
+    ::femacs_sys::bitops::bswap_64(x)
 }

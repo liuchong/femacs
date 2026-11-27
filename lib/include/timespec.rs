@@ -16,34 +16,34 @@ pub const fn make_timespec(s: time_t, ns: c_long) -> timespec {
 
 #[inline(always)]
 pub const fn timespec_cmp(a: timespec, b: timespec) -> c_int {
-    femacs_pure::timespec::timespec_cmp(a.tv_sec, a.tv_nsec, b.tv_sec, b.tv_nsec)
+    ::femacs_sys::timespec::timespec_cmp(a.tv_sec, a.tv_nsec, b.tv_sec, b.tv_nsec)
 }
 
 #[inline(always)]
 pub const fn timespec_sign(a: timespec) -> c_int {
-    femacs_pure::timespec::timespec_sign(a.tv_sec, a.tv_nsec)
+    ::femacs_sys::timespec::timespec_sign(a.tv_sec, a.tv_nsec)
 }
 
 #[inline(always)]
 pub fn timespectod(a: timespec) -> c_double {
-    femacs_pure::timespec::timespectod(a.tv_sec, a.tv_nsec)
+    ::femacs_sys::timespec::timespectod(a.tv_sec, a.tv_nsec)
 }
 
 #[inline(always)]
 pub fn timespec_add(a: timespec, b: timespec) -> timespec {
-    let (s, ns) = femacs_pure::timespec::timespec_add(a.tv_sec, a.tv_nsec, b.tv_sec, b.tv_nsec);
+    let (s, ns) = ::femacs_sys::timespec::timespec_add(a.tv_sec, a.tv_nsec, b.tv_sec, b.tv_nsec);
     make_timespec(s, ns as c_long)
 }
 
 #[inline(always)]
 pub fn timespec_sub(a: timespec, b: timespec) -> timespec {
-    let (s, ns) = femacs_pure::timespec::timespec_sub(a.tv_sec, a.tv_nsec, b.tv_sec, b.tv_nsec);
+    let (s, ns) = ::femacs_sys::timespec::timespec_sub(a.tv_sec, a.tv_nsec, b.tv_sec, b.tv_nsec);
     make_timespec(s, ns as c_long)
 }
 
 #[inline(always)]
 pub fn dtotimespec(sec: c_double) -> timespec {
-    let (s, ns) = femacs_pure::timespec::dtotimespec(sec);
+    let (s, ns) = ::femacs_sys::timespec::dtotimespec(sec);
     make_timespec(s, ns as c_long)
 }
 

@@ -442,10 +442,7 @@ pub(crate) fn link_temacs(arg: Option<&str>) -> i32 {
         }
         let suffix = if checking { ".checking.rlib" } else { ".rlib" };
         let mut recorded_objs = swift_objs;
-        for (prefix, stem) in [
-            ("libfemacs_pure-", "libfemacs_pure"),
-            ("libfemacs_vm-", "libfemacs_vm"),
-        ] {
+        for (prefix, stem) in [("libfemacs_vm-", "libfemacs_vm")] {
             let src_rlib = match find_newest_rlib(&release_dir, prefix) {
                 Ok(p) => p,
                 Err(e) => return crate::fail(e),
@@ -659,8 +656,6 @@ pub(crate) fn check_workspace_crates() -> Result<(), String> {
                 "check",
                 "--target",
                 target,
-                "-p",
-                "femacs-pure",
                 "-p",
                 "femacs-sys",
                 "-p",

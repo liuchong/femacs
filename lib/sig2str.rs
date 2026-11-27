@@ -1,5 +1,5 @@
 // femacs: port of lib/sig2str.c @ fd7afced403.
-//! Thin C-ABI boundary wrapper delegating signal name/number conversion to `femacs_pure::signal_names`.
+//! Thin C-ABI boundary wrapper delegating signal name/number conversion to `femacs_sys::signal_names`.
 #![deny(static_mut_refs, unsafe_op_in_unsafe_fn)]
 
 use crate::common::*;
@@ -50,7 +50,7 @@ pub unsafe extern "C" fn str2sig(signame: *const c_char, signum: *mut c_int) -> 
     }
     // SAFETY: `signame` is a NUL-terminated C string and `signum` points to a writable `c_int`.
     let bytes = unsafe { CStr::from_ptr(signame).to_bytes() };
-    let parsed = femacs_pure::signal_names::str2signum_bytes(
+    let parsed = ::femacs_sys::signal_names::str2signum_bytes(
         bytes,
         &SIGNAL_TABLE,
         SIGNUM_BOUND,
@@ -70,7 +70,7 @@ pub unsafe extern "C" fn sig2str(signum: c_int, signame: *mut c_char) -> c_int {
         return -1;
     }
     let mut buf = [0u8; 16];
-    if !femacs_pure::signal_names::sig2str_bytes(
+    if !::femacs_sys::signal_names::sig2str_bytes(
         signum,
         &SIGNAL_TABLE,
         SIGRTMIN,

@@ -340,3 +340,49 @@ pub fn sha3_512_digest(bytes: &[u8]) -> [u8; 64] {
     ctx.finish_into(&mut out);
     out
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn hex(bytes: &[u8]) -> String {
+        let mut s = String::with_capacity(bytes.len() * 2);
+        for &b in bytes {
+            use core::fmt::Write as _;
+            let _ = write!(s, "{b:02x}");
+        }
+        s
+    }
+
+    #[test]
+    fn sha3_fips202_vectors_and_rate_boundary_splits() {
+        assert_eq!(
+            hex(&sha3_224_digest(b"abc")),
+            "e642824c3f8cf24ad09234ee7d3c766fc9a3a5168d0c94ad73b46fdf"
+        );
+        assert_eq!(
+            hex(&sha3_256_digest(b"abc")),
+            "3a985da74fe225b2045c172d6bd390bd855f086e3e9d525b46bfe24511431532"
+        );
+        assert_eq!(
+            hex(&sha3_384_digest(b"abc")),
+            "ec01498288516fc926459f58e2c6ad8df9b473cb0fc08c2596da7cf0e49be4b298d88cea927ac7f539f1edf228376d25"
+        );
+        assert_eq!(
+            hex(&sha3_512_digest(b"abc")),
+            "b751850b1a57168a5693cd924b6b096e08f621827444f70d884f5d0240d2712e10e116e9192af3c91a7ec57647e3934057340b4cf408d5a56592f8274eec53f0"
+        );
+
+        for len in [71usize, 72, 73, 103, 104, 135, 136, 143, 144, 289] {
+            let payload: Vec<u8> = (0..len).map(|i| (i.wrapping_mul(29) ^ 0x33) as u8).collect();
+            let exp = sha3_256_digest(&payload);
+            let mut ctx = Sha3Ctx::new(SHA3_256_DIGEST_SIZE, SHA3_256_BLOCK_SIZE);
+            for chunk in payload.chunks(9) {
+                assert!(ctx.process_bytes(chunk));
+            }
+            let mut got = [0u8; 32];
+            ctx.finish_into(&mut got);
+            assert_eq!(got, exp, "sha3-256 split mismatch len={len}");
+        }
+    }
+}

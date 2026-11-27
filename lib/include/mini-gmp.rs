@@ -24,7 +24,7 @@ pub type mpz_srcptr = *const __mpz_struct;
 
 macro_rules! mpn_invert_limb {
     ($x:expr) => {
-        femacs_pure::mini_gmp::mpn_invert_3by2($x, 0)
+        ::femacs_sys::mini_gmp::mpn_invert_3by2($x, 0)
     };
 }
 

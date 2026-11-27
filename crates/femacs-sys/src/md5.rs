@@ -294,3 +294,41 @@ pub fn md5_digest(bytes: &[u8]) -> [u8; 16] {
     ctx.finish_into(&mut out);
     out
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn hex(bytes: &[u8]) -> String {
+        let mut s = String::with_capacity(bytes.len() * 2);
+        for &b in bytes {
+            use core::fmt::Write as _;
+            let _ = write!(s, "{b:02x}");
+        }
+        s
+    }
+
+    #[test]
+    fn md5_rfc1321_vectors_and_streaming_boundary_splits() {
+        assert_eq!(hex(&md5_digest(b"")), "d41d8cd98f00b204e9800998ecf8427e");
+        assert_eq!(hex(&md5_digest(b"abc")), "900150983cd24fb0d6963f7d28e17f72");
+        assert_eq!(
+            hex(&md5_digest(b"message digest")),
+            "f96b697d7cb7938d525a2f31aaf161d0"
+        );
+
+        for len in [0usize, 1, 55, 56, 57, 63, 64, 65, 119, 120, 128, 257] {
+            let payload: Vec<u8> = (0..len).map(|i| (i.wrapping_mul(37) ^ 0xa5) as u8).collect();
+            let expected = md5_digest(&payload);
+            for step in [1usize, 7, 19, 64, 97] {
+                let mut ctx = Md5Ctx::new();
+                for chunk in payload.chunks(step) {
+                    ctx.process_bytes(chunk);
+                }
+                let mut got = [0u8; 16];
+                ctx.finish_into(&mut got);
+                assert_eq!(got, expected, "md5 split mismatch len={len} step={step}");
+            }
+        }
+    }
+}

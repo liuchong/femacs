@@ -13,7 +13,7 @@ pub const GL_OPENSSL_NAME: c_int = 256;
 pub const SHA224_DIGEST_SIZE: c_int = 224 / 8;
 pub const SHA256_DIGEST_SIZE: c_int = 256 / 8;
 
-pub type sha256_ctx = femacs_pure::sha256::Sha256Ctx;
+pub type sha256_ctx = ::femacs_sys::sha256::Sha256Ctx;
 
 pub mod sha256_decls {
     use super::*;

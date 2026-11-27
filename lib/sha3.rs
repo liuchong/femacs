@@ -1,5 +1,5 @@
 // femacs: port of lib/sha3.c @ fd7afced403.
-//! Thin C-ABI boundary wrapper delegating SHA-3 (Keccak-f[1600]) computation to `femacs_pure::sha3`.
+//! Thin C-ABI boundary wrapper delegating SHA-3 (Keccak-f[1600]) computation to `femacs_sys::sha3`.
 #![deny(unsafe_op_in_unsafe_fn)]
 use crate::common::*;
 
@@ -73,7 +73,7 @@ pub unsafe extern "C" fn sha3_224_buffer(
     // SAFETY: `[buffer, buffer + len)` is readable when `len > 0` and `resblock` holds 28 bytes.
     unsafe {
         let data = raw_bytes(buffer.cast::<c_void>(), len);
-        let out = femacs_pure::sha3::sha3_224_digest(data);
+        let out = ::femacs_sys::sha3::sha3_224_digest(data);
         core::ptr::copy_nonoverlapping(out.as_ptr(), resblock.cast::<u8>(), 28);
     }
     resblock
@@ -88,7 +88,7 @@ pub unsafe extern "C" fn sha3_256_buffer(
     // SAFETY: `[buffer, buffer + len)` is readable when `len > 0` and `resblock` holds 32 bytes.
     unsafe {
         let data = raw_bytes(buffer.cast::<c_void>(), len);
-        let out = femacs_pure::sha3::sha3_256_digest(data);
+        let out = ::femacs_sys::sha3::sha3_256_digest(data);
         core::ptr::copy_nonoverlapping(out.as_ptr(), resblock.cast::<u8>(), 32);
     }
     resblock
@@ -103,7 +103,7 @@ pub unsafe extern "C" fn sha3_384_buffer(
     // SAFETY: `[buffer, buffer + len)` is readable when `len > 0` and `resblock` holds 48 bytes.
     unsafe {
         let data = raw_bytes(buffer.cast::<c_void>(), len);
-        let out = femacs_pure::sha3::sha3_384_digest(data);
+        let out = ::femacs_sys::sha3::sha3_384_digest(data);
         core::ptr::copy_nonoverlapping(out.as_ptr(), resblock.cast::<u8>(), 48);
     }
     resblock
@@ -118,7 +118,7 @@ pub unsafe extern "C" fn sha3_512_buffer(
     // SAFETY: `[buffer, buffer + len)` is readable when `len > 0` and `resblock` holds 64 bytes.
     unsafe {
         let data = raw_bytes(buffer.cast::<c_void>(), len);
-        let out = femacs_pure::sha3::sha3_512_digest(data);
+        let out = ::femacs_sys::sha3::sha3_512_digest(data);
         core::ptr::copy_nonoverlapping(out.as_ptr(), resblock.cast::<u8>(), 64);
     }
     resblock

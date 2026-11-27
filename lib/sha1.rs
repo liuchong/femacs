@@ -1,5 +1,5 @@
 // femacs: port of lib/sha1.c @ fd7afced403.
-//! Thin C-ABI boundary wrapper delegating SHA-1 computation to `#![forbid(unsafe_code)]` `femacs_pure::sha1`.
+//! Thin C-ABI boundary wrapper delegating SHA-1 computation to `#![forbid(unsafe_code)]` `femacs_sys::sha1`.
 #![deny(unsafe_op_in_unsafe_fn)]
 use crate::common::*;
 
@@ -52,7 +52,7 @@ pub unsafe extern "C" fn sha1_buffer(
 ) -> *mut c_void {
     // SAFETY: `[buffer, buffer + len)` is readable when `len > 0`.
     let data = unsafe { raw_bytes(buffer.cast::<c_void>(), len) };
-    let out = femacs_pure::sha1::sha1_digest(data);
+    let out = ::femacs_sys::sha1::sha1_digest(data);
     // SAFETY: `resblock` points to at least `SHA1_DIGEST_SIZE` (20) writable bytes.
     unsafe {
         core::ptr::copy_nonoverlapping(out.as_ptr(), resblock.cast::<u8>(), 20);

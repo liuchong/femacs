@@ -15,75 +15,75 @@ macro_rules! _C_CTYPE_OTHER_CNTRL { () => { 0x00..=0x06 | 0x0e..=0x1f | 0x7f }; 
 
 #[inline(always)]
 pub const fn c_isalnum(c: c_int) -> bool {
-    femacs_pure::c_ctype::c_isalnum(c)
+    ::femacs_sys::c_ctype::c_isalnum(c)
 }
 
 #[inline(always)]
 pub const fn c_isalpha(c: c_int) -> bool {
-    femacs_pure::c_ctype::c_isalpha(c)
+    ::femacs_sys::c_ctype::c_isalpha(c)
 }
 
 #[inline(always)]
 pub const fn c_isascii(c: c_int) -> bool {
-    femacs_pure::c_ctype::c_isascii(c)
+    ::femacs_sys::c_ctype::c_isascii(c)
 }
 
 #[inline(always)]
 pub const fn c_isblank(c: c_int) -> bool {
-    femacs_pure::c_ctype::c_isblank(c)
+    ::femacs_sys::c_ctype::c_isblank(c)
 }
 
 #[inline(always)]
 pub const fn c_iscntrl(c: c_int) -> bool {
-    femacs_pure::c_ctype::c_iscntrl(c)
+    ::femacs_sys::c_ctype::c_iscntrl(c)
 }
 
 #[inline(always)]
 pub const fn c_isdigit(c: c_int) -> bool {
-    femacs_pure::c_ctype::c_isdigit(c)
+    ::femacs_sys::c_ctype::c_isdigit(c)
 }
 
 #[inline(always)]
 pub const fn c_isgraph(c: c_int) -> bool {
-    femacs_pure::c_ctype::c_isgraph(c)
+    ::femacs_sys::c_ctype::c_isgraph(c)
 }
 
 #[inline(always)]
 pub const fn c_islower(c: c_int) -> bool {
-    femacs_pure::c_ctype::c_islower(c)
+    ::femacs_sys::c_ctype::c_islower(c)
 }
 
 #[inline(always)]
 pub const fn c_isprint(c: c_int) -> bool {
-    femacs_pure::c_ctype::c_isprint(c)
+    ::femacs_sys::c_ctype::c_isprint(c)
 }
 
 #[inline(always)]
 pub const fn c_ispunct(c: c_int) -> bool {
-    femacs_pure::c_ctype::c_ispunct(c)
+    ::femacs_sys::c_ctype::c_ispunct(c)
 }
 
 #[inline(always)]
 pub const fn c_isspace(c: c_int) -> bool {
-    femacs_pure::c_ctype::c_isspace(c)
+    ::femacs_sys::c_ctype::c_isspace(c)
 }
 
 #[inline(always)]
 pub const fn c_isupper(c: c_int) -> bool {
-    femacs_pure::c_ctype::c_isupper(c)
+    ::femacs_sys::c_ctype::c_isupper(c)
 }
 
 #[inline(always)]
 pub const fn c_isxdigit(c: c_int) -> bool {
-    femacs_pure::c_ctype::c_isxdigit(c)
+    ::femacs_sys::c_ctype::c_isxdigit(c)
 }
 
 #[inline(always)]
 pub const fn c_tolower(c: c_int) -> c_int {
-    femacs_pure::c_ctype::c_tolower(c)
+    ::femacs_sys::c_ctype::c_tolower(c)
 }
 
 #[inline(always)]
 pub const fn c_toupper(c: c_int) -> c_int {
-    femacs_pure::c_ctype::c_toupper(c)
+    ::femacs_sys::c_ctype::c_toupper(c)
 }
