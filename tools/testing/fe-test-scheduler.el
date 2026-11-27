@@ -162,8 +162,9 @@ workers that have not yet been sampled or remain inside cold-start grace."
 
 (defun fe-test--refresh-active-memory! (xtask-bin workers)
   "Sample live process-tree memory via `xtask test-exec mem-tree' into WORKERS.
-Updates `:sampled' and `:observed-mem' on each active worker when `mem-tree'
-succeeds; preserves prior samples/reservations on transient failure."
+Requires a valid `femacs-test-mem-v1' schema and numeric `accounted_bytes' row
+for each live worker; preserves prior samples or reservations when a snapshot
+fails or omits a worker's PID row."
   (let ((pids nil))
     (dolist (w workers)
       (when (and (fe-test--worker-os-pid w)
@@ -173,18 +174,20 @@ succeeds; preserves prior samples/reservations on transient failure."
       (let ((mem (condition-case nil
                      (fe-test-call-json xtask-bin (cons "test-exec" (cons "mem-tree" (nreverse pids))))
                    (error nil))))
-        (when mem
-          (let ((live-total (or (alist-get 'total_accounted_bytes mem) 0))
+        (when (and mem (equal (alist-get 'schema mem) "femacs-test-mem-v1"))
+          (let ((live-total (alist-get 'total_accounted_bytes mem))
                 (per-pid (alist-get 'per_pid mem)))
-            (dolist (w workers)
-              (when (and (fe-test--worker-os-pid w)
-                         (process-live-p (fe-test--worker-proc w)))
-                (let* ((pid-sym (intern (number-to-string (fe-test--worker-os-pid w))))
-                       (row (and per-pid (alist-get pid-sym per-pid)))
-                       (obs (or (and row (alist-get 'accounted_bytes row)) 0)))
-                  (setf (fe-test--worker-sampled w) t)
-                  (setf (fe-test--worker-observed-mem w) obs))))
-            live-total))))))
+            (when (listp per-pid)
+              (dolist (w workers)
+                (when (and (fe-test--worker-os-pid w)
+                           (process-live-p (fe-test--worker-proc w)))
+                  (let* ((pid-sym (intern (number-to-string (fe-test--worker-os-pid w))))
+                         (row (alist-get pid-sym per-pid))
+                         (acc (and row (alist-get 'accounted_bytes row))))
+                    (when (and row (numberp acc))
+                      (setf (fe-test--worker-sampled w) t)
+                      (setf (fe-test--worker-observed-mem w) acc))))))
+            (and (numberp live-total) live-total)))))))
 
 (defun fe-test--pick-admissible (pending active heavy-workers profile-table
                                           live-bytes ceiling max-workers)

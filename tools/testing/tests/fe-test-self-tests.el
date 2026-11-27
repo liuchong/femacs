@@ -319,7 +319,46 @@ exec %S \"$@\""
                       (length (split-string (buffer-string) "\n" t)))))
         (should (= (car res) 0))
         (should (>= calls 3))
-        (should (>= (alist-get 'peakAggregateRssBytes (cdr res)) 5242880))))))
+        (should (>= (alist-get 'peakAggregateRssBytes (cdr res)) 5242880)))
+      ;; 3. Missing PID row in valid mem-tree JSON or failed mem-tree exit must preserve reservation (never overwrite to 0).
+      (let* ((missing-xtask (expand-file-name "missing-mem.sh" tmp))
+             (proc (let ((process-connection-type nil))
+                     (make-process :name "dummy-sleep" :command '("/bin/sh" "-c" "exec sleep 2") :noquery t)))
+             (w (fe-test--make-worker :proc proc :os-pid (process-id proc)
+                                      :started-ms 1000 :est-mem (* 256 1024 1024)
+                                      :sampled t :observed-mem (* 120 1024 1024))))
+        (unwind-protect
+            (progn
+              (fe-test-self--write-exec-script
+               missing-xtask
+               (format
+                "if [ \"$2\" = \"mem-tree\" ]; then
+  printf '{\"schema\":\"femacs-test-mem-v1\",\"total_rss_bytes\":0,\"total_footprint_bytes\":0,\"total_accounted_bytes\":0,\"per_pid\":{}}\\n'
+  exit 0
+fi
+exec %S \"$@\""
+                real-xtask))
+              (fe-test--refresh-active-memory! missing-xtask (list w))
+              (should (eq (fe-test--worker-sampled w) t))
+              (should (= (fe-test--worker-observed-mem w) (* 120 1024 1024)))
+              ;; Also verify scheduler does not admit a 2nd heavy worker when mem-tree omits PID row.
+              (let* ((fe-test-mem-sample-interval-ms 40)
+                     (s3 (expand-file-name "s-missing" tmp))
+                     (cmd-body (lambda (out)
+                                 (format "perl -MTime::HiRes=time -e '$|=1; printf \"%%d\\n\", int(time()*1000); select(undef,undef,undef,0.28); printf \"%%d\\n\", int(time()*1000);' > %s" out)))
+                     (c1 (fe-test-make-case :id "self/miss-a" :suite "self" :heavy t :cacheable nil
+                                            :command (list "/bin/sh" "-c" (funcall cmd-body stamp-a))))
+                     (c2 (fe-test-make-case :id "self/miss-b" :suite "self" :heavy t :cacheable nil
+                                            :command (list "/bin/sh" "-c" (funcall cmd-body stamp-b))))
+                     (res (fe-test-execute-cases
+                           (list c1 c2)
+                           (list :suite "self" :cache nil :keep-going t :workers 2
+                                 :heavy-workers 2 :budget-mib 256 :state-dir s3
+                                 :xtask-bin missing-xtask
+                                 :report-out (expand-file-name "r-miss.json" s3)))))
+                (should (= (car res) 0))
+                (should (>= (alist-get 'admissionPauses (cdr res)) 1))))
+          (when (process-live-p proc) (ignore-errors (kill-process proc))))))))
 
 (ert-deftest fe-test-self-runtime-closure-invalidation ()
   (should (null (fe-test-product-runtime-inputs "/usr/bin/true")))
@@ -329,20 +368,40 @@ exec %S \"$@\""
            (pdmp-path (expand-file-name "Resources/libexec/Femacs.pdmp" app-root))
            (lisp-file (expand-file-name "Resources/lisp/core.el" app-root))
            (etc-file (expand-file-name "Resources/etc/DOC" app-root))
-           (state-dir (expand-file-name "state" tmp)))
+           (ext-lisp-dir (expand-file-name "ext-lisp" tmp))
+           (state-dir (expand-file-name "state" tmp))
+           (xtask (fe-test-find-xtask))
+           (memo (make-hash-table :test #'equal)))
       (make-directory (file-name-directory bin-path) t)
       (make-directory (file-name-directory pdmp-path) t)
       (make-directory (file-name-directory lisp-file) t)
       (make-directory (file-name-directory etc-file) t)
+      (make-directory ext-lisp-dir t)
       (fe-test-self--write-exec-script bin-path "printf 'mock-app-ok\\n'")
       (with-temp-file pdmp-path (insert "pdmp-v1\n"))
       (with-temp-file lisp-file (insert "(provide 'core)\n"))
       (with-temp-file etc-file (insert "doc-v1\n"))
+      ;; 1. Distinguish --unset-env (nil) vs empty --env ("").
+      (let* ((k-unset (fe-test-cache-key
+                       (fe-test-make-case :id "self/env-unset" :suite "self"
+                                          :command '("/bin/true") :env '(("FE_FLAG" . nil)))
+                       xtask memo))
+             (k-empty (fe-test-cache-key
+                       (fe-test-make-case :id "self/env-unset" :suite "self"
+                                          :command '("/bin/true") :env '(("FE_FLAG" . "")))
+                       xtask memo)))
+        (should (and k-unset k-empty))
+        (should (not (string= k-unset k-empty))))
       (let* ((inputs (fe-test-product-runtime-inputs bin-path))
-             (tc (fe-test-make-case :id "self/runtime-closure" :suite "self"
-                                    :command (list bin-path)
-                                    :cacheable (not (null inputs))
-                                    :cache-inputs inputs))
+             (tc-herm (fe-test-make-case :id "self/runtime-closure" :suite "self"
+                                         :command (list bin-path)
+                                         :env fe-test-hermetic-editor-env
+                                         :cacheable (not (null inputs))
+                                         :cache-inputs inputs))
+             (tc-open (fe-test-make-case :id "self/runtime-open" :suite "self"
+                                         :command (list bin-path)
+                                         :cacheable (not (null inputs))
+                                         :cache-inputs inputs))
              (opts (list :suite "self" :cache t :workers 1 :heavy-workers 1
                          :budget-mib 1024 :state-dir state-dir
                          :report-out (expand-file-name "r-clos.json" state-dir))))
@@ -350,17 +409,24 @@ exec %S \"$@\""
         (should (member (expand-file-name "Resources/lisp" app-root) inputs))
         (should (member (expand-file-name "Resources/etc" app-root) inputs))
         ;; Run 1 (miss) -> Run 2 (hit)
-        (should (= (alist-get 'cached (cdr (fe-test-execute-cases (list tc) opts))) 0))
-        (should (= (alist-get 'cached (cdr (fe-test-execute-cases (list tc) opts))) 1))
+        (should (= (alist-get 'cached (cdr (fe-test-execute-cases (list tc-herm) opts))) 0))
+        (should (= (alist-get 'cached (cdr (fe-test-execute-cases (list tc-herm) opts))) 1))
         ;; Mutate only .pdmp -> cache must miss
         (with-temp-file pdmp-path (insert "pdmp-v2\n"))
-        (should (= (alist-get 'cached (cdr (fe-test-execute-cases (list tc) opts))) 0))
+        (should (= (alist-get 'cached (cdr (fe-test-execute-cases (list tc-herm) opts))) 0))
         ;; Mutate only Resources/lisp -> cache must miss
         (with-temp-file lisp-file (insert "(provide 'core) ;; v2\n"))
-        (should (= (alist-get 'cached (cdr (fe-test-execute-cases (list tc) opts))) 0))
+        (should (= (alist-get 'cached (cdr (fe-test-execute-cases (list tc-herm) opts))) 0))
         ;; Mutate only Resources/etc -> cache must miss
         (with-temp-file etc-file (insert "doc-v2\n"))
-        (should (= (alist-get 'cached (cdr (fe-test-execute-cases (list tc) opts))) 0))))))
+        (should (= (alist-get 'cached (cdr (fe-test-execute-cases (list tc-herm) opts))) 0))
+        ;; Inherited EMACSLOADPATH disables cache when unscrubbed, while scrubbed hermetic case still hits cache.
+        (let ((process-environment (cons (concat "EMACSLOADPATH=" ext-lisp-dir) process-environment)))
+          (should (null (fe-test-cache-key tc-open xtask memo)))
+          (should (= (alist-get 'cached (cdr (fe-test-execute-cases (list tc-open) opts))) 0))
+          (should (= (alist-get 'cached (cdr (fe-test-execute-cases (list tc-open) opts))) 0))
+          (should (stringp (fe-test-cache-key tc-herm xtask memo)))
+          (should (= (alist-get 'cached (cdr (fe-test-execute-cases (list tc-herm) opts))) 1)))))))
 
 (provide 'fe-test-self-tests)
 ;;; fe-test-self-tests.el ends here

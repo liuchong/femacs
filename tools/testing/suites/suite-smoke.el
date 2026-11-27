@@ -52,6 +52,7 @@
        :suite "smoke"
        :title "Terminal binary batch Lisp, treesit & SHA-256 smoke"
        :command (list term-emacs "--batch" "-Q" "--eval" batch-expr)
+       :env fe-test-hermetic-editor-env
        :timeout-ms 20000
        :cacheable (not (null term-inputs))
        :cache-inputs term-inputs
@@ -71,6 +72,7 @@
        :suite "smoke"
        :title "Cocoa binary batch Lisp, treesit & SHA-256 smoke"
        :command (list cocoa-bin "--batch" "-Q" "--eval" batch-expr)
+       :env fe-test-hermetic-editor-env
        :timeout-ms 20000
        :cacheable (not (null cocoa-inputs))
        :cache-inputs cocoa-inputs
@@ -90,6 +92,7 @@
        :suite "smoke"
        :title "Standalone femacs-lisp eval smoke"
        :command (list lisp-host "--batch" "-Q" "--eval" "(princ (+ 20 22))")
+       :env fe-test-hermetic-editor-env
        :timeout-ms 15000
        :cacheable (not (null lisp-inputs))
        :cache-inputs lisp-inputs

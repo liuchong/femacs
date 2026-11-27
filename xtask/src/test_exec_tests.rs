@@ -5,7 +5,10 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
 
-use super::{compute_digest, compute_mem_tree, finalize_children_reaped, run_supervise, spawn_pipe_drain};
+use super::{
+    ProcIdentity, ProcRow, TrackedTree, compute_digest, compute_mem_tree, finalize_children_reaped,
+    reap_tracked_tree_with, run_supervise, spawn_pipe_drain, verified_signal_targets,
+};
 
 struct TempTestDir {
     path: PathBuf,
@@ -259,4 +262,73 @@ fn finalize_children_reaped_requires_reap_and_drained_output() {
     assert!(!finalize_children_reaped(false, true, true));
     assert!(!finalize_children_reaped(true, false, true));
     assert!(!finalize_children_reaped(true, true, false));
+}
+
+fn sim_row(pid: u32, ppid: u32, pgid: u32, abstime: u64) -> (ProcRow, ProcIdentity) {
+    let row = ProcRow {
+        pid,
+        ppid,
+        pgid,
+        rss_bytes: 1024,
+        lstart: format!("t={abstime}"),
+    };
+    let ident = ProcIdentity {
+        start_abstime: Some(abstime),
+        lstart: row.lstart.clone(),
+    };
+    (row, ident)
+}
+
+#[test]
+fn reap_returns_false_when_process_table_snapshot_fails() {
+    let (r_root, _) = sim_row(5000, 1, 5000, 100);
+    let mut tree = TrackedTree::new_with_rows(5000, 999, 999, Some(&[r_root]));
+    tree.drop_root_after_wait();
+    let ok = reap_tracked_tree_with(
+        &mut tree,
+        || Err("simulated ps failure".to_string()),
+        |_tree, _survivors, _sig| {},
+    );
+    assert!(!ok, "snapshot failure must never report reaped=true");
+}
+
+#[test]
+fn tracked_tree_ignores_reused_root_pid_after_retirement() {
+    let (r_root, i_root) = sim_row(5000, 1, 5000, 100);
+    let mut tree = TrackedTree::new_with_rows(5000, 999, 999, None);
+    let alive1 = tree.refresh_with_ident(&[r_root], |_| i_root.clone());
+    assert_eq!(alive1.len(), 1);
+    assert_eq!(alive1[0].pid, 5000);
+
+    tree.drop_root_after_wait();
+
+    // Even if OS recycles root PID 5000 with cur >= base start time, retired root must stay ignored.
+    let (r_reused, i_reused) = sim_row(5000, 1, 5000, 200);
+    let alive2 = tree.refresh_with_ident(&[r_reused], |_| i_reused.clone());
+    assert!(alive2.is_empty(), "retired root PID must not re-anchor");
+}
+
+#[test]
+fn tracked_tree_ignores_reused_dead_pgid_and_derives_signals_only_from_verified_survivors() {
+    let (r_root, i_root) = sim_row(5000, 1, 5000, 100);
+    let (r_child, i_child) = sim_row(5001, 5000, 5001, 105);
+    let (r_unrelated, i_unrelated) = sim_row(9000, 1, 5001, 300);
+
+    let mut idents = std::collections::BTreeMap::new();
+    idents.insert(5000u32, i_root);
+    idents.insert(5001u32, i_child);
+    idents.insert(9000u32, i_unrelated);
+
+    let mut tree = TrackedTree::new_with_rows(5000, 999, 999, None);
+    let alive1 = tree.refresh_with_ident(&[r_root, r_child], |r| idents[&r.pid].clone());
+    assert_eq!(alive1.len(), 2);
+
+    // Root exits and retires; child 5001 also exits; unrelated PID 9000 reuses PGID 5001.
+    tree.drop_root_after_wait();
+    let alive2 = tree.refresh_with_ident(&[r_unrelated], |r| idents[&r.pid].clone());
+    assert!(alive2.is_empty(), "dead PGID reuse must not match unrelated process");
+
+    let (pgids, pids) = verified_signal_targets(&tree, &alive2);
+    assert!(pgids.is_empty(), "must not emit signals for dead historical PGIDs");
+    assert!(pids.is_empty());
 }

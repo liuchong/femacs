@@ -38,6 +38,13 @@
 (defvar fe-test-state-dir-override nil
   "Optional override for persistent state storage directory.")
 
+(defconst fe-test-hermetic-editor-env
+  '(("EMACSLOADPATH" . nil)
+    ("EMACSDATA" . nil)
+    ("EMACSDOC" . nil)
+    ("EMACSPATH" . nil))
+  "Environment overrides scrubbing external resource search-path variables.")
+
 (defun fe-test-clear-registry ()
   "Reset all registered test cases."
   (setq fe-test--registry nil))

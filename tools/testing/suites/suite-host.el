@@ -34,6 +34,7 @@
                      "    (let ((rc3 (call-process exe nil t nil \"--definitely-unknown-flag\")))"
                      "      (unless (eql rc3 2)"
                      "        (error \"expected exit 2, got %s\" rc3)))))"))
+     :env fe-test-hermetic-editor-env
      :timeout-ms 20000
      :cacheable cacheable
      :cache-inputs inputs
@@ -60,7 +61,7 @@
                      "            (unless (and (eql rc 0) (string= (string-trim (buffer-string)) \"[\\\"alpha\\\",\\\"beta\\\"]\"))"
                      "              (error \"script args mismatch: %s\" (buffer-string))))))"
                      "    (ignore-errors (delete-file tmp))))"))
-     :env (list (cons "TMPDIR" (fe-test-path "build/test-framework/tmp")))
+     :env (cons (cons "TMPDIR" (fe-test-path "build/test-framework/tmp")) fe-test-hermetic-editor-env)
      :timeout-ms 20000
      :cacheable cacheable
      :cache-inputs inputs
@@ -89,6 +90,7 @@
                      "        (unwind-protect (error \"inner\") (setq cleaned t))"
                      "      (error nil))"
                      "    (unless cleaned (error \"normal error unwind-protect did not run\"))))"))
+     :env fe-test-hermetic-editor-env
      :timeout-ms 25000
      :cacheable cacheable
      :cache-inputs inputs
@@ -125,6 +127,7 @@
                      "            (error \"repl missing 42: %S\" (buffer-string)))))"
                      "    (when (process-live-p proc) (ignore-errors (kill-process proc)))"
                      "    (kill-buffer buf)))"))
+     :env fe-test-hermetic-editor-env
      :timeout-ms 20000
      :cacheable cacheable
      :cache-inputs inputs
@@ -180,6 +183,7 @@
                      "        (accept-process-output nil 0.05)))"
                      "    (when (process-live-p proc) (ignore-errors (kill-process proc)))"
                      "    (kill-buffer buf)))"))
+     :env fe-test-hermetic-editor-env
      :timeout-ms 25000
      :cacheable cacheable
      :cache-inputs (and inputs (append (list http-host "examples/lisp-web/http-app.el" "examples/lisp-web/items-core.el") inputs))

@@ -1,3 +1,16 @@
+## 2026-11-27: Close `fe-test` R2 narrow edge cases (`ps` failure, mem-row guard, hermetic cache env, `CLN309`)
+
+Resolved the three remaining edge-case items from independent review of `8883b678`, added simulated-table & missing-row/env self-tests, ran targeted verification + static gates, and closed `CLN309`:
+- **Process-table error propagation, root retirement & active-PGID signaling (`xtask/src/test_exec.rs`)**:
+  - `snapshot_process_table()` now returns `Result<Vec<ProcRow>, String>`; `compute_mem_tree` exits non-zero on `ps` failure; `reap_tracked_tree_with` returns `false` when snapshots fail instead of mistaking empty/error for exited children.
+  - Added `root_retired` locked on `drop_root_after_wait()` so reused root PIDs cannot re-anchor, and updated `refresh_with_ident` / `verified_signal_targets` to derive active PGIDs and signals strictly from currently verified alive members.
+- **Memory-row guard & hermetic resource cache (`tools/testing/`)**:
+  - `fe-test--refresh-active-memory!` validates `femacs-test-mem-v1` and numeric `accounted_bytes` per active worker row, preserving prior observations/reservations on missing rows or failed `mem-tree` calls.
+  - `fe-test-cache-key` encodes `"unset"` (`nil`) vs `"set"` (`""`) and returns `nil` (cache disabled) when any un-scrubbed `EMACSLOADPATH`/`EMACSDATA`/`EMACSDOC`/`EMACSPATH` variable is active; `suite-{smoke,host,ert-core}.el` attach `fe-test-hermetic-editor-env`.
+- **Targeted verification (`bcfad7672d344109ba315315b6417c3c`, `7eb5a1b1affd43f6a02fb17c3948d898`) & `CLN309` (`b3559cdb8fdf407aa9952642ad81faef`, `18.869s`, `exit=0`, `cleanup_complete=true`)**:
+  - `xtask` **`132/132`** (incl. `3` new simulated-table tests), `--suite self` **`9/9`** (`6.515s`, incl. missing-row non-zeroing & `EMACSLOADPATH`/unset-vs-empty cache tests), targeted hermetic `smoke` (`7/7`), `host` (`5/5` cold & `5` cached), and `ert/eval-tests` (`1/1` cold & `1` cached).
+  - Retired `build/cargo`, `build/test-framework`, and `8` scratch subdirs (`1,901` files, `671` dirs, `2` symlinks, `296,224,827` B); post-cleanup verified empty `diff -rq`, strict `codesign`, `femacs-lisp 42`, `Fe.app (42 t t nil t)`, `emacsclient 32.0.50`, all `5` static Python gates (`445` active files, `152` `forbid`, `6,345/6,345` `SAFETY:`, `0` errors), empty `build/`, and absent `tools/__pycache__`. [CLN309](../maintenance/cleanup/reports/2026-11-27-309-fe-test-r2-review-closure.md).
+
 ## 2026-11-27: Harden `fe-test` reaping, admission retention & closure cache (`R1` review, `CLN308`)
 
 Resolved the three technical blockers and metric naming flaw raised in FEmacs Codex's independent review of `0086066a` / `b12d7e4e`, added protective Rust and Elisp unit tests, re-verified cold/warm `fe-test` integration and static gates, and closed `CLN308`:

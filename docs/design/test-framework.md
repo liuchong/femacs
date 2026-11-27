@@ -93,7 +93,7 @@ Note on path sharing: `crates/femacs-sys/src/lib.rs` declares `extern crate self
 
 - **Profile Ledger (`profile.json`, `femacs-test-profile-v1`)**: Per-case `{ runs, status, updatedAt, elapsedMs, peakRssBytes, peakFootprintBytes }` updated via EWMA (`round(0.7 * latest + 0.3 * prev)`).
 - **Failure Ledger (`last-failures.json`, `femacs-test-failures-v1`)**: `{ format, suite, updatedAt, failedTests }` consumed by `--rerun-failed`.
-- **Result Cache (`result-cache/<sha256>.json`, `femacs-test-cache-v1`)**: Stores passed cacheable case verdicts keyed by SHA-256 over case identity, exact command/env, complete product runtime closure (`binary`, `.pdmp`, `lisp/`, `etc/`, bundled shared runtimes — disabling cache automatically when the runtime closure cannot be resolved), declared test inputs, and framework digest.
+- **Result Cache (`result-cache/<sha256>.json`, `femacs-test-cache-v1`)**: Stores passed cacheable case verdicts keyed by SHA-256 over case identity, exact command/env (distinguishing `--unset-env` from `--env K=`), complete product runtime closure (`binary`, `.pdmp`, `lisp/`, `etc/`, bundled shared runtimes — scrubbing external `EMACSLOADPATH`/`EMACSDATA`/`EMACSDOC`/`EMACSPATH` on hermetic suites and automatically disabling cache when external resource overrides remain active or the runtime closure cannot be resolved), declared test inputs, and framework digest.
 - **Run Report (`latest-report.json`, `femacs-test-report-v1`)**: `{ format, suite, total, passed, failed, cached, unstarted, cancelled, wallMs, cumulativeCaseMs, observedConcurrency, peakAggregateRssBytes, peakAggregateRssMiB, admissionPauses, slowest, failedTests, cases }`.
 
 ### 5.3 High-Frequency Core Suites (`tools/testing/suites/`)

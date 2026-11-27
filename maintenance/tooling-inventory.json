@@ -8710,8 +8710,8 @@
     },
     {
       "path": "tools/testing/fe-test-cache.el",
-      "sha256": "8c87e2b34b4407a82895ea7f474d067783e25765e9cf102ef9c016b91209acef",
-      "bytes": 6594,
+      "sha256": "af574a4ad60d8fcffbd1f6e8a048ba26b0bcbe8e1b4d756134470581de8b5a6f",
+      "bytes": 7512,
       "family": "test",
       "decision": "retain",
       "replacement": null,
@@ -8729,13 +8729,13 @@
         }
       ],
       "uncertainty": null,
-      "current_sha256": "8c87e2b34b4407a82895ea7f474d067783e25765e9cf102ef9c016b91209acef",
-      "current_bytes": 6594
+      "current_sha256": "af574a4ad60d8fcffbd1f6e8a048ba26b0bcbe8e1b4d756134470581de8b5a6f",
+      "current_bytes": 7512
     },
     {
       "path": "tools/testing/fe-test-dsl.el",
-      "sha256": "0b9221ccf2bb9d6fb93407718f9f8d1a4e935f97870f53c4431ec39d7efc0e8f",
-      "bytes": 12931,
+      "sha256": "2b164227cf0f875d3aabb37bcedb7c7bbfc6ea6dd07224aafd971febea5e4144",
+      "bytes": 13148,
       "family": "test",
       "decision": "retain",
       "replacement": null,
@@ -8753,8 +8753,8 @@
         }
       ],
       "uncertainty": null,
-      "current_sha256": "0b9221ccf2bb9d6fb93407718f9f8d1a4e935f97870f53c4431ec39d7efc0e8f",
-      "current_bytes": 12931
+      "current_sha256": "2b164227cf0f875d3aabb37bcedb7c7bbfc6ea6dd07224aafd971febea5e4144",
+      "current_bytes": 13148
     },
     {
       "path": "tools/testing/fe-test-profile.el",
@@ -8804,8 +8804,8 @@
     },
     {
       "path": "tools/testing/fe-test-scheduler.el",
-      "sha256": "50db490398db97aa38c16994ecd18017ee9877114bbe271b5fa547a6b8d0d621",
-      "bytes": 21532,
+      "sha256": "1b80df08341dda10b6a5b50b8661f6d2d407df3844c7d28ca99c8a098548f82a",
+      "bytes": 21742,
       "family": "test",
       "decision": "retain",
       "replacement": null,
@@ -8823,8 +8823,8 @@
         }
       ],
       "uncertainty": null,
-      "current_sha256": "50db490398db97aa38c16994ecd18017ee9877114bbe271b5fa547a6b8d0d621",
-      "current_bytes": 21532
+      "current_sha256": "1b80df08341dda10b6a5b50b8661f6d2d407df3844c7d28ca99c8a098548f82a",
+      "current_bytes": 21742
     },
     {
       "path": "tools/testing/fe-test.el",
@@ -8850,8 +8850,8 @@
     },
     {
       "path": "tools/testing/suites/suite-ert-core.el",
-      "sha256": "44c3f9a91ec7597eb67b04a0ae508055f86a967860193bc849668192641ba965",
-      "bytes": 2343,
+      "sha256": "fb2c4f1b564aca8f1e6d8dfb29b4688b14633db509109ccbe51454ed1b718b5c",
+      "bytes": 2376,
       "family": "test",
       "decision": "retain",
       "replacement": null,
@@ -8869,13 +8869,13 @@
         }
       ],
       "uncertainty": null,
-      "current_sha256": "44c3f9a91ec7597eb67b04a0ae508055f86a967860193bc849668192641ba965",
-      "current_bytes": 2343
+      "current_sha256": "fb2c4f1b564aca8f1e6d8dfb29b4688b14633db509109ccbe51454ed1b718b5c",
+      "current_bytes": 2376
     },
     {
       "path": "tools/testing/suites/suite-host.el",
-      "sha256": "d129b2c7dee4b0ff736294881a34e9413faf9cad72e3dde7069c589dfe49ae9a",
-      "bytes": 11590,
+      "sha256": "821a518d9a1699af27c3158eced96626e56429328618ba78f75d3623b16fcdc6",
+      "bytes": 11770,
       "family": "test",
       "decision": "retain",
       "replacement": null,
@@ -8893,13 +8893,13 @@
         }
       ],
       "uncertainty": null,
-      "current_sha256": "d129b2c7dee4b0ff736294881a34e9413faf9cad72e3dde7069c589dfe49ae9a",
-      "current_bytes": 11590
+      "current_sha256": "821a518d9a1699af27c3158eced96626e56429328618ba78f75d3623b16fcdc6",
+      "current_bytes": 11770
     },
     {
       "path": "tools/testing/suites/suite-smoke.el",
-      "sha256": "aa631a79365e7652d949f27e1dea197486b68d00aa4b9af49a968ce81283578e",
-      "bytes": 5829,
+      "sha256": "338ada4957cddb4c56ffbe08f90e2cf2c17719b15f9ce5e9ed48148b4c7d64fa",
+      "bytes": 5949,
       "family": "test",
       "decision": "retain",
       "replacement": null,
@@ -8917,8 +8917,8 @@
         }
       ],
       "uncertainty": null,
-      "current_sha256": "aa631a79365e7652d949f27e1dea197486b68d00aa4b9af49a968ce81283578e",
-      "current_bytes": 5829
+      "current_sha256": "338ada4957cddb4c56ffbe08f90e2cf2c17719b15f9ce5e9ed48148b4c7d64fa",
+      "current_bytes": 5949
     },
     {
       "path": "tools/testing/suites/suite-static.el",
@@ -8944,8 +8944,8 @@
     },
     {
       "path": "tools/testing/tests/fe-test-self-tests.el",
-      "sha256": "468271cdf6f34de81a5b364b5321f7c76237d20905e387209a8c65b3bb67dece",
-      "bytes": 20809,
+      "sha256": "4f276ab7505b2ce1f7961312328c673f8aa5720630f89d99cefc65d277b1405f",
+      "bytes": 25337,
       "family": "test",
       "decision": "retain",
       "replacement": null,
@@ -8963,8 +8963,8 @@
         }
       ],
       "uncertainty": null,
-      "current_sha256": "468271cdf6f34de81a5b364b5321f7c76237d20905e387209a8c65b3bb67dece",
-      "current_bytes": 20809
+      "current_sha256": "4f276ab7505b2ce1f7961312328c673f8aa5720630f89d99cefc65d277b1405f",
+      "current_bytes": 25337
     }
   ],
   "cleanup_manifests": [

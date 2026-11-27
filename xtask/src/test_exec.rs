@@ -300,15 +300,13 @@ fn spawn_pipe_drain<R: Read + Send + 'static>(
     PipeDrain { done_rx, snapshot }
 }
 
-fn snapshot_process_table() -> Vec<ProcRow> {
-    let Ok(out) = Command::new("ps")
+fn snapshot_process_table() -> Result<Vec<ProcRow>, String> {
+    let out = Command::new("ps")
         .args(["-o", "pid=,ppid=,pgid=,rss=,lstart=", "-ax"])
         .output()
-    else {
-        return Vec::new();
-    };
+        .map_err(|e| format!("failed to run ps: {e}"))?;
     if !out.status.success() {
-        return Vec::new();
+        return Err(format!("ps exited with status {}", out.status));
     }
     let text = String::from_utf8_lossy(&out.stdout);
     let mut rows = Vec::new();
@@ -336,7 +334,7 @@ fn snapshot_process_table() -> Vec<ProcRow> {
             lstart,
         });
     }
-    rows
+    Ok(rows)
 }
 
 fn collect_tree_closure(rows: &[ProcRow], root_pid: u32) -> BTreeSet<u32> {
@@ -360,49 +358,65 @@ fn collect_tree_closure(rows: &[ProcRow], root_pid: u32) -> BTreeSet<u32> {
 
 struct TrackedTree {
     root_pid: u32,
+    root_retired: bool,
     self_pid: u32,
     self_pgid: u32,
     launch_start_abstime: Option<u64>,
     procs: BTreeMap<u32, ProcIdentity>,
-    pgids: BTreeSet<u32>,
 }
 
 impl TrackedTree {
-    fn new(root_pid: u32) -> Self {
-        let self_pid = std::process::id();
-        let self_pgid = os_ffi::current_pgid();
-        let mut pgids = BTreeSet::new();
-        if root_pid > 1 && root_pid != self_pgid {
-            pgids.insert(root_pid);
-        }
-        let rows = snapshot_process_table();
-        let launch_start_abstime = rows
-            .iter()
-            .find(|r| r.pid == root_pid)
-            .and_then(|r| proc_identity_for_row(r).start_abstime);
+    fn new_with_rows(
+        root_pid: u32,
+        self_pid: u32,
+        self_pgid: u32,
+        rows: Option<&[ProcRow]>,
+    ) -> Self {
         let mut tree = Self {
             root_pid,
+            root_retired: false,
             self_pid,
             self_pgid,
-            launch_start_abstime,
+            launch_start_abstime: None,
             procs: BTreeMap::new(),
-            pgids,
         };
-        let _ = tree.refresh(&rows);
+        if let Some(initial_rows) = rows {
+            tree.launch_start_abstime = initial_rows
+                .iter()
+                .find(|r| r.pid == root_pid)
+                .and_then(|r| proc_identity_for_row(r).start_abstime);
+            let _ = tree.refresh(initial_rows);
+        }
         tree
     }
 
-    fn record_pgid(&mut self, pgid: u32) {
-        if pgid > 1 && pgid != self.self_pgid && pgid != self.self_pid {
-            self.pgids.insert(pgid);
-        }
+    fn new(root_pid: u32) -> Self {
+        let rows = snapshot_process_table().ok();
+        Self::new_with_rows(
+            root_pid,
+            std::process::id(),
+            os_ffi::current_pgid(),
+            rows.as_deref(),
+        )
+    }
+
+    fn is_safe_pgid(&self, pgid: u32) -> bool {
+        pgid > 1 && pgid != self.self_pgid && pgid != self.self_pid
     }
 
     fn drop_root_after_wait(&mut self) {
+        self.root_retired = true;
         self.procs.remove(&self.root_pid);
     }
 
     fn refresh(&mut self, rows: &[ProcRow]) -> Vec<ProcRow> {
+        self.refresh_with_ident(rows, proc_identity_for_row)
+    }
+
+    fn refresh_with_ident<F>(&mut self, rows: &[ProcRow], mut ident_fn: F) -> Vec<ProcRow>
+    where
+        F: FnMut(&ProcRow) -> ProcIdentity,
+    {
         let mut by_pid: BTreeMap<u32, &ProcRow> = BTreeMap::new();
         for row in rows {
             by_pid.insert(row.pid, row);
@@ -410,17 +424,16 @@ impl TrackedTree {
 
         let mut alive_pids = BTreeSet::new();
         let mut recycled_pids = Vec::new();
+        let mut active_pgids = BTreeSet::new();
 
         for (&pid, recorded) in &self.procs {
             if let Some(&row) = by_pid.get(&pid) {
-                let live_ident = proc_identity_for_row(row);
+                let live_ident = ident_fn(row);
                 if same_identity(recorded, &live_ident) {
                     alive_pids.insert(pid);
-                    self.pgids.extend(
-                        [row.pgid]
-                            .into_iter()
-                            .filter(|&pg| pg > 1 && pg != self.self_pgid && pg != self.self_pid),
-                    );
+                    if self.is_safe_pgid(row.pgid) {
+                        active_pgids.insert(row.pgid);
+                    }
                 } else {
                     recycled_pids.push(pid);
                 }
@@ -430,35 +443,34 @@ impl TrackedTree {
             self.procs.remove(&pid);
         }
 
-        if let Some(&root_row) = by_pid.get(&self.root_pid) {
-            if let Some(recorded) = self.procs.get(&self.root_pid) {
-                let live_ident = proc_identity_for_row(root_row);
-                if same_identity(recorded, &live_ident) {
-                    alive_pids.insert(self.root_pid);
-                }
-            } else {
-                let ident = proc_identity_for_row(root_row);
-                if self.launch_start_abstime.is_none() {
-                    self.launch_start_abstime = ident.start_abstime;
-                }
-                let ok_time = match (self.launch_start_abstime, ident.start_abstime) {
-                    (Some(base), Some(cur)) => cur >= base,
-                    _ => true,
-                };
-                if ok_time {
-                    self.procs.insert(self.root_pid, ident);
-                    self.record_pgid(root_row.pgid);
-                    alive_pids.insert(self.root_pid);
+        if !self.root_retired {
+            if let Some(&root_row) = by_pid.get(&self.root_pid) {
+                if !self.procs.contains_key(&self.root_pid) {
+                    let ident = ident_fn(root_row);
+                    if self.launch_start_abstime.is_none() {
+                        self.launch_start_abstime = ident.start_abstime;
+                    }
+                    let ok_time = match (self.launch_start_abstime, ident.start_abstime) {
+                        (Some(base), Some(cur)) => cur >= base,
+                        _ => true,
+                    };
+                    if ok_time {
+                        self.procs.insert(self.root_pid, ident);
+                        alive_pids.insert(self.root_pid);
+                        if self.is_safe_pgid(root_row.pgid) {
+                            active_pgids.insert(root_row.pgid);
+                        }
+                    }
                 }
             }
         }
 
         for row in rows {
-            if row.pid <= 1 || row.pid == self.self_pid {
+            if row.pid <= 1 || row.pid == self.self_pid || (self.root_retired && row.pid == self.root_pid) {
                 continue;
             }
-            if self.pgids.contains(&row.pgid) && !self.procs.contains_key(&row.pid) {
-                let ident = proc_identity_for_row(row);
+            if active_pgids.contains(&row.pgid) && !self.procs.contains_key(&row.pid) {
+                let ident = ident_fn(row);
                 let ok_time = match (self.launch_start_abstime, ident.start_abstime) {
                     (Some(base), Some(cur)) => cur >= base,
                     _ => true,
@@ -473,13 +485,19 @@ impl TrackedTree {
         let mut queue: VecDeque<u32> = alive_pids.iter().copied().collect();
         while let Some(cur) = queue.pop_front() {
             for row in rows {
-                if row.pid <= 1 || row.pid == self.self_pid || row.ppid != cur {
+                if row.pid <= 1
+                    || row.pid == self.self_pid
+                    || (self.root_retired && row.pid == self.root_pid)
+                    || row.ppid != cur
+                {
                     continue;
                 }
                 if alive_pids.insert(row.pid) {
-                    let ident = proc_identity_for_row(row);
+                    let ident = ident_fn(row);
                     self.procs.entry(row.pid).or_insert(ident);
-                    self.record_pgid(row.pgid);
+                    if self.is_safe_pgid(row.pgid) {
+                        active_pgids.insert(row.pgid);
+                    }
                     queue.push_back(row.pid);
                 }
             }
@@ -569,29 +587,42 @@ fn pid_memory_or_fallback(pid: u32, ps_rss_bytes: u64) -> (u64, u64) {
     }
 }
 
-fn signal_tree_snapshot(tree: &TrackedTree, survivors: &[ProcRow], sig: i32) {
-    for &pgid_u32 in &tree.pgids {
-        if let Ok(pgid) = i32::try_from(pgid_u32) {
-            if pgid > 1 {
-                let _ = os_ffi::signal_process_group(pgid, sig);
+fn verified_signal_targets(tree: &TrackedTree, survivors: &[ProcRow]) -> (BTreeSet<i32>, Vec<i32>) {
+    let mut pgids = BTreeSet::new();
+    let mut pids = Vec::with_capacity(survivors.len());
+    for row in survivors {
+        if tree.is_safe_pgid(row.pgid) {
+            if let Ok(pgid) = i32::try_from(row.pgid) {
+                pgids.insert(pgid);
+            }
+        }
+        if row.pid > 1 && row.pid != tree.self_pid {
+            if let Ok(pid) = i32::try_from(row.pid) {
+                pids.push(pid);
             }
         }
     }
-    for row in survivors {
-        if row.pid > 1 && row.pid != tree.self_pid {
-            if let Ok(pid) = i32::try_from(row.pid) {
-                let _ = os_ffi::signal_process(pid, sig);
-            }
-        }
+    (pgids, pids)
+}
+
+fn signal_tree_snapshot(tree: &TrackedTree, survivors: &[ProcRow], sig: i32) {
+    let (pgids, pids) = verified_signal_targets(tree, survivors);
+    for pgid in pgids {
+        let _ = os_ffi::signal_process_group(pgid, sig);
+    }
+    for pid in pids {
+        let _ = os_ffi::signal_process(pid, sig);
     }
 }
 
 fn terminate_tracked_tree(child: &mut Child, tree: &mut TrackedTree) {
-    let initial = tree.refresh(&snapshot_process_table());
-    signal_tree_snapshot(tree, &initial, os_ffi::SIGTERM);
-    if let Ok(root_pg) = i32::try_from(tree.root_pid) {
-        if root_pg > 1 {
-            let _ = os_ffi::signal_process_group(root_pg, os_ffi::SIGTERM);
+    if let Ok(rows) = snapshot_process_table() {
+        let initial = tree.refresh(&rows);
+        signal_tree_snapshot(tree, &initial, os_ffi::SIGTERM);
+    }
+    if !tree.root_retired {
+        if let Ok(root_pid) = i32::try_from(tree.root_pid) {
+            let _ = os_ffi::signal_process(root_pid, os_ffi::SIGTERM);
         }
     }
     let grace_deadline = Instant::now() + Duration::from_millis(200);
@@ -603,44 +634,78 @@ fn terminate_tracked_tree(child: &mut Child, tree: &mut TrackedTree) {
                 Ok(None) => {}
             }
         }
-        let rem = tree.refresh(&snapshot_process_table());
-        let non_root_alive = rem.iter().any(|r| r.pid != tree.root_pid);
-        if child_done && !non_root_alive {
-            return;
+        if let Ok(rows) = snapshot_process_table() {
+            let rem = tree.refresh(&rows);
+            let non_root_alive = rem.iter().any(|r| r.pid != tree.root_pid);
+            if child_done && !non_root_alive {
+                return;
+            }
         }
         thread::sleep(Duration::from_millis(20));
     }
-    let survivors = tree.refresh(&snapshot_process_table());
-    signal_tree_snapshot(tree, &survivors, os_ffi::SIGKILL);
+    if let Ok(rows) = snapshot_process_table() {
+        let survivors = tree.refresh(&rows);
+        signal_tree_snapshot(tree, &survivors, os_ffi::SIGKILL);
+    }
     let _ = child.kill();
 }
 
-fn reap_tracked_tree(tree: &mut TrackedTree) -> bool {
-    let mut survivors = tree.refresh(&snapshot_process_table());
-    if survivors.is_empty() {
-        return true;
-    }
+fn reap_tracked_tree_with<S, F>(tree: &mut TrackedTree, mut snap_fn: S, mut signal_fn: F) -> bool
+where
+    S: FnMut() -> Result<Vec<ProcRow>, String>,
+    F: FnMut(&TrackedTree, &[ProcRow], i32),
+{
+    let mut last_survivors: Vec<ProcRow> = Vec::new();
+    let mut signaled_term = false;
 
-    signal_tree_snapshot(tree, &survivors, os_ffi::SIGTERM);
     let term_deadline = Instant::now() + Duration::from_millis(200);
-    while Instant::now() < term_deadline {
-        survivors = tree.refresh(&snapshot_process_table());
-        if survivors.is_empty() {
-            return true;
+    loop {
+        if let Ok(rows) = snap_fn() {
+            let survivors = tree.refresh(&rows);
+            if survivors.is_empty() {
+                return true;
+            }
+            last_survivors = survivors;
+            if !signaled_term {
+                signal_fn(tree, &last_survivors, os_ffi::SIGTERM);
+                signaled_term = true;
+            }
+        }
+        if Instant::now() >= term_deadline {
+            break;
         }
         thread::sleep(Duration::from_millis(20));
     }
 
-    signal_tree_snapshot(tree, &survivors, os_ffi::SIGKILL);
+    if !last_survivors.is_empty() {
+        signal_fn(tree, &last_survivors, os_ffi::SIGKILL);
+    }
+    let mut signaled_kill = !last_survivors.is_empty();
     let kill_deadline = Instant::now() + Duration::from_millis(300);
-    while Instant::now() < kill_deadline {
-        survivors = tree.refresh(&snapshot_process_table());
-        if survivors.is_empty() {
-            return true;
+    loop {
+        if let Ok(rows) = snap_fn() {
+            let survivors = tree.refresh(&rows);
+            if survivors.is_empty() {
+                return true;
+            }
+            if !signaled_kill {
+                signal_fn(tree, &survivors, os_ffi::SIGKILL);
+                signaled_kill = true;
+            }
+        }
+        if Instant::now() >= kill_deadline {
+            break;
         }
         thread::sleep(Duration::from_millis(20));
     }
-    tree.refresh(&snapshot_process_table()).is_empty()
+    match snap_fn() {
+        Ok(rows) => tree.refresh(&rows).is_empty(),
+        Err(_) => false,
+    }
+}
+
+fn reap_tracked_tree(tree: &mut TrackedTree) -> bool {
+    reap_tracked_tree_with(tree, snapshot_process_table, signal_tree_snapshot)
 }
 
 fn build_child_command(spec: &SuperviseSpec) -> Command {
@@ -711,18 +776,19 @@ fn run_supervise(args: &[String]) -> Result<SuperviseReceipt, String> {
             ));
         }
 
-        let rows = snapshot_process_table();
-        let alive = tree.refresh(&rows);
-        if !alive.is_empty() {
-            let (rss, fp, acc, count) = sample_tracked_memory(&alive);
-            peak_rss_bytes = peak_rss_bytes.max(rss);
-            peak_footprint_bytes = peak_footprint_bytes.max(fp);
-            peak_accounted_bytes = peak_accounted_bytes.max(acc);
-            max_tree_pids = max_tree_pids.max(count);
-            if spec.memory_limit_bytes > 0 && acc > spec.memory_limit_bytes {
-                memory_exceeded = true;
-                terminate_tracked_tree(&mut child, &mut tree);
-                break child.wait().map_err(|e| e.to_string())?;
+        if let Ok(rows) = snapshot_process_table() {
+            let alive = tree.refresh(&rows);
+            if !alive.is_empty() {
+                let (rss, fp, acc, count) = sample_tracked_memory(&alive);
+                peak_rss_bytes = peak_rss_bytes.max(rss);
+                peak_footprint_bytes = peak_footprint_bytes.max(fp);
+                peak_accounted_bytes = peak_accounted_bytes.max(acc);
+                max_tree_pids = max_tree_pids.max(count);
+                if spec.memory_limit_bytes > 0 && acc > spec.memory_limit_bytes {
+                    memory_exceeded = true;
+                    terminate_tracked_tree(&mut child, &mut tree);
+                    break child.wait().map_err(|e| e.to_string())?;
+                }
             }
         }
 
@@ -789,7 +855,7 @@ fn compute_mem_tree(args: &[String]) -> Result<MemTreeReceipt, String> {
             .map_err(|_| format!("invalid PID: {raw}"))?;
         roots.push(pid);
     }
-    let rows = snapshot_process_table();
+    let rows = snapshot_process_table()?;
     let (total_rss, total_fp, total_acc, per_pid) = sample_pid_memories(&rows, &roots);
     Ok(MemTreeReceipt {
         schema: "femacs-test-mem-v1",

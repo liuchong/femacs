@@ -44,7 +44,7 @@
                             "-l" "ert"
                             "-l" rel
                             "--eval" "(ert-run-tests-batch-and-exit '(not (tag :expensive-test)))")
-             :env '(("LC_ALL" . "C"))
+             :env (cons '("LC_ALL" . "C") fe-test-hermetic-editor-env)
              :timeout-ms 120000
              :heavy (member base '("buffer-tests" "editfns-tests" "fns-tests" "eval-tests" "sort-tests"))
              :cacheable (not (null runtime-inputs))
