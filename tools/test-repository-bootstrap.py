@@ -30,7 +30,7 @@ def main():
 
     def layout():
         assert not (ROOT/'femacs').exists(), 'old implementation root remains'
-        for p in ['Cargo.toml', 'rust-toolchain.toml', 'src/emacs.rs',
+        for p in ['Cargo.toml', 'rust-toolchain.toml', 'crates/lisp-vm/src/ported/src/emacs.rs',
                   'platform/macos/nsterm.swift', 'xtask/src/main.rs',
                   'lisp/ldefs-boot.el', 'admin/unidata/UnicodeData.txt',
                   'admin/grammars/c.by', 'leim/MISC-DIC/pinyin.map']:
@@ -57,7 +57,8 @@ def main():
                 assert (base/name).is_file(), base/name
             for obj in (base/'objects.txt').read_text().split():
                 stem = Path(obj).stem
-                assert (ROOT/'src'/(stem+'.rs')).exists() or (
+                assert (ROOT/'crates/lisp-vm/src/ported/src'/(stem+'.rs')).exists() or (
+                    ROOT/'src'/(stem+'.rs')).exists() or (
                     ROOT/'platform/macos'/(stem+'.swift')).exists(), obj
         recipes = json.loads((ROOT/'build-support/generator-recipes.json').read_text())
         assert len(recipes['charsets']) > 100

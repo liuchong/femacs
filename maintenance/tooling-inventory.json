@@ -641,7 +641,9 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively",
+      "current_sha256": "df6c4a8b53f4d2804913d318a79108e1dd67d2528f84c21bfac3e52a8df7c23f",
+      "current_bytes": 1801
     },
     {
       "path": "spikes/mirror-struct-coverage.py",
@@ -3838,7 +3840,7 @@
     {
       "path": "tools/gen-macos-exports.py",
       "sha256": "9c2bbf8553bcab9884def8a60a08bf9ed5d774f65778fe955c4fca933b2f25d1",
-      "bytes": 17783,
+      "bytes": 18063,
       "git_blob": "41e3557f66dd7ca007f70463532c42ca8d4198bf",
       "family": "generator",
       "readers": [
@@ -3852,13 +3854,13 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "ca33fd37e978b1b4a855db0bbfaee92326987e3e68e1fc9a714d75d4b154f7b2",
+      "current_sha256": "f78aec69e408784fada16019853729882be584b51a212680555b79e3a9da6e26",
       "current_bytes": 17783
     },
     {
       "path": "tools/gen-macos-runtime.py",
       "sha256": "ef546e084dab90cacdfdd460ae43b711a58bb5ef3aa1f7e2b39ea754c75d99dc",
-      "bytes": 5063,
+      "bytes": 5280,
       "git_blob": "d86fbaadbc96b89f4fe4f3d2660b196a47063cc4",
       "family": "generator",
       "readers": [
@@ -3877,7 +3879,7 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "c77b861c3b9f450eaa7b7701f1eac6592b177c3aeffc0c12d02de4e08dcd6f49",
+      "current_sha256": "d4923bb9f6caa4add26d9bbbee58ac699c1232c94972cd83d181ec3f3d9c379a",
       "current_bytes": 5183
     },
     {
@@ -4508,7 +4510,7 @@
     {
       "path": "tools/test-repository-bootstrap.py",
       "sha256": "90eba0454de81cf6408e0046d59973e926eaddab1dee6f45b2f7b4da56d7d457",
-      "bytes": 4310,
+      "bytes": 4495,
       "git_blob": "4988ed61de7439b3dcb90b28b83be4de98ec1973",
       "family": "test",
       "readers": [
@@ -4527,7 +4529,7 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "37810ddc29ff6d2ffb471ef60095ff6ff389b41202f4d6345c9ddae5f1ded1c6",
+      "current_sha256": "b95077b041f508e286e369038c6884d5ed0e20b347e7ca1af07878568de03484",
       "current_bytes": 4384
     },
     {
@@ -4716,8 +4718,8 @@
     },
     {
       "path": "tools/check-cli-options.py",
-      "sha256": "4d784f7b36a4288e286fb78aa9d8d31112ad6de932694b9a10ca5aab87648c7f",
-      "bytes": 3000,
+      "sha256": "7d3ccda26e7c47d1336361d6b681183d0356d45db0f4f2aab105e7af1e3301ce",
+      "bytes": 3066,
       "family": "comparison-gate",
       "decision": "retain",
       "replacement": null,
@@ -8248,8 +8250,8 @@
     },
     {
       "path": "tools/test-tooling-modernization.py",
-      "sha256": "09ad3158ea26f67d8b3a88559017edd9015097651180a001427938c4d147c7c2",
-      "bytes": 35328,
+      "sha256": "46d67d4d2b5c497394db66cc0ee4d814a65071374e4d6a60fa5517d3d9b8bdae",
+      "bytes": 35475,
       "family": "test",
       "decision": "retain",
       "replacement": null,
@@ -8642,8 +8644,8 @@
     },
     {
       "path": "tools/unsafe-boundary-manifest.json",
-      "sha256": "a77299415cce7fe05023af9cbf2dca4ff2e24f5b2b74836fbbf8ef738269e5d1",
-      "bytes": 146999,
+      "sha256": "563b60bcf32a4bac8d5e6da754b4a601b815f3482310d97ec85d9a6f102ec446",
+      "bytes": 156199,
       "family": "fixture",
       "decision": "retain",
       "replacement": null,
@@ -8656,13 +8658,13 @@
         }
       ],
       "uncertainty": null,
-      "current_sha256": "a77299415cce7fe05023af9cbf2dca4ff2e24f5b2b74836fbbf8ef738269e5d1",
-      "current_bytes": 146999
+      "current_sha256": "563b60bcf32a4bac8d5e6da754b4a601b815f3482310d97ec85d9a6f102ec446",
+      "current_bytes": 156199
     },
     {
       "path": "tools/version_resources.py",
-      "sha256": "273aa39df8409b4c91c37ec7afc415d95f21e185314bd3724193362e45bee17f",
-      "bytes": 780,
+      "sha256": "e3a31fb945724828cfd858f9fb8701d5c4059f336d23e03a80929c300761fabc",
+      "bytes": 878,
       "family": "generator",
       "decision": "retain",
       "replacement": null,
@@ -8711,7 +8713,7 @@
     {
       "path": "tools/testing/fe-test-cache.el",
       "sha256": "af574a4ad60d8fcffbd1f6e8a048ba26b0bcbe8e1b4d756134470581de8b5a6f",
-      "bytes": 7512,
+      "bytes": 7535,
       "family": "test",
       "decision": "retain",
       "replacement": null,
@@ -8729,13 +8731,13 @@
         }
       ],
       "uncertainty": null,
-      "current_sha256": "af574a4ad60d8fcffbd1f6e8a048ba26b0bcbe8e1b4d756134470581de8b5a6f",
+      "current_sha256": "e0727c999c057eb167124906add488313cab148dfdd2bbeb2285106b71363af0",
       "current_bytes": 7512
     },
     {
       "path": "tools/testing/fe-test-dsl.el",
-      "sha256": "2b164227cf0f875d3aabb37bcedb7c7bbfc6ea6dd07224aafd971febea5e4144",
-      "bytes": 13148,
+      "sha256": "a27775465d2febc8c01f4e0d12dbce9b4a2a0e04e6cc0b129e34efa31d4bfab5",
+      "bytes": 14792,
       "family": "test",
       "decision": "retain",
       "replacement": null,
@@ -8753,8 +8755,8 @@
         }
       ],
       "uncertainty": null,
-      "current_sha256": "2b164227cf0f875d3aabb37bcedb7c7bbfc6ea6dd07224aafd971febea5e4144",
-      "current_bytes": 13148
+      "current_sha256": "a27775465d2febc8c01f4e0d12dbce9b4a2a0e04e6cc0b129e34efa31d4bfab5",
+      "current_bytes": 14792
     },
     {
       "path": "tools/testing/fe-test-profile.el",
@@ -8804,8 +8806,8 @@
     },
     {
       "path": "tools/testing/fe-test-scheduler.el",
-      "sha256": "1b80df08341dda10b6a5b50b8661f6d2d407df3844c7d28ca99c8a098548f82a",
-      "bytes": 21742,
+      "sha256": "9dd4fa6eac22f85d03a3400dc96bfb987669d0a35ed49fec750e09da13bce4cb",
+      "bytes": 21875,
       "family": "test",
       "decision": "retain",
       "replacement": null,
@@ -8823,13 +8825,13 @@
         }
       ],
       "uncertainty": null,
-      "current_sha256": "1b80df08341dda10b6a5b50b8661f6d2d407df3844c7d28ca99c8a098548f82a",
-      "current_bytes": 21742
+      "current_sha256": "9dd4fa6eac22f85d03a3400dc96bfb987669d0a35ed49fec750e09da13bce4cb",
+      "current_bytes": 21875
     },
     {
       "path": "tools/testing/fe-test.el",
-      "sha256": "8dcab6fe9e25e050ff1396e22ba9337c95345daab0c25bcc67ecb9fee6f08c41",
-      "bytes": 12370,
+      "sha256": "351ba19c0c497c2d9d2183683846acf028b8b9bcd4efa4ebd93ae9df73f16cb2",
+      "bytes": 12576,
       "family": "test",
       "decision": "retain",
       "replacement": null,
@@ -8922,8 +8924,8 @@
     },
     {
       "path": "tools/testing/suites/suite-static.el",
-      "sha256": "c485be25c7c4b5e0aa962ff3446e0b26051e65ee034d703d158018a0bca3aba9",
-      "bytes": 4520,
+      "sha256": "286442bf45f38ca2f914a57ff096945cb4f23acc0f619ba871d0bf2dd520a30b",
+      "bytes": 4529,
       "family": "test",
       "decision": "retain",
       "replacement": null,
@@ -8945,7 +8947,7 @@
     {
       "path": "tools/testing/tests/fe-test-self-tests.el",
       "sha256": "4f276ab7505b2ce1f7961312328c673f8aa5720630f89d99cefc65d277b1405f",
-      "bytes": 25337,
+      "bytes": 25685,
       "family": "test",
       "decision": "retain",
       "replacement": null,
@@ -8963,7 +8965,7 @@
         }
       ],
       "uncertainty": null,
-      "current_sha256": "4f276ab7505b2ce1f7961312328c673f8aa5720630f89d99cefc65d277b1405f",
+      "current_sha256": "9ea0395d6a621445d45f753fa05eaae476977535e1e9cf853a5f894df4f62128",
       "current_bytes": 25337
     }
   ],

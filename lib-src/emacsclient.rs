@@ -1,7 +1,7 @@
 // femacs: port of lib-src/emacsclient.c @ fd7afced403.
 #![forbid(unsafe_code)]
 
-use femacs_sys::client_os::{
+use lisp_vm::sys::client_os::{
     self, LocalConnectError, SUN_PATH_CAPACITY, connect_unix_in_parent, connect_unix_path,
     darwin_user_temp_dir, effective_uid, executable_dir_accessible, init_tty_signals,
     process_grouping, resignal_tty_stop, send_sigttin, send_sigwinch, set_tcp_linger_1s,

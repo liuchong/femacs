@@ -202,9 +202,11 @@
       (should (null (alist-get 'supervisorOk bad-sup)))))
   (fe-test-self--with-tmp-dir tmp
     (let* ((real-xtask (fe-test-find-xtask))
-           (mock-xtask (expand-file-name "mock-xtask.sh" tmp))
+           (mock-dir (expand-file-name "sup-wrap" tmp))
+           (mock-xtask (expand-file-name (file-name-nondirectory real-xtask) mock-dir))
            (state-dir (expand-file-name "state" tmp))
            (inp (expand-file-name "inp.txt" tmp)))
+      (make-directory mock-dir t)
       (with-temp-file inp (insert "stable\n"))
       (fe-test-self--write-exec-script
        mock-xtask
@@ -255,10 +257,12 @@ exec %S \"$@\""
     (should (= (fe-test--compute-projected-bytes (list w-mature) 6000) (* 60 mb))))
   (fe-test-self--with-tmp-dir tmp
     (let* ((real-xtask (fe-test-find-xtask))
-           (mock-xtask (expand-file-name "mem-wrapper.sh" tmp))
+           (mock-dir (expand-file-name "mem-wrap" tmp))
+           (mock-xtask (expand-file-name (file-name-nondirectory real-xtask) mock-dir))
            (mem-log (expand-file-name "mem-tree.log" tmp))
            (stamp-a (expand-file-name "stamp-a.txt" tmp))
            (stamp-b (expand-file-name "stamp-b.txt" tmp)))
+      (make-directory mock-dir t)
       (fe-test-self--write-exec-script
        mock-xtask
        (format
@@ -321,12 +325,14 @@ exec %S \"$@\""
         (should (>= calls 3))
         (should (>= (alist-get 'peakAggregateRssBytes (cdr res)) 5242880)))
       ;; 3. Missing PID row in valid mem-tree JSON or failed mem-tree exit must preserve reservation (never overwrite to 0).
-      (let* ((missing-xtask (expand-file-name "missing-mem.sh" tmp))
+      (let* ((miss-dir (expand-file-name "miss-wrap" tmp))
+             (missing-xtask (expand-file-name (file-name-nondirectory real-xtask) miss-dir))
              (proc (let ((process-connection-type nil))
                      (make-process :name "dummy-sleep" :command '("/bin/sh" "-c" "exec sleep 2") :noquery t)))
              (w (fe-test--make-worker :proc proc :os-pid (process-id proc)
                                       :started-ms 1000 :est-mem (* 256 1024 1024)
                                       :sampled t :observed-mem (* 120 1024 1024))))
+        (make-directory miss-dir t)
         (unwind-protect
             (progn
               (fe-test-self--write-exec-script

@@ -818,6 +818,6 @@
     "lisp/org/ox-publish.el",
     "lisp/org/ox-texinfo.el",
     "lisp/org/ox.el",
-    "src/emacs.rs"
+    "crates/lisp-vm/src/ported/src/emacs.rs"
   ]
 }

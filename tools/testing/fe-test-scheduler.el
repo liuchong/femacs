@@ -41,11 +41,13 @@
   (done nil :type boolean)
   (result nil))
 
-(defun fe-test--build-supervise-argv (tc)
-  "Build `xtask test-exec supervise ...' argument vector for TC."
-  (let ((args (list "test-exec" "supervise"
-                    "--timeout-ms" (number-to-string (fe-test-case-timeout-ms tc))
-                    "--poll-ms" "40")))
+(defun fe-test--build-supervise-argv (tc &optional runner-bin)
+  "Build `supervise ...' argument vector for TC via RUNNER-BIN."
+  (let ((args (fe-test--exec-argv
+               (or runner-bin "xtask")
+               "supervise"
+               "--timeout-ms" (number-to-string (fe-test-case-timeout-ms tc))
+               "--poll-ms" "40")))
     (when (> (fe-test-case-memory-limit-bytes tc) 0)
       (setq args (append args (list "--memory-limit-bytes"
                                     (number-to-string (fe-test-case-memory-limit-bytes tc))))))
@@ -172,7 +174,9 @@ fails or omits a worker's PID row."
         (push (number-to-string (fe-test--worker-os-pid w)) pids)))
     (when pids
       (let ((mem (condition-case nil
-                     (fe-test-call-json xtask-bin (cons "test-exec" (cons "mem-tree" (nreverse pids))))
+                     (fe-test-call-json
+                      xtask-bin
+                      (apply #'fe-test--exec-argv xtask-bin "mem-tree" (nreverse pids)))
                    (error nil))))
         (when (and mem (equal (alist-get 'schema mem) "femacs-test-mem-v1"))
           (let ((live-total (alist-get 'total_accounted_bytes mem))
@@ -267,7 +271,7 @@ fails or omits a worker's PID row."
            (let* ((tc (car item))
                   (ckey (cdr item))
                   (buf (generate-new-buffer (format " *fe-test-%s*" (fe-test-case-id tc))))
-                  (argv (fe-test--build-supervise-argv tc))
+                  (argv (fe-test--build-supervise-argv tc xtask-bin))
                   (est (fe-test-profile-predict-mem-bytes profile-table tc))
                   (worker (fe-test--make-worker
                            :case tc

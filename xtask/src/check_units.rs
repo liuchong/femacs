@@ -23,7 +23,9 @@ fn parse(text: &str) -> Result<Vec<String>, String> {
             _ => return Err(format!("not a C/Rust translation unit: {line}")),
         };
         let repo = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
-        if !repo.join(&unit).is_file() || !seen.insert(unit.clone()) {
+        let exists = repo.join(&unit).is_file()
+            || repo.join("crates/lisp-vm/src/ported").join(&unit).is_file();
+        if !exists || !seen.insert(unit.clone()) {
             return Err(format!("missing or duplicate unit: {line}"));
         }
         result.push(unit);

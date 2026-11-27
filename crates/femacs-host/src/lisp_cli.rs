@@ -7,7 +7,7 @@ use std::ffi::OsString;
 use std::io::{BufRead, Write};
 use std::path::{Path, PathBuf};
 
-use femacs_vm::host_runtime::{HostBootstrap, HostInitConfig, VmHostError};
+use lisp_vm::host_runtime::{HostBootstrap, HostInitConfig, VmHostError};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
@@ -576,7 +576,14 @@ pub fn build_host_config(cli: &ParsedCli, resolved: &PackagePaths) -> HostInitCo
                 .clone()
                 .unwrap_or_else(|| PathBuf::from("lisp")),
         ),
-        HostBootstrap::DumpFile(path) => {
+        HostBootstrap::ColdBootScript(script) => HostInitConfig::cold_boot_script(
+            resolved
+                .lisp_dir
+                .clone()
+                .unwrap_or_else(|| PathBuf::from("lisp")),
+            script.clone(),
+        ),
+        HostBootstrap::DumpFile(path) | HostBootstrap::DumpOrBootScript { dump_path: path, .. } => {
             let mut c = HostInitConfig::with_dump(path.clone());
             if let Some(lisp) = &resolved.lisp_dir {
                 c = c.with_load_path(lisp.clone()).with_replace_load_path(true);

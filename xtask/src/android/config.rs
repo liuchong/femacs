@@ -96,16 +96,25 @@ fn parse_units(
             .ok_or("unit stem absent")?
             .to_string_lossy()
             .to_string();
+        let prefix_dir = prefix.trim_end_matches('/');
+        let candidate = [
+            repo().join(&mapped),
+            repo().join("crates/lisp-vm/src/ported").join(&mapped),
+        ]
+        .into_iter()
+        .find(|p| p.is_file());
         if matches!(stem.as_str(), "cm" | "termcap" | "terminfo")
-            || !repo().join(&mapped).is_file()
+            || candidate.is_none()
             || !seen.insert(stem)
         {
             return Err(format!(
                 "missing, duplicate or excluded target unit: {line}"
             ));
         }
-        let actual = fs::canonicalize(repo().join(&mapped)).map_err(|e| e.to_string())?;
-        if !actual.starts_with(repo().join(prefix.trim_end_matches('/'))) {
+        let actual = fs::canonicalize(candidate.unwrap()).map_err(|e| e.to_string())?;
+        let allowed_root = repo().join(prefix_dir);
+        let allowed_vm_root = repo().join("crates/lisp-vm/src/ported").join(prefix_dir);
+        if !actual.starts_with(&allowed_root) && !actual.starts_with(&allowed_vm_root) {
             return Err("unit escapes owned source root".into());
         }
         out.push(line.to_owned());

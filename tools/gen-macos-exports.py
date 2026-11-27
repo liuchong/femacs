@@ -154,7 +154,11 @@ def record_exports(imports, existing):
 def main():
     ap=argparse.ArgumentParser();ap.add_argument('--out',type=Path,required=True);a=ap.parse_args()
     imports=swift_imports();existing=set();providers={};constants={};macros={}
-    paths=list((ROOT/'src/include').glob('*.rs'))+list((ROOT/'lib/include').glob('*.rs'))+[ROOT/'lib/timespec.rs']
+    paths=(list((ROOT/'crates/lisp-vm/src/ported/src/include').glob('*.rs'))
+           +list((ROOT/'src/include').glob('*.rs'))
+           +list((ROOT/'crates/lisp-vm/src/ported/lib/include').glob('*.rs'))
+           +list((ROOT/'lib/include').glob('*.rs'))
+           +[ROOT/'crates/lisp-vm/src/ported/lib/timespec.rs'])
     for p in paths:
         text=p.read_text()
         for m in re.finditer(r'pub\s+(?:(?:unsafe|const)\s+)*(?:extern\s+"C(?:-unwind)?"\s+)?fn\s+(\w+)\s*\(',text):
@@ -166,7 +170,8 @@ def main():
                 providers.setdefault(m[1],(text[m.end():end],rt,str(p.relative_to(ROOT))))
         for m in re.finditer(r'macro_rules!\s+(\w+)',text):macros.setdefault(m[1],str(p.relative_to(ROOT)))
         for m in re.finditer(r'pub\s+const\s+(\w+)\s*:\s*([^=\n]+)=',text):constants.setdefault(m[1],str(p.relative_to(ROOT)))
-    for p in [p for tree in ('src','lib','lib-src','nt','lwlib','oldXMenu','exec','msdos') for p in (ROOT/tree).rglob('*.rs')]:
+    for p in ([p for tree in ('src','lib','lib-src','nt','lwlib','oldXMenu','exec','msdos') for p in (ROOT/tree).rglob('*.rs')]
+              +list((ROOT/'crates/lisp-vm/src/ported').rglob('*.rs'))):
         if not (p.parts[-2]=='include' or p.parent.name=='src'):continue
         text=p.read_text()
         existing.update(re.findall(r'#\[unsafe\(no_mangle\)\]\s*(?:pub\s+)?(?:unsafe\s+)?extern\s+"C(?:-unwind)?"\s+fn\s+(\w+)',text))

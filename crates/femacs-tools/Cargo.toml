@@ -22,4 +22,4 @@ name = "emacsclient"
 path = "../../lib-src/emacsclient.rs"
 
 [dependencies]
-femacs-sys = { path = "../femacs-sys" }
+lisp-vm = { path = "../lisp-vm" }

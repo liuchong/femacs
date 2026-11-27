@@ -1,18 +1,18 @@
 #![forbid(unsafe_code)]
-//! Safe single-process host interface linking the single VM owner (`femacs-vm`) (`C1`).
+//! Safe single-process host interface linking the single VM owner (`lisp-vm`) (`C1`).
 
 use core::marker::PhantomData;
 use std::ffi::OsString;
 use std::path::Path;
 
-pub use femacs_vm::host_runtime::{
+pub use lisp_vm::host_runtime::{
     HeadlessDiagnostics, HeadlessVm, HostBootstrap, HostInitConfig as HostConfig,
     VmHostError as HostError, adopt_inherited_rpc_socket, stream_has_cloexec,
 };
 
 pub mod lisp_cli;
 
-/// Owning safe handle to a single headless `femacs-vm` instance (`C1`).
+/// Owning safe handle to a single headless `lisp-vm` instance (`C1`).
 ///
 /// Enforces single-process initialization, `!Send + !Sync` thread affinity matching `HeadlessVm`,
 /// explicit GC root and condition-case boundaries across calls, and deterministic shutdown on drop.
@@ -22,7 +22,7 @@ pub struct LispHost {
 }
 
 impl LispHost {
-    /// Initialize the process-wide headless `femacs-vm` instance once using `config`.
+    /// Initialize the process-wide headless `lisp-vm` instance once using `config`.
     pub fn init(config: HostConfig) -> Result<Self, HostError> {
         let vm = HeadlessVm::init(&config)?;
         Ok(Self {
@@ -139,7 +139,7 @@ impl LispHost {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use femacs_vm::roots::GcContext;
+    use lisp_vm::roots::GcContext;
     use std::path::PathBuf;
 
     trait NotSendOrSyncFallback {
@@ -170,7 +170,7 @@ mod tests {
     #[test]
     fn host_config_builders_set_expected_fields() {
         let minimal = HostConfig::cold_minimal();
-        assert_eq!(minimal.program_name, "femacs-host");
+        assert_eq!(minimal.program_name, "lisp-vm");
         assert_eq!(minimal.bootstrap, HostBootstrap::ColdMinimal);
         assert!(minimal.load_paths.is_empty());
         assert!(minimal.quiet_bootstrap);

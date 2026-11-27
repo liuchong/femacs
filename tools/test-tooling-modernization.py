@@ -519,6 +519,8 @@ class AndroidConfigContracts(unittest.TestCase):
             self.assertNotIn("/../", path)
             # Historical C unit names map to the actual owned Rust sources.
             owned = (REPO / path).with_suffix(".rs") if path.endswith(".c") else REPO / path
+            if not owned.is_file() and path.endswith(".c"):
+                owned = (REPO / "crates/lisp-vm/src/ported" / path).with_suffix(".rs")
             self.assertTrue(owned.is_file(), path)
         all_paths = core + lib
         for forbidden in ("lib-src/", "cm.c", "termcap.c", "terminfo.c", "android-emacs.c"):

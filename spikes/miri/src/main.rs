@@ -2,10 +2,10 @@
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs)]
 mod m {
 include!("../../../src/include/config.rs");
-include!("../../../src/include/lisp.rs");
-include!("../../../src/include/itree.rs");
-include!("../../../src/include/character.rs");
-include!("../../../src/include/buffer.rs");
+include!("../../../crates/lisp-vm/src/ported/src/include/lisp.rs");
+include!("../../../crates/lisp-vm/src/ported/src/include/itree.rs");
+include!("../../../crates/lisp-vm/src/ported/src/include/character.rs");
+include!("../../../crates/lisp-vm/src/ported/src/include/buffer.rs");
 }
 use m::*;
 use core::ffi::c_void;

@@ -7,5 +7,5 @@ pub unsafe extern "C" fn main(
     argv: *mut *mut core::ffi::c_char,
 ) -> core::ffi::c_int {
     // SAFETY: Invoked directly by the OS C startup runtime with valid `argc`/`argv`.
-    unsafe { femacs_vm::editor_main(argc, argv) }
+    unsafe { lisp_vm::editor_main(argc, argv) }
 }

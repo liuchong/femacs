@@ -4,7 +4,8 @@ import re
 
 
 def render_versions(root:Path)->None:
-    source=(root/'src/emacs.rs').read_text()
+    candidate=root/'crates/lisp-vm/src/ported/src/emacs.rs'
+    source=(candidate if candidate.is_file() else root/'src/emacs.rs').read_text()
     match=re.search(r'PACKAGE_VERSION:\s*&CStr\s*=\s*c"([^"]+)"',source)
     if match is None:raise ValueError('owned source has no PACKAGE_VERSION')
     version=match[1]

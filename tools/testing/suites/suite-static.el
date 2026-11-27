@@ -16,7 +16,7 @@
    :command '("python3" "tools/check-own-voice.py")
    :env py-env
    :timeout-ms 30000
-   :cache-inputs '("tools/check-own-voice.py" "tools/testing" "xtask/src" "src" "lib" "lib-src" "platform")
+   :cache-inputs '("tools/check-own-voice.py" "tools/testing" "crates" "xtask/src" "src" "lib" "lib-src" "platform")
    :tags '("static" "fast"))
 
   (fe-test-register-case

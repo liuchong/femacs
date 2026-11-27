@@ -1,0 +1,29 @@
+[package]
+name = "lisp-vm"
+version = "0.0.1"
+edition.workspace = true
+rust-version = "1.85"
+license.workspace = true
+description = "Standalone general-purpose Lisp virtual machine and bytecode runtime"
+repository = "https://github.com/liuchong/femacs"
+readme = "README.md"
+keywords = ["lisp", "vm", "bytecode", "interpreter", "runtime"]
+categories = ["compilers", "development-tools"]
+
+[lib]
+path = "src/lib.rs"
+
+[features]
+default = []
+tty_terminfo = []
+have_ns = []
+have_window_system = []
+dispextern_face_records = []
+have_modules = []
+have_native_comp = []
+enable_checking = []
+femacs_gc_observer = []
+femacs_gc_generational = []
+femacs_gc_observer_test_hooks = []
+
+[dependencies]

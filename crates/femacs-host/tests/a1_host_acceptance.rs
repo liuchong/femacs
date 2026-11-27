@@ -277,7 +277,7 @@ fn scenario_second_init_rejected() {
     }
     drop(host);
     assert!(
-        femacs_vm::roots::GcContext::current().is_none(),
+        lisp_vm::roots::GcContext::current().is_none(),
         "GcContext must remain unacquirable after LispHost shutdown"
     );
     match LispHost::init(HostConfig::cold_minimal()) {

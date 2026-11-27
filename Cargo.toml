@@ -4,8 +4,8 @@ members = [
     "xtask",
     "packaging",
     "cli",
-    "crates/femacs-sys",
-    "crates/femacs-vm",
+    "crates/lisp-vm",
+    "crates/lisp-core",
     "crates/femacs-host",
     "crates/femacs-tools",
     "crates/http-host",
@@ -15,17 +15,14 @@ members = [
 edition = "2024"
 license = "GPL-3.0-or-later"
 
+[profile.dev.package.lisp-vm]
+opt-level = 2
+
 [profile.release]
 panic = "unwind"
 lto = "thin"
 
-[profile.release.package.femacs-vm]
-opt-level = 2
-overflow-checks = false
-debug-assertions = false
-codegen-units = 1
-
-[profile.release.package.femacs-sys]
+[profile.release.package.lisp-vm]
 opt-level = 2
 overflow-checks = false
 debug-assertions = false

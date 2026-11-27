@@ -33,7 +33,10 @@
   "Optional override for repository root discovery in tests.")
 
 (defvar fe-test-xtask-override nil
-  "Optional override for the xtask executable path.")
+  "Optional override for the supervisor/digest runner executable path.")
+
+(defvar fe-test-exec-override nil
+  "Optional override for the `lisp-core'/`xtask' exec runner executable path.")
 
 (defvar fe-test-state-dir-override nil
   "Optional override for persistent state storage directory.")
@@ -98,19 +101,49 @@
    (expand-file-name
     (or override fe-test-state-dir-override (fe-test-path "build/test-framework")))))
 
-(defun fe-test-find-xtask (&optional override)
-  "Locate the built `xtask' binary supporting `test-exec'."
-  (let ((cand (or override
-                  fe-test-xtask-override
-                  (let ((rel (fe-test-path "build/cargo/release/xtask"))
-                        (dbg (fe-test-path "build/cargo/debug/xtask")))
-                    (cond
-                     ((file-executable-p rel) rel)
-                     ((file-executable-p dbg) dbg)
-                     (t nil))))))
+(defun fe-test--xtask-binary-p (program)
+  "Return non-nil when PROGRAM invokes legacy `xtask test-exec ...' subcommands."
+  (and (stringp program)
+       (string-match-p "\\`xtask\\(\\.exe\\)?\\'"
+                       (file-name-nondirectory program))))
+
+(defun fe-test--exec-subcommand (runner-bin)
+  "Return top-level exec subcommand (`\"test-exec\"' or `\"exec\"') for RUNNER-BIN."
+  (if (fe-test--xtask-binary-p runner-bin)
+      "test-exec"
+    "exec"))
+
+(defun fe-test--exec-argv (runner-bin &rest args)
+  "Build RUNNER-BIN subcommand argv prefixing `test-exec' or `exec' before ARGS."
+  (cons (fe-test--exec-subcommand runner-bin) args))
+
+(defun fe-test-find-exec-runner (&optional override)
+  "Locate the built `lisp-core' or `xtask' exec runner."
+  (let* ((self-exe (when (and (boundp 'invocation-directory)
+                              (boundp 'invocation-name)
+                              (stringp invocation-directory)
+                              (stringp invocation-name)
+                              (string-match-p "\\`lisp-core\\(\\.exe\\)?\\'"
+                                              (file-name-nondirectory invocation-name)))
+                     (expand-file-name invocation-name invocation-directory)))
+         (cand (or override
+                   fe-test-exec-override
+                   fe-test-xtask-override
+                   (cl-find-if
+                    (lambda (p) (and p (file-executable-p p)))
+                    (list self-exe
+                          (fe-test-path "build/cargo/release/lisp-core")
+                          (fe-test-path "build/cargo/debug/lisp-core")
+                          (fe-test-path "build/cargo/release/xtask")
+                          (fe-test-path "build/cargo/debug/xtask")
+                          (executable-find "lisp-core"))))))
     (unless (and cand (file-executable-p cand))
-      (error "xtask binary not found; build with `cargo build -p xtask --target-dir build/cargo'"))
+      (error "No exec runner found; build `lisp-core' with `cargo build -p lisp-core --target-dir build/cargo'"))
     (expand-file-name cand)))
+
+(defun fe-test-find-xtask (&optional override)
+  "Locate the exec runner binary (`lisp-core' or `xtask')."
+  (fe-test-find-exec-runner override))
 
 (defun fe-test-targets ()
   "Discover built target binaries in the workspace and host environment."
@@ -242,7 +275,7 @@ runtime shared-library directories when verified present on disk."
            (http-bin (fe-test-path "dist/lisp/bin/http-host"))
            (digest-res (fe-test-call-json
                         xtask-bin
-                        (list "test-exec" "digest" lisp-bin lisp-pdmp http-bin)))
+                        (fe-test--exec-argv xtask-bin "digest" lisp-bin lisp-pdmp http-bin)))
            (entries (alist-get 'entries digest-res)))
       (dolist (pair `((femacs-lisp . ,lisp-bin)
                       (femacs-lisp.pdmp . ,lisp-pdmp)

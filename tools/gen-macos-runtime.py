@@ -26,7 +26,9 @@ def main():
   for m in re.finditer(r'(?:fileprivate var|@_silgen_name\("femacs_fwd_[^"]+"\) var)\s+O_FWD_(\w+)\s*:\s*Lisp_Fwd',swift):forwards[m[1]]=name
  if forwards!=metadata['forwards']:raise ValueError('Cocoa forwarding metadata differs from Swift source; update the owned target description')
  symbols=[(q,overrides.get(q,name)) for q,name in symbols]+sorted(extra.items())
- original=(ROOT/'src/include/globals.rs').read_text();tail=original[original.index('// --- variables declared by DEFVAR_*'):]
+ gpath=ROOT/'crates/lisp-vm/src/ported/src/include/globals.rs'
+ if not gpath.is_file():gpath=ROOT/'src/include/globals.rs'
+ original=gpath.read_text();tail=original[original.index('// --- variables declared by DEFVAR_*'):]
  header=['// Generated target-local Cocoa metadata; nil/t and existing baseline indices are preserved.']
  for i,(q,_) in enumerate(symbols):header += [f'pub const i{q}: usize = {i};',f'#[inline(always)] pub fn {q}() -> Lisp_Object {{ builtin_lisp_symbol({i}) }}']
  header += [f'pub const lispsym_count: usize = {len(symbols)};', 'unsafe extern "C" { pub static lispsym: VmGlobal<[Lisp_Symbol; lispsym_count]>; }',tail]

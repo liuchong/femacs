@@ -1,7 +1,7 @@
 #![deny(static_mut_refs, unsafe_op_in_unsafe_fn)]
 //! femacs build and gate driver.
 //!
-//! Orchestrates Cargo workspace builds (`femacs-sys`, `femacs-vm`,
+//! Orchestrates Cargo workspace builds (`lisp-vm`, `lisp-core`,
 //! `femacs-host`, `femacs-tools`), generates target-local configuration mirrors and
 //! layout assertions from the frozen baselines, and runs the mechanical gates.
 //!
@@ -23,7 +23,6 @@ mod check_units;
 mod macos;
 mod owned_copy;
 mod standalone;
-mod test_exec;
 mod manuals;
 mod probes;
 mod product_sources;
@@ -116,7 +115,7 @@ fn main() {
         "build-manuals" => manuals::command(&args[1..]),
         "audit-probe" => probes::command(&args[1..]),
         "android" => android::command(&args[1..]),
-        "test-exec" => test_exec::command(&args[1..]),
+        "test-exec" => lisp_core::exec::run_cli(&args[1..]),
         "gate-platforms" => android::platforms(&args[1..]),
         "generate-resources" => {
             if args.len() != 3 || args[1] != "--program" {
@@ -772,7 +771,7 @@ fn gen_globals() -> i32 {
         }
     }
 
-    let out = Path::new("src/include/globals.rs");
+    let out = Path::new("crates/lisp-vm/src/ported/src/include/globals.rs");
     fs::create_dir_all(out.parent().unwrap()).ok();
     if let Err(e) = fs::write(out, rs) {
         return fail(e);

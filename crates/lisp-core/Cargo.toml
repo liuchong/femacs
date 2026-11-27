@@ -1,0 +1,39 @@
+[package]
+name = "lisp-core"
+version = "0.0.1"
+edition.workspace = true
+rust-version = "1.85"
+license.workspace = true
+description = "Standalone general-purpose Lisp programming language runtime, embedding engine, and CLI"
+repository = "https://github.com/liuchong/femacs"
+readme = "README.md"
+keywords = ["lisp", "language", "scripting", "interpreter", "cli"]
+categories = ["command-line-utilities", "compilers", "development-tools"]
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "lisp-core"
+path = "src/main.rs"
+required-features = ["vm"]
+
+[[test]]
+name = "engine_integration"
+harness = false
+required-features = ["vm"]
+
+[features]
+default = ["vm"]
+vm = ["dep:lisp-vm"]
+
+[dependencies]
+lisp-vm = { version = "0.0.1", path = "../lisp-vm", optional = true }
+flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+
+[build-dependencies]
+flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
+sha2 = "0.10"

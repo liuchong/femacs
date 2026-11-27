@@ -8,6 +8,7 @@ license.workspace = true
 # Cargo.lock fixes dependency versions for repeatable tool builds.
 [dependencies]
 fe-packaging = { path = "../packaging" }
+lisp-core = { path = "../crates/lisp-core", default-features = false }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"

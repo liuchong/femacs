@@ -206,27 +206,17 @@ version = "0.0.1"
 name = "femacs-host"
 version = "0.1.0"
 dependencies = [
- "femacs-vm",
+ "lisp-core",
+ "lisp-vm",
  "serde",
  "serde_json",
 ]
 
 [[package]]
-name = "femacs-sys"
-version = "0.1.0"
-
-[[package]]
 name = "femacs-tools"
 version = "0.1.0"
 dependencies = [
- "femacs-sys",
-]
-
-[[package]]
-name = "femacs-vm"
-version = "0.1.0"
-dependencies = [
- "femacs-sys",
+ "lisp-vm",
 ]
 
 [[package]]
@@ -407,6 +397,21 @@ name = "libc"
 version = "0.2.191"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "65cd87c9a6d60536580b316ad985726104730a5151c99845f2490428ef91240a"
+
+[[package]]
+name = "lisp-core"
+version = "0.0.1"
+dependencies = [
+ "flate2",
+ "lisp-vm",
+ "serde",
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
+name = "lisp-vm"
+version = "0.0.1"
 
 [[package]]
 name = "log"
@@ -904,6 +909,7 @@ name = "xtask"
 version = "0.0.0"
 dependencies = [
  "fe-packaging",
+ "lisp-core",
  "serde",
  "serde_json",
  "sha2",

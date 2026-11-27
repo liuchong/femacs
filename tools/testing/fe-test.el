@@ -139,6 +139,7 @@
         (heavy-workers 2)
         (budget-mib 2048)
         (xtask-bin nil)
+        (exec-bin nil)
         (verify-host nil)
         (list-only nil)
         (report-out nil)
@@ -169,15 +170,16 @@
           ("--budget-mib"
            (setq budget-mib (string-to-number (or (pop rest) (error "--budget-mib requires N")))))
           ("--xtask-bin" (setq xtask-bin (pop rest)))
+          ("--exec-bin" (setq exec-bin (pop rest)))
           ("--report-out" (setq report-out (pop rest)))
           ("--state-dir" (setq state-dir (pop rest)))
           ("--help"
-           (princ "Usage: femacs-lisp --batch -Q -L tools/testing -l fe-test.el -- [OPTIONS]\n")
+           (princ "Usage: lisp-core --batch -Q -L tools/testing -l fe-test.el -- [OPTIONS]\n")
            (princ "  --suite <fast|static|smoke|host|ert|self|all>\n")
            (princ "  --filter <REGEXP>  --rerun-failed  --keep-going  --changed\n")
            (princ "  --shard <I/N>      --no-cache      --verify-host --list\n")
            (princ "  --workers <N>      --heavy-workers <N>  --budget-mib <N>\n")
-           (princ "  --xtask-bin <PATH> --state-dir <DIR>    --report-out <PATH>\n")
+           (princ "  --exec-bin <PATH>  --xtask-bin <PATH> --state-dir <DIR> --report-out <PATH>\n")
            (kill-emacs 0))
           (_ (error "Unknown fe-test option: %s" cur)))))
     (list :suite suite
@@ -191,6 +193,7 @@
           :heavy-workers heavy-workers
           :budget-mib budget-mib
           :xtask-bin xtask-bin
+          :exec-bin exec-bin
           :verify-host verify-host
           :list-only list-only
           :report-out report-out
@@ -201,7 +204,8 @@
   (let* ((state-dir (fe-test-state-dir (plist-get opts :state-dir)))
          (report-path (or (plist-get opts :report-out)
                           (expand-file-name "latest-report.json" state-dir)))
-         (xtask-bin (fe-test-find-xtask (plist-get opts :xtask-bin)))
+         (xtask-bin (fe-test-find-exec-runner (or (plist-get opts :exec-bin)
+                                                  (plist-get opts :xtask-bin))))
          (suite-name (or (plist-get opts :suite) "custom"))
          (profile-table (fe-test-profile-load state-dir)))
     (when (plist-get opts :verify-host)

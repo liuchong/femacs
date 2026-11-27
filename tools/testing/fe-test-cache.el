@@ -26,7 +26,7 @@
     (or (gethash abs memo)
         (if (not (file-exists-p abs))
             (puthash abs "missing" memo)
-          (let* ((res (fe-test-call-json xtask-bin (list "test-exec" "digest" abs)))
+          (let* ((res (fe-test-call-json xtask-bin (fe-test--exec-argv xtask-bin "digest" abs)))
                  (hex (alist-get 'digest res)))
             (puthash abs hex memo))))))
 
@@ -53,7 +53,7 @@
             (enqueue inp t)))))
     (when needed
       (let* ((batch (nreverse needed))
-             (res (fe-test-call-json xtask-bin (append (list "test-exec" "digest") batch)))
+             (res (fe-test-call-json xtask-bin (apply #'fe-test--exec-argv xtask-bin "digest" batch)))
              (entries (alist-get 'entries res)))
         (dolist (entry entries)
           (let ((path (alist-get 'path entry))

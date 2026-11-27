@@ -345,7 +345,10 @@ fn run_host_cargo(
 ) -> Result<(), String> {
     let repo = Path::new(crate::REPO);
     let cfgs = crate::config_features()?;
-    let cargo_features = extract_cargo_features(&cfgs);
+    let mut cargo_features = extract_cargo_features(&cfgs);
+    if !cargo_features.iter().any(|f| f == "tty_terminfo") {
+        cargo_features.push("tty_terminfo".to_string());
+    }
     let target = host_target_triple();
     let target_dir = cargo_target_dir();
     let encoded = host_cargo_encoded_rustflags(&cfgs, checking, include_pgo, link_tokens);
@@ -442,7 +445,7 @@ pub(crate) fn link_temacs(arg: Option<&str>) -> i32 {
         }
         let suffix = if checking { ".checking.rlib" } else { ".rlib" };
         let mut recorded_objs = swift_objs;
-        for (prefix, stem) in [("libfemacs_vm-", "libfemacs_vm")] {
+        for (prefix, stem) in [("liblisp_vm-", "liblisp_vm")] {
             let src_rlib = match find_newest_rlib(&release_dir, prefix) {
                 Ok(p) => p,
                 Err(e) => return crate::fail(e),
@@ -454,12 +457,12 @@ pub(crate) fn link_temacs(arg: Option<&str>) -> i32 {
             let abs = fs::canonicalize(&dst).unwrap_or(dst).display().to_string();
             recorded_objs.push(abs);
         }
-        let sys_rlib = match find_newest_rlib(&release_dir, "libfemacs_sys-") {
+        let vm_rlib = match find_newest_rlib(&release_dir, "liblisp_vm-") {
             Ok(p) => p,
             Err(e) => return crate::fail(e),
         };
-        let archive_dst = load_out.join(format!("libfemacs_sys{suffix}"));
-        if let Err(e) = crate::owned_copy::copy_file(&sys_rlib, &archive_dst) {
+        let archive_dst = load_out.join(format!("liblisp_vm{suffix}"));
+        if let Err(e) = crate::owned_copy::copy_file(&vm_rlib, &archive_dst) {
             return crate::fail(e);
         }
         let empty_members: Vec<String> = Vec::new();
@@ -657,9 +660,9 @@ pub(crate) fn check_workspace_crates() -> Result<(), String> {
                 "--target",
                 target,
                 "-p",
-                "femacs-sys",
+                "lisp-vm",
                 "-p",
-                "femacs-vm",
+                "lisp-core",
                 "-p",
                 "femacs-host",
                 "-p",
@@ -733,17 +736,17 @@ mod tests {
             }
         }
         let dir = dir.expect("claimed unique test directory");
-        let nested = dir.join("build/femacs-vm/abc123/out");
+        let nested = dir.join("build/lisp-vm/abc123/out");
         let deps = dir.join("deps");
         fs::create_dir_all(&nested).unwrap();
         fs::create_dir_all(&deps).unwrap();
         let host_out = dir.join("build/femacs-host/90a26b70/out");
         fs::create_dir_all(&host_out).unwrap();
-        let nested_rlib = nested.join("libfemacs_vm-abc123.rlib");
-        let deps_rlib = deps.join("libfemacs_sys-def456.rlib");
+        let nested_rlib = nested.join("liblisp_vm-abc123.rlib");
+        let deps_rlib = deps.join("liblisp_core-def456.rlib");
         let test_bin = host_out.join("a1_host_acceptance-90a26b70");
         fs::write(&nested_rlib, b"vm").unwrap();
-        fs::write(&deps_rlib, b"sys").unwrap();
+        fs::write(&deps_rlib, b"core").unwrap();
         fs::write(&test_bin, b"bin").unwrap();
         #[cfg(unix)]
         {
@@ -751,8 +754,8 @@ mod tests {
             fs::set_permissions(&test_bin, fs::Permissions::from_mode(0o755)).unwrap();
         }
 
-        assert_eq!(find_newest_rlib(&dir, "libfemacs_vm-").unwrap(), nested_rlib);
-        assert_eq!(find_newest_rlib(&dir, "libfemacs_sys-").unwrap(), deps_rlib);
+        assert_eq!(find_newest_rlib(&dir, "liblisp_vm-").unwrap(), nested_rlib);
+        assert_eq!(find_newest_rlib(&dir, "liblisp_core-").unwrap(), deps_rlib);
         assert!(find_newest_rlib(&dir, "libfemacs_missing-").is_err());
         assert_eq!(find_newest_test_executable(&dir, "a1_host_acceptance").unwrap(), test_bin);
         assert!(find_newest_test_executable(&dir, "missing_test").is_err());

@@ -24,23 +24,41 @@ impl ProductSources {
 
         for name in objects {
             let object = object_path(name)?;
-            let rust = Path::new("src").join(object).with_extension("rs");
+            let ported_rust = Path::new("crates/lisp-vm/src/ported/src")
+                .join(object)
+                .with_extension("rs");
+            let root_rust = Path::new("src").join(object).with_extension("rs");
+            let rust_path = if repo.join(&ported_rust).is_file() {
+                Some(ported_rust)
+            } else if repo.join(&root_rust).is_file() {
+                Some(root_rust)
+            } else {
+                None
+            };
             let swift = Path::new("platform/macos").join(object).with_extension("swift");
-            match (repo.join(&rust).is_file(), cocoa && repo.join(&swift).is_file()) {
-                (true, false) => {
+            match (rust_path, cocoa && repo.join(&swift).is_file()) {
+                (Some(rust), false) => {
                     insert_source(&mut sources.rust, &rust)?;
                 }
-                (false, true) => {
+                (None, true) => {
                     insert_source(&mut sources.swift, &swift)?;
                 }
-                (true, true) => return Err(format!("{name}: both Rust and Swift provide the object")),
-                (false, false) => return Err(format!("{name}: no product source provider")),
+                (Some(_), true) => return Err(format!("{name}: both Rust and Swift provide the object")),
+                (None, false) => return Err(format!("{name}: no product source provider")),
             }
         }
 
         for name in archive {
             let object = object_path(name)?;
-            let source = Path::new("lib").join(object).with_extension("rs");
+            let ported_src = Path::new("crates/lisp-vm/src/ported/lib")
+                .join(object)
+                .with_extension("rs");
+            let root_src = Path::new("lib").join(object).with_extension("rs");
+            let source = if repo.join(&ported_src).is_file() {
+                ported_src
+            } else {
+                root_src
+            };
             insert_existing(repo, &mut sources.rust, &source)?;
             // This archive member and its implementation are separate inputs.
             // In the current manifests mini-gmp-gnulib provides the configuration

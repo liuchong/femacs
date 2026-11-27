@@ -29,7 +29,7 @@ def check(label, files, read):
     conflicts = []
     for filename in files:
         source = read(filename)
-        if filename.startswith("src/") and '"--help"' not in source:
+        if (filename.startswith("src/") or filename.endswith("/src/emacs.rs")) and '"--help"' not in source:
             raise ValueError(f"startup option table missing from {label}/{filename}")
         if filename == "lisp/startup.el" and "command-switch-alist" not in source:
             raise ValueError(f"startup code missing from {label}/{filename}")
@@ -51,7 +51,7 @@ def main():
     parser.add_argument("--upstream", action="store_true", help="also check current upstream master")
     args = parser.parse_args()
 
-    check("port", ("src/emacs.rs", *STARTUP_FILES), lambda name: (ROOT / name).read_text())
+    check("port", ("crates/lisp-vm/src/ported/src/emacs.rs", *STARTUP_FILES), lambda name: (ROOT / name).read_text())
     upstream_files = ("src/emacs.c", *STARTUP_FILES)
     reference = ROOT / "emacs"
     if (reference / "src/emacs.c").is_file():

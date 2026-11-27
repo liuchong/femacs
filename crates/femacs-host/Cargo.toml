@@ -22,17 +22,19 @@ harness = false
 
 [features]
 default = []
-have_ns = ["femacs-vm/have_ns"]
-have_window_system = ["femacs-vm/have_window_system"]
-dispextern_face_records = ["femacs-vm/dispextern_face_records"]
-have_modules = ["femacs-vm/have_modules"]
-have_native_comp = ["femacs-vm/have_native_comp"]
-enable_checking = ["femacs-vm/enable_checking"]
-femacs_gc_observer = ["femacs-vm/femacs_gc_observer"]
-femacs_gc_generational = ["femacs-vm/femacs_gc_generational"]
-femacs_gc_observer_test_hooks = ["femacs-vm/femacs_gc_observer_test_hooks"]
+tty_terminfo = ["lisp-vm/tty_terminfo"]
+have_ns = ["lisp-vm/have_ns"]
+have_window_system = ["lisp-vm/have_window_system"]
+dispextern_face_records = ["lisp-vm/dispextern_face_records"]
+have_modules = ["lisp-vm/have_modules"]
+have_native_comp = ["lisp-vm/have_native_comp"]
+enable_checking = ["lisp-vm/enable_checking"]
+femacs_gc_observer = ["lisp-vm/femacs_gc_observer"]
+femacs_gc_generational = ["lisp-vm/femacs_gc_generational"]
+femacs_gc_observer_test_hooks = ["lisp-vm/femacs_gc_observer_test_hooks"]
 
 [dependencies]
-femacs-vm = { path = "../femacs-vm" }
+lisp-vm = { path = "../lisp-vm" }
+lisp-core = { path = "../lisp-core", default-features = false }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
