@@ -41,7 +41,7 @@ pub const __DARWIN_NFDBITS: c_int = 32;
 /// `unsigned long`, so `<sys/select.h>` 66's `fd_mask fds_bits[FD_SETSIZE/NFDBITS]` is
 /// `[c_ulong; 16]` on a 64-bit target.  Platform predicates are `target_os` (PORTING.md P-290),
 /// which is why this is a cfg rather than a configuration macro (status 4.728).
-#[cfg (not (target_os = "android"))]
+#[cfg (not (any (target_os = "android", target_os = "linux")))]
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct fd_set
@@ -49,7 +49,7 @@ pub struct fd_set
   pub fds_bits: [i32; 32],
 }
 
-#[cfg (target_os = "android")]
+#[cfg (any (target_os = "android", target_os = "linux"))]
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct fd_set
@@ -73,11 +73,11 @@ unsafe extern "C" {
                   sigmask: *const sigset_t) -> c_int;
   /* int __darwin_check_fd_set_overflow (int, const void *, int);  - Darwin's; bionic has no
      such entry, its `FD_ISSET`/`FD_SET`/`FD_CLR` are plain bit operations (status 4.728).  */
-  #[cfg (not (target_os = "android"))]
+  #[cfg (not (any (target_os = "android", target_os = "linux")))]
   pub fn __darwin_check_fd_set_overflow (fd: c_int, p: *const c_void, flag: c_int) -> c_int;
 }
 
-#[cfg (not (target_os = "android"))]
+#[cfg (not (any (target_os = "android", target_os = "linux")))]
 /// <sys/select.h>'s `#define FD_ISSET(n, p) __DARWIN_FD_ISSET (n, p)` →
 /// `__darwin_fd_isset ((n), (p))`, the header's `__header_always_inline` definition.
 #[inline(always)]
@@ -96,7 +96,7 @@ pub unsafe fn FD_ISSET (fd: c_int, p: *const fd_set) -> bool
   }
 }
 
-#[cfg (not (target_os = "android"))]
+#[cfg (not (any (target_os = "android", target_os = "linux")))]
 /// `__darwin_check_fd_set`: with `_DARWIN_C_SOURCE` defined (config.h 2447-2448) the
 /// overflow entry is called with the third argument 1.
 #[inline(always)]
@@ -109,7 +109,7 @@ pub unsafe fn __darwin_check_fd_set (fd: c_int, p: *const c_void) -> c_int
   }
 }
 
-#[cfg (not (target_os = "android"))]
+#[cfg (not (any (target_os = "android", target_os = "linux")))]
 /// <sys/select.h>'s `#define FD_SET(n, p) __DARWIN_FD_SET (n, p)` → `__darwin_fd_set ((n), (p))`,
 /// the header's `__header_always_inline` definition: the same `__darwin_check_fd_set` guard as
 /// `FD_ISSET`, then `fds_bits[fd / __DARWIN_NFDBITS] |= 1 << (fd % __DARWIN_NFDBITS)`.
@@ -127,7 +127,7 @@ pub unsafe fn FD_SET (fd: c_int, p: *mut fd_set)
   }
 }
 
-#[cfg (not (target_os = "android"))]
+#[cfg (not (any (target_os = "android", target_os = "linux")))]
 /// `__darwin_fd_clr`: the same guard, then
 /// `fds_bits[fd / __DARWIN_NFDBITS] &= ~(1 << (fd % __DARWIN_NFDBITS))`.
 #[inline(always)]
@@ -144,28 +144,36 @@ pub unsafe fn FD_CLR (fd: c_int, p: *mut fd_set)
   }
 }
 
-/* bionic's <sys/select.h> 87-96: `__FD_SET`/`__FD_ISSET`/`__FD_CLR` are plain bit operations over
-   `fds_bits`, with `__FDELT(fd)` = `fd / NFDBITS` and `__FDMASK(fd)` = `1UL << (fd % NFDBITS)`
-   where `NFDBITS = 8 * sizeof (fd_mask)` = 64 on a 64-bit target (status 4.728).  */
-#[cfg (target_os = "android")]
+/* bionic & glibc Linux `<sys/select.h>`: `__FD_SET`/`__FD_ISSET`/`__FD_CLR` are plain bit
+   operations over `fds_bits`, with `__FDELT(fd) = fd / 64` and `__FDMASK(fd) = 1UL << (fd % 64)`. */
+#[cfg (any (target_os = "android", target_os = "linux"))]
 #[inline(always)]
 pub unsafe fn FD_ISSET (fd: c_int, p: *const fd_set) -> bool
 {
+  // SAFETY: Caller passes valid `*const fd_set` and non-negative fd < FD_SETSIZE.
+  unsafe {
   ((*p).fds_bits [(fd as usize) / 64] & (1 as core::ffi::c_ulong) << ((fd as usize) % 64)) != 0
+  }
 }
 
-#[cfg (target_os = "android")]
+#[cfg (any (target_os = "android", target_os = "linux"))]
 #[inline(always)]
 pub unsafe fn FD_SET (fd: c_int, p: *mut fd_set)
 {
+  // SAFETY: Caller passes valid `*mut fd_set` and non-negative fd < FD_SETSIZE.
+  unsafe {
   (*p).fds_bits [(fd as usize) / 64] |= (1 as core::ffi::c_ulong) << ((fd as usize) % 64);
+  }
 }
 
-#[cfg (target_os = "android")]
+#[cfg (any (target_os = "android", target_os = "linux"))]
 #[inline(always)]
 pub unsafe fn FD_CLR (fd: c_int, p: *mut fd_set)
 {
+  // SAFETY: Caller passes valid `*mut fd_set` and non-negative fd < FD_SETSIZE.
+  unsafe {
   (*p).fds_bits [(fd as usize) / 64] &= !((1 as core::ffi::c_ulong) << ((fd as usize) % 64));
+  }
 }
 
 /// <sys/select.h>'s `#define FD_ZERO(p) __DARWIN_FD_ZERO (p)` →

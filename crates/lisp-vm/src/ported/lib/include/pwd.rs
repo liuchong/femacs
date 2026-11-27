@@ -12,7 +12,7 @@ use super::*;
 /// `pw_name`@0, `pw_uid`@16, `pw_dir`@48, `pw_shell`@56, `pw_expire`@64.  The Android arm below
 /// is bionic's LP64 record (measured against the NDK's `<pwd.h>`), which has no `pw_change` /
 /// `pw_class` / `pw_expire` and puts `pw_dir` at 32.
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 #[repr(C)]
 pub struct passwd {
   pub pw_name: *mut c_char,
@@ -27,24 +27,22 @@ pub struct passwd {
   pub pw_expire: time_t,
 }
 
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::size_of::<passwd> () == 72);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (passwd, pw_name) == 0);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (passwd, pw_uid) == 16);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (passwd, pw_dir) == 48);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (passwd, pw_shell) == 56);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (passwd, pw_expire) == 64);
 
-/// bionic's `<pwd.h>` record (Android, LP64): `sizeof` 48, `pw_name`@0, `pw_uid`@16,
-/// `pw_gecos`@24, `pw_dir`@32, `pw_shell`@40.  Reading the macOS layout here used to make
-/// `get_homedir` load `pw_dir` from offset 48, i.e. past the end of the record
-/// (`docs/baseline/android-tombstone-dump.txt`: SEGV at `0x746f6f72` = "root" read as a pointer).
-#[cfg (feature = "have_android")]
+/// bionic / Linux `<pwd.h>` record (LP64): `sizeof` 48, `pw_name`@0, `pw_uid`@16,
+/// `pw_gecos`@24, `pw_dir`@32, `pw_shell`@40.
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 #[repr(C)]
 pub struct passwd {
   pub pw_name: *mut c_char,
@@ -56,17 +54,17 @@ pub struct passwd {
   pub pw_shell: *mut c_char,
 }
 
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 const _: () = core::assert! (std::mem::size_of::<passwd> () == 48);
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 const _: () = core::assert! (std::mem::offset_of! (passwd, pw_name) == 0);
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 const _: () = core::assert! (std::mem::offset_of! (passwd, pw_uid) == 16);
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 const _: () = core::assert! (std::mem::offset_of! (passwd, pw_gecos) == 24);
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 const _: () = core::assert! (std::mem::offset_of! (passwd, pw_dir) == 32);
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 const _: () = core::assert! (std::mem::offset_of! (passwd, pw_shell) == 40);
 
 unsafe extern "C" {

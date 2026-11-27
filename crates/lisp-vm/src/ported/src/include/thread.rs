@@ -50,23 +50,33 @@ const _: () = ();
 /// unit that hands it to `sys_setjmp` spells the cast then.
 #[repr(C, align(4))]
 #[derive(Clone, Copy)]
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub struct sys_jmp_buf { pub bytes: [u8; 192] }
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::size_of::<sys_jmp_buf> () == 192);
-/* bionic's `sigjmp_buf` is 256 on aarch64, measured with `_Static_assert` against C's own headers
-   (docs/baseline/android-layout-probe.md, P-236) - 64 bytes larger than darwin's, which is most
-   of the gap that made `thread_state` read 520 against C's 592.  */
+/* bionic's `sigjmp_buf` is 256 on aarch64.  */
 #[cfg (feature = "have_android")]
 #[derive (Copy, Clone)]
 #[repr (C, align (8))]
 pub struct sys_jmp_buf { pub bytes: [u8; 256] }
 #[cfg (feature = "have_android")]
 const _: () = core::assert! (std::mem::size_of::<sys_jmp_buf> () == 256);
-#[cfg (not (feature = "have_android"))]
+#[cfg (all (target_os = "linux", target_arch = "aarch64"))]
+#[derive (Copy, Clone)]
+#[repr (C, align (8))]
+pub struct sys_jmp_buf { pub bytes: [u8; 312] }
+#[cfg (all (target_os = "linux", target_arch = "aarch64"))]
+const _: () = core::assert! (std::mem::size_of::<sys_jmp_buf> () == 312);
+#[cfg (all (target_os = "linux", target_arch = "x86_64"))]
+#[derive (Copy, Clone)]
+#[repr (C, align (8))]
+pub struct sys_jmp_buf { pub bytes: [u8; 200] }
+#[cfg (all (target_os = "linux", target_arch = "x86_64"))]
+const _: () = core::assert! (std::mem::size_of::<sys_jmp_buf> () == 200);
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::align_of::<sys_jmp_buf> () == 4);
-/* `_Alignof(sys_jmp_buf)` is 8 on android/aarch64 (same `_Static_assert` probe).  */
-#[cfg (feature = "have_android")]
+/* `_Alignof(sys_jmp_buf)` is 8 on android and glibc Linux.  */
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 const _: () = core::assert! (std::mem::align_of::<sys_jmp_buf> () == 8);
 
 /* Byte-code interpreter thread state.  */
@@ -168,8 +178,12 @@ pub struct thread_state
    472).  `docs/baseline/android-layout-probe.md`.  */
 #[cfg (feature = "have_android")]
 const _: () = core::assert! (std::mem::size_of::<thread_state> () == 592);
-#[cfg (all (not (feature = "have_android"), not (feature = "threads_enabled")))]
+#[cfg (all (not (feature = "have_android"), not (target_os = "linux"), not (feature = "threads_enabled")))]
 const _: () = core::assert! (std::mem::size_of::<thread_state> () == 472);
+#[cfg (all (target_os = "linux", target_arch = "aarch64", not (feature = "threads_enabled")))]
+const _: () = core::assert! (std::mem::size_of::<thread_state> () == 592);
+#[cfg (all (target_os = "linux", target_arch = "x86_64", not (feature = "threads_enabled")))]
+const _: () = core::assert! (std::mem::size_of::<thread_state> () == 480);
 // Expected Darwin pthread layout; target C ABI verification is required by P-387.
 #[cfg (all (target_os = "macos", feature = "threads_enabled", feature = "have_pthread"))]
 const _: () = core::assert! (std::mem::size_of::<thread_state> () == 520);
@@ -184,24 +198,32 @@ const _: () = core::assert! (std::mem::offset_of! (thread_state, m_getcjmp) == 2
 const _: () = core::assert! (std::mem::offset_of! (thread_state, m_getcjmp) == 216);
 #[cfg (feature = "have_android")]
 const _: () = core::assert! (std::mem::offset_of! (thread_state, thread_id) == 480);
-#[cfg (not (feature = "have_android"))]
+#[cfg (all (not (feature = "have_android"), not (target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (thread_state, thread_id) == 408);
-/* The Android arm has a different shape: measured with `_Static_assert` against C's own
-   headers under NDK 29 / aarch64, which reads 552 for this one (darwin reads
-   432).  `docs/baseline/android-layout-probe.md`.  */
+#[cfg (all (target_os = "linux", target_arch = "aarch64"))]
+const _: () = core::assert! (std::mem::offset_of! (thread_state, thread_id) == 528);
+#[cfg (all (target_os = "linux", target_arch = "x86_64"))]
+const _: () = core::assert! (std::mem::offset_of! (thread_state, thread_id) == 416);
+/* The Android arm has a different shape.  */
 #[cfg (feature = "have_android")]
 const _: () = core::assert! (std::mem::offset_of! (thread_state, not_holding_lock) == 552);
-#[cfg (all (not (feature = "have_android"), not (feature = "threads_enabled")))]
+#[cfg (all (not (feature = "have_android"), not (target_os = "linux"), not (feature = "threads_enabled")))]
 const _: () = core::assert! (std::mem::offset_of! (thread_state, not_holding_lock) == 432);
+#[cfg (all (target_os = "linux", target_arch = "aarch64", not (feature = "threads_enabled")))]
+const _: () = core::assert! (std::mem::offset_of! (thread_state, not_holding_lock) == 552);
+#[cfg (all (target_os = "linux", target_arch = "x86_64", not (feature = "threads_enabled")))]
+const _: () = core::assert! (std::mem::offset_of! (thread_state, not_holding_lock) == 440);
 #[cfg (all (target_os = "macos", feature = "threads_enabled", feature = "have_pthread"))]
 const _: () = core::assert! (std::mem::offset_of! (thread_state, not_holding_lock) == 480);
-/* The Android arm has a different shape: measured with `_Static_assert` against C's own
-   headers under NDK 29 / aarch64, which reads 568 for this one (darwin reads
-   448).  `docs/baseline/android-layout-probe.md`.  */
+/* The Android arm has a different shape.  */
 #[cfg (feature = "have_android")]
 const _: () = core::assert! (std::mem::offset_of! (thread_state, bc) == 568);
-#[cfg (all (not (feature = "have_android"), not (feature = "threads_enabled")))]
+#[cfg (all (not (feature = "have_android"), not (target_os = "linux"), not (feature = "threads_enabled")))]
 const _: () = core::assert! (std::mem::offset_of! (thread_state, bc) == 448);
+#[cfg (all (target_os = "linux", target_arch = "aarch64", not (feature = "threads_enabled")))]
+const _: () = core::assert! (std::mem::offset_of! (thread_state, bc) == 568);
+#[cfg (all (target_os = "linux", target_arch = "x86_64", not (feature = "threads_enabled")))]
+const _: () = core::assert! (std::mem::offset_of! (thread_state, bc) == 456);
 #[cfg (all (target_os = "macos", feature = "threads_enabled", feature = "have_pthread"))]
 const _: () = core::assert! (std::mem::offset_of! (thread_state, bc) == 496);
 

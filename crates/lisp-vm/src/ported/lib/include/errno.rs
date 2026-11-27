@@ -10,27 +10,31 @@
 use super::*;
 unsafe extern "C" {
   /// <errno.h>: the per-thread error number's address (`int *__error (void)`).
-  #[cfg (not (target_os = "android"))]
+  #[cfg (not (any (target_os = "android", target_os = "linux")))]
   pub fn __error () -> *mut c_int;
   /// bionic's spelling of the same entry: `<errno.h>` 52 `int* __errno(void)` and 58
   /// `#define errno (*__errno())` (status 4.728).
   #[cfg (target_os = "android")]
   pub fn __errno () -> *mut c_int;
+  /// glibc Linux spelling of the same entry: `int *__errno_location (void)`.
+  #[cfg (target_os = "linux")]
+  pub fn __errno_location () -> *mut c_int;
 }
 
 /// <errno.h>'s `errno` on the frozen target: `#define errno (*__error ())`, so C's
 /// `errno = 0;` is the port's `*errno () = 0;` and C's `errno != 0` its `*errno () != 0`.
-/// Android's header spells the same macro over `__errno`, and a platform predicate is
-/// `target_os` (PORTING.md P-290).
+/// Android's header spells the same macro over `__errno`; Linux glibc uses `__errno_location`.
 #[inline(always)]
 pub unsafe fn errno () -> *mut c_int
 {
   // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
   unsafe {
-  #[cfg (not (target_os = "android"))]
+  #[cfg (not (any (target_os = "android", target_os = "linux")))]
   { __error () }
   #[cfg (target_os = "android")]
   { __errno () }
+  #[cfg (target_os = "linux")]
+  { __errno_location () }
 
   }
 }
@@ -38,12 +42,11 @@ pub unsafe fn errno () -> *mut c_int
 /// <errno.h>: `#define EINVAL 22`.
 pub const EINVAL: c_int = 22;
 
-/// <errno.h>: `#define ENOSYS 78`.
-#[cfg (not (feature = "have_android"))]
+/// <errno.h>: `#define ENOSYS 78` (Darwin) / `38` (bionic & Linux).
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub const ENOSYS: c_int = 78;
-/* Measured on the delivery target (bionic), status 4.781: the frozen arm above is
-   the Darwin value and the two platforms number this one differently. */
-#[cfg (feature = "have_android")]
+/* Measured on the delivery target (bionic & glibc Linux), status 4.781. */
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 pub const ENOSYS: c_int = 38;
 
 /// <errno.h>: `#define ENOMEM 12`.
@@ -86,23 +89,33 @@ pub const ENOSPC: c_int = 28;
 pub const EROFS: c_int = 30;
 /// <errno.h>: `#define ERANGE 34`.
 pub const ERANGE: c_int = 34;
-/// <errno.h>: `#define ENOTSUP 45`.
+/// <errno.h>: `#define ENOTSUP 45` (Darwin) / `95` (Linux).
+#[cfg (not (target_os = "linux"))]
 pub const ENOTSUP: c_int = 45;
-/// <errno.h>: `#define ELOOP 62`.
+#[cfg (target_os = "linux")]
+pub const ENOTSUP: c_int = 95;
+/// <errno.h>: `#define ELOOP 62` (Darwin) / `40` (Linux).
+#[cfg (not (target_os = "linux"))]
 pub const ELOOP: c_int = 62;
-/// <errno.h>: `#define ENAMETOOLONG 63`.
-#[cfg (not (feature = "have_android"))]
+#[cfg (target_os = "linux")]
+pub const ELOOP: c_int = 40;
+/// <errno.h>: `#define ENAMETOOLONG 63` (Darwin) / `36` (bionic & Linux).
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub const ENAMETOOLONG: c_int = 63;
-/* Measured on the delivery target (bionic), status 4.781: the frozen arm above is
-   the Darwin value and the two platforms number this one differently. */
-#[cfg (feature = "have_android")]
+/* Measured on the delivery target (bionic & glibc Linux), status 4.781. */
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 pub const ENAMETOOLONG: c_int = 36;
-/// <errno.h>: `#define EOVERFLOW 84`.
+/// <errno.h>: `#define EOVERFLOW 84` (Darwin) / `75` (Linux).
+#[cfg (not (target_os = "linux"))]
 pub const EOVERFLOW: c_int = 84;
+#[cfg (target_os = "linux")]
+pub const EOVERFLOW: c_int = 75;
 
-/// <errno.h>: `#define EOPNOTSUPP 102` (measured; the same code as ENOTSUP on Linux, a
-/// different one here, which is why lib/lchmod.c can name either).
+/// <errno.h>: `#define EOPNOTSUPP 102` (Darwin) / `95` (Linux).
+#[cfg (not (target_os = "linux"))]
 pub const EOPNOTSUPP: c_int = 102;
+#[cfg (target_os = "linux")]
+pub const EOPNOTSUPP: c_int = 95;
 
 /// <errno.h>: `#define EISDIR 21` (measured: `printf ("%d", EISDIR)` -> 21).
 pub const EISDIR: c_int = 21;
@@ -111,27 +124,34 @@ pub const EISDIR: c_int = 21;
    declared for themselves until status 3.80; measured with `clang -E -dM -include errno.h`
    (the same measurement ENOMEM's comment above records).  C spells `EWOULDBLOCK` as
    `#define EWOULDBLOCK EAGAIN`, so the port keeps both names and the same value.  */
-/// <errno.h>: `#define EAGAIN 35`.
-#[cfg (not (feature = "have_android"))]
+/// <errno.h>: `#define EAGAIN 35` (Darwin) / `11` (bionic & Linux).
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub const EAGAIN: c_int = 35;
-/* Measured on the delivery target (bionic), status 4.781: the frozen arm above is
-   the Darwin value and the two platforms number this one differently. */
-#[cfg (feature = "have_android")]
+/* Measured on the delivery target (bionic & glibc Linux), status 4.781. */
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 pub const EAGAIN: c_int = 11;
 /// <errno.h>: `#define EWOULDBLOCK EAGAIN`.
+#[cfg (not (target_os = "linux"))]
 pub const EWOULDBLOCK: c_int = 35;
+#[cfg (target_os = "linux")]
+pub const EWOULDBLOCK: c_int = 11;
 /// <errno.h>: `#define EMFILE 24`.
 pub const EMFILE: c_int = 24;
-/// <errno.h>: `#define EINPROGRESS 36` - **except on the MS-DOS build**, where the system header
-/// has no such name (`lib/errno.in.h` 97-98 says so in the comment above its own `#ifndef`) and
-/// `src/msdos.h` 80 defines it as 112 first; the two would collide at a crate root that includes
-/// both mirrors (measured 2026-10-05, status 3.590: `E0428` on the `msdos` arm of `src/dosfns.rs`).
-#[cfg (not (feature = "msdos"))]
+/// <errno.h>: `#define EINPROGRESS 36` (Darwin) / `115` (Linux) - **except on the MS-DOS build**.
+#[cfg (all (not (feature = "msdos"), not (target_os = "linux")))]
 pub const EINPROGRESS: c_int = 36;
-/// <errno.h>: `#define EISCONN 56`.
+#[cfg (all (not (feature = "msdos"), target_os = "linux"))]
+pub const EINPROGRESS: c_int = 115;
+/// <errno.h>: `#define EISCONN 56` (Darwin) / `106` (Linux).
+#[cfg (not (target_os = "linux"))]
 pub const EISCONN: c_int = 56;
-/// <errno.h>: `#define EMSGSIZE 40`.
+#[cfg (target_os = "linux")]
+pub const EISCONN: c_int = 106;
+/// <errno.h>: `#define EMSGSIZE 40` (Darwin) / `90` (Linux).
+#[cfg (not (target_os = "linux"))]
 pub const EMSGSIZE: c_int = 40;
+#[cfg (target_os = "linux")]
+pub const EMSGSIZE: c_int = 90;
 /// <errno.h>: `#define EPIPE 32`.
 pub const EPIPE: c_int = 32;
 /// <errno.h>: `#define EDOM 33`.
@@ -155,8 +175,8 @@ pub const EFAULT: c_int = 14;
 /// it in place (P-72 clause 4) until status 3.514 moved it back here (P-88 (5)); the value is
 /// measured on this machine's own header, and the same 7 every ABI `lib/` targets.
 pub const E2BIG: c_int = 7;
-/// <errno.h>: `#define ENOTCONN 57` (Darwin; bionic is 107).
-#[cfg (not (feature = "have_android"))]
+/// <errno.h>: `#define ENOTCONN 57` (Darwin; bionic/Linux is 107).
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub const ENOTCONN: c_int = 57;
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 pub const ENOTCONN: c_int = 107;

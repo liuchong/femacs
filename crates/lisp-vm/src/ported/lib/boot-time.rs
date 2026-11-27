@@ -250,8 +250,8 @@ unsafe fn get_boot_time_uncached (p_boot_time: *mut timespec) -> c_int
               { break; }
 
             #[cfg (not (feature = "utmp_h"))]
-            let ts: timespec = timespec { tv_sec: ut.ut_tv.tv_sec,
-                                          tv_nsec: (ut.ut_tv.tv_usec * 1000) as c_long };
+            let ts: timespec = timespec { tv_sec: ut.ut_tv.tv_sec as time_t,
+                                          tv_nsec: (ut.ut_tv.tv_usec as c_long * 1000) as c_long };
             #[cfg (feature = "utmp_h")]
             let ts: timespec = timespec { tv_sec: ut.ut_time, tv_nsec: 0 };
 
@@ -295,7 +295,7 @@ unsafe fn get_boot_time_uncached (p_boot_time: *mut timespec) -> c_int
      unit imported `sysctl` (status 4.749).  The three names its continuation lines spell are
      recorded in docs/ports/macro-body-notes.tsv, because the port's gate is a cfg the tokeniser
      cannot see.  */
-  #[cfg (all (not (feature = "not_have_sys_sysctl_h"), not (feature = "not_have_sysctl")))]
+  #[cfg (all (not (feature = "not_have_sys_sysctl_h"), not (feature = "not_have_sysctl"), not (target_os = "linux")))]
   if found_boot_time.tv_sec == 0
     {
       get_bsd_boot_time_final_fallback (&mut found_boot_time);

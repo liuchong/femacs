@@ -18,16 +18,16 @@ fn __glibc_unlikely<T> (cond: T) -> T { cond }
    `U _memcpy`, `U _realloc`, none of them renamed by the generated headers.  */
 unsafe extern "C" {
   pub fn malloc (size: usize) -> *mut c_void;
-  #[cfg (not (feature = "replace_realloc_for_realloc_posix"))]
+  #[cfg (not (any (feature = "replace_realloc_for_realloc_posix", target_os = "linux")))]
   pub fn realloc (ptr: *mut c_void, size: usize) -> *mut c_void;
-  #[cfg (feature = "replace_realloc_for_realloc_posix")]
+  #[cfg (any (feature = "replace_realloc_for_realloc_posix", target_os = "linux"))]
   #[link_name = "realloc"]
   fn realloc_system (ptr: *mut c_void, size: usize) -> *mut c_void;
 }
 /* C: this file includes gnulib's `<stdlib.h>`, so `realloc` here is the redirected
    `rpl_realloc` - `realloc (ptr, size ? size : 1)`, the note in
    `lib/include/stdlib.rs` (status 4.787).  */
-#[cfg (feature = "replace_realloc_for_realloc_posix")]
+#[cfg (any (feature = "replace_realloc_for_realloc_posix", target_os = "linux"))]
 unsafe extern "C" fn realloc (ptr: *mut c_void, size: usize) -> *mut c_void
 {
   // SAFETY: gnulib/OS raw buffer or dynamic-array boundary; caller upholds pointer validity, element capacity, and single-owner mutation invariants, returning error/null on overflow or OOM.

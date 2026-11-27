@@ -89,7 +89,10 @@ unsafe extern "C" { fn sys_clock () -> clock_t; }
 /// <time.h> on the frozen target: `clock_t` is `unsigned long` (measured with clang:
 /// `sizeof (clock_t) == 8`, `(clock_t) -1 < 0` is false), and `CLOCKS_PER_SEC` is
 /// `((clock_t) 1000000)` (docs/baseline/config/darwin-arm64.macros.tsv 626).
+#[cfg (not (target_os = "linux"))]
 type clock_t = c_ulong;
+#[cfg (target_os = "linux")]
+type clock_t = c_long;
 const CLOCKS_PER_SEC: clock_t = 1000000;
 
 /// <inttypes.h>: `#define PRIdMAX "jd"` on the frozen target (`intmax_t` is `long long`;
@@ -99,12 +102,16 @@ const PRIdMAX: &str = "jd";
 /// <errno.h>: `#define EDOM 33` on the frozen target; `errno.rs` carries the other four
 /// the file names.
 
-/// <time.h>: the frozen target's `CLOCK_MONOTONIC` (6, measured with clang).
+/// <time.h>: `CLOCK_MONOTONIC` (6 Darwin, 1 Linux).
+#[cfg (not (target_os = "linux"))]
 const CLOCK_MONOTONIC: c_int = 6;
-/// `CLOCK_MONOTONIC_COARSE` does not exist on darwin; the port keeps the dead arm's name
-/// with the Linux value (4) so its text exists (the arm is never compiled, P-51).
-#[cfg (feature = "clock_monotonic_coarse")]
+#[cfg (target_os = "linux")]
+const CLOCK_MONOTONIC: c_int = 1;
+/// `CLOCK_MONOTONIC_COARSE` does not exist on darwin; 6 on Linux.
+#[cfg (all (feature = "clock_monotonic_coarse", not (target_os = "linux")))]
 const CLOCK_MONOTONIC_COARSE: c_int = 4;
+#[cfg (all (feature = "clock_monotonic_coarse", target_os = "linux"))]
+const CLOCK_MONOTONIC_COARSE: c_int = 6;
 
 /* Declared at their use site; the mirrors this unit includes do not carry them.  (The
    time.in.rs mirror does carry `tzalloc`/`tzfree` now, so those two are read from it -

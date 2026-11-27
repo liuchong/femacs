@@ -139,7 +139,7 @@ unsafe fn num_processors_available (query: nproc_query) -> c_ulong   /* C 236-23
      332-334's `#ifdef HW_NCPUONLINE` row is dead on both, which is why the mib array below has
      the single `{ CTL_HW, HW_NCPU }` row of C 335.  */
   #[cfg (all (not (feature = "not_have_sysctl"), not (feature = "gnu_linux"),
-              not (feature = "have_glibc")))]
+              not (feature = "have_glibc"), not (target_os = "linux")))]
   {
     let mut nprocs: c_int = 0;                                /* C 329 */
     let mut len: usize = std::mem::size_of_val (&nprocs);     /* C 330 */

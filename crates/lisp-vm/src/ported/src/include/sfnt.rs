@@ -2587,21 +2587,33 @@ const _: () = core::assert! (std::mem::offset_of! (sfnt_graphics_state, zp0) == 
 /* `trap` is C's `jmp_buf`, whose size is the target's `<setjmp.h>`'s (lisp.rs says why): 192
    bytes on the host, 256 on bionic arm64.  Every offset after `trap` therefore moves by the
    difference, and the record's own `sizeof` with it.  */
-#[cfg (not (feature = "have_android"))]
+#[cfg (all (not (feature = "have_android"), not (target_os = "linux")))]
 const _: () = core::assert! (std::mem::size_of::<sfnt_interpreter> () == 480);
 #[cfg (feature = "have_android")]
 const _: () = core::assert! (std::mem::size_of::<sfnt_interpreter> () == 544);
+#[cfg (all (target_os = "linux", not (feature = "have_android"), target_arch = "aarch64"))]
+const _: () = core::assert! (std::mem::size_of::<sfnt_interpreter> () == 600);
+#[cfg (all (target_os = "linux", not (feature = "have_android"), target_arch = "x86_64"))]
+const _: () = core::assert! (std::mem::size_of::<sfnt_interpreter> () == 488);
 const _: () = core::assert! (std::mem::align_of::<sfnt_interpreter> () == 8);
 const _: () = core::assert! (std::mem::offset_of! (sfnt_interpreter, ppem) == 20);
 const _: () = core::assert! (std::mem::offset_of! (sfnt_interpreter, trap) == 264);
-#[cfg (not (feature = "have_android"))]
+#[cfg (all (not (feature = "have_android"), not (target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (sfnt_interpreter, trap_reason) == 456);
 #[cfg (feature = "have_android")]
 const _: () = core::assert! (std::mem::offset_of! (sfnt_interpreter, trap_reason) == 520);
-#[cfg (not (feature = "have_android"))]
+#[cfg (all (target_os = "linux", not (feature = "have_android"), target_arch = "aarch64"))]
+const _: () = core::assert! (std::mem::offset_of! (sfnt_interpreter, trap_reason) == 576);
+#[cfg (all (target_os = "linux", not (feature = "have_android"), target_arch = "x86_64"))]
+const _: () = core::assert! (std::mem::offset_of! (sfnt_interpreter, trap_reason) == 464);
+#[cfg (all (not (feature = "have_android"), not (target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (sfnt_interpreter, norm_coords) == 472);
 #[cfg (feature = "have_android")]
 const _: () = core::assert! (std::mem::offset_of! (sfnt_interpreter, norm_coords) == 536);
+#[cfg (all (target_os = "linux", not (feature = "have_android"), target_arch = "aarch64"))]
+const _: () = core::assert! (std::mem::offset_of! (sfnt_interpreter, norm_coords) == 592);
+#[cfg (all (target_os = "linux", not (feature = "have_android"), target_arch = "x86_64"))]
+const _: () = core::assert! (std::mem::offset_of! (sfnt_interpreter, norm_coords) == 480);
 const _: () = core::assert! (std::mem::size_of::<sfnt_instructed_outline> () == 48);
 const _: () = core::assert! (std::mem::align_of::<sfnt_instructed_outline> () == 8);
 const _: () = core::assert! (std::mem::offset_of! (sfnt_instructed_outline, flags) == 40);

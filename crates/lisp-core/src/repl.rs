@@ -1,8 +1,11 @@
 #![forbid(unsafe_code)]
 //! Interactive REPL frontend: pure-Rust `rustyline` TTY editor + clean piped fallback.
 
+#[cfg(feature = "repl-tty")]
 use std::fs;
-use std::io::{self, BufRead, IsTerminal, Write};
+#[cfg(feature = "repl-tty")]
+use std::io::IsTerminal;
+use std::io::{self, BufRead, Write};
 use std::path::Path;
 
 use crate::brand;
@@ -34,6 +37,7 @@ fn is_blank_or_comment_only(src: &str) -> bool {
     true
 }
 
+#[cfg(feature = "repl-tty")]
 fn is_symbol_char(ch: char) -> bool {
     ch.is_ascii_alphanumeric()
         || matches!(
@@ -42,6 +46,7 @@ fn is_symbol_char(ch: char) -> bool {
         )
 }
 
+#[cfg(feature = "repl-tty")]
 fn symbol_prefix_at(line: &str, pos: usize) -> (usize, &str) {
     let bounded = pos.min(line.len());
     let prefix_slice = &line[..bounded];

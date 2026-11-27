@@ -656,7 +656,8 @@ unsafe extern "C-unwind" {
   fn window_box_left_offset (w: *mut window, area: glyph_row_area) -> c_int;
 }
 unsafe extern "C" {
-  /// C: <setjmp.h>: `int sigsetjmp (sigjmp_buf, int);`
+  /// C: <setjmp.h>: `int sigsetjmp (sigjmp_buf, int);` (glibc macro -> `__sigsetjmp`).
+  #[cfg_attr (target_os = "linux", link_name = "__sigsetjmp")]
   fn sigsetjmp (env: *mut c_void, savemask: c_int) -> c_int;
   /// C: <string.h>: `size_t strnlen (const char *, size_t);` — C reaches `<string.h>` through
   ///   lisp.h 30, and the mirror that edge pulls in (`lib/include/string.rs`, status 3.524)
@@ -9275,7 +9276,10 @@ pub extern "C-unwind" fn gobble_input () -> c_int
 
 /* <sys/ioctl.h>: `#define FIONREAD 0x4004667f` (measured: 1074030207, the `sysdep.rs`
    request-word family).  No mirror carries it.  */
+#[cfg (not (target_os = "linux"))]
 pub const FIONREAD: c_ulong = 0x4004667f;
+#[cfg (target_os = "linux")]
+pub const FIONREAD: c_ulong = 0x541b;
 
 /* termchar.h 62-64: `bool_bf term_initted : 1` is packed into the mirror's
    `tty_display_info::bits_initted` byte (the dispnew.rs `term_initted` shape).  */

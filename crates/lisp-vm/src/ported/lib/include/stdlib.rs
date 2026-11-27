@@ -20,11 +20,11 @@ unsafe extern "C" {
   pub fn malloc (size: usize) -> *mut c_void;
   /* void *realloc (void *ptr, size_t size);  -  the entry gnulib's generated header leaves the
      plain `realloc` name on when it does not redirect the allocator (below).  */
-  #[cfg (not (feature = "replace_realloc_for_realloc_posix"))]
+  #[cfg (not (any (feature = "replace_realloc_for_realloc_posix", target_os = "linux")))]
   pub fn realloc (ptr: *mut c_void, size: usize) -> *mut c_void;
   /* void *realloc (void *ptr, size_t size);  -  the system entry the redirected `realloc`
      below calls; the generated header's `#undef realloc` is why the two names differ.  */
-  #[cfg (feature = "replace_realloc_for_realloc_posix")]
+  #[cfg (any (feature = "replace_realloc_for_realloc_posix", target_os = "linux"))]
   #[link_name = "realloc"]
   pub fn realloc_system (ptr: *mut c_void, size: usize) -> *mut c_void;
   /* void *calloc (size_t nmemb, size_t size);  */
@@ -58,7 +58,7 @@ unsafe extern "C" {
    difference: `realloc (NULL, 0)` hands back a pointer while `realloc (p, 0)` on a live block
    returns NULL, so `shrink_regexp_cache`'s `xrealloc (cp->buf.buffer, cp->buf.used)` reached
    `memory_full (0)` in the first GC of `loadup.el` (status 4.787).  */
-#[cfg (feature = "replace_realloc_for_realloc_posix")]
+#[cfg (any (feature = "replace_realloc_for_realloc_posix", target_os = "linux"))]
 pub unsafe extern "C" fn realloc (ptr: *mut c_void, size: usize) -> *mut c_void
 {
   // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.

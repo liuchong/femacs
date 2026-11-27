@@ -186,7 +186,7 @@ const _: () = core::assert! (std::mem::offset_of! (rusage, ru_majflt) == 72);
 /* bionic's `siginfo_t` is 128 bytes with `si_addr`@16 (`si_signo`/`si_errno`/`si_code`, then the
    8-aligned `_sifields` union whose `_sigfault.si_addr` is first); the host record below is 104 with
    `si_addr`@24.  Measured against the NDK for API 21/28/36 (status 4.831).  */
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 /// bionic's `siginfo_t`: the three tags, then the `_sifields` union (128 bytes in all).
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -199,14 +199,14 @@ pub struct siginfo_t {
   pub __rest: [u64; 13],
 }
 
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 const _: () = core::assert! (std::mem::size_of::<siginfo_t> () == 128);
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 const _: () = core::assert! (std::mem::offset_of! (siginfo_t, si_code) == 8);
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 const _: () = core::assert! (std::mem::offset_of! (siginfo_t, si_addr) == 16);
 
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 /// The host's record, measured: `sizeof` 104, `si_addr`@24.  Only `si_addr` is reached (C 1885).
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -222,7 +222,7 @@ pub struct siginfo_t {
   pub si_band: c_long,
 }
 
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (siginfo_t, si_addr) == 24);
 
 /* signal.h: `typedef struct __darwin_sigaltstack { void *ss_sp; __darwin_size_t ss_size;
@@ -230,7 +230,7 @@ const _: () = core::assert! (std::mem::offset_of! (siginfo_t, si_addr) == 24);
 /* bionic's `stack_t` swaps the host's last two members: `ss_sp`@0, `ss_flags`@8, `ss_size`@16
    (NDK, API 21/28/36).  With the host order `sigaltstack` read `ss_flags` as 0x10000 and failed
    with EINVAL, so the SIGSEGV handler never got its alternate stack (status 4.831).  */
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct stack_t {
@@ -239,16 +239,16 @@ pub struct stack_t {
   pub ss_size: usize,
 }
 
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 const _: () = core::assert! (std::mem::size_of::<stack_t> () == 24);
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 const _: () = core::assert! (std::mem::offset_of! (stack_t, ss_sp) == 0);
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 const _: () = core::assert! (std::mem::offset_of! (stack_t, ss_flags) == 8);
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 const _: () = core::assert! (std::mem::offset_of! (stack_t, ss_size) == 16);
 
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 /// The host's `stack_t`, measured: `sizeof` 24, `ss_sp`@0, `ss_size`@8, `ss_flags`@16.
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -258,13 +258,13 @@ pub struct stack_t {
   pub ss_flags: c_int,
 }
 
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::size_of::<stack_t> () == 24);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (stack_t, ss_sp) == 0);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (stack_t, ss_size) == 8);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (stack_t, ss_flags) == 16);
 
 /// `<stddef.h>`'s `max_align_t`: the frozen target's widest scalar alignment is 8
@@ -402,26 +402,19 @@ pub struct eproc {
   pub _pad3: [u8; 68],
 }
 
-#[cfg (not (feature = "have_android"))]
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::size_of::<eproc> () == 352);
-#[cfg (not (feature = "have_android"))]
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (eproc, e_pcred) == 16);
-#[cfg (not (feature = "have_android"))]
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (eproc, e_ucred) == 120);
-#[cfg (not (feature = "have_android"))]
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (eproc, e_ppid) == 264);
-#[cfg (not (feature = "have_android"))]
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (eproc, e_pgid) == 268);
-#[cfg (not (feature = "have_android"))]
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (eproc, e_tdev) == 276);
-#[cfg (not (feature = "have_android"))]
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (eproc, e_tpgid) == 280);
 
 /// `<sys/sysctl.h>`'s `struct kinfo_proc`, measured: `sizeof` 648, `kp_proc`@0,
@@ -433,15 +426,13 @@ pub struct kinfo_proc {
   pub kp_eproc: eproc,
 }
 
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::size_of::<kinfo_proc> () == 648);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (kinfo_proc, kp_proc) == 0);
-#[cfg (not (feature = "have_android"))]
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (kinfo_proc, kp_eproc) == 296);
-#[cfg (not (feature = "have_android"))]
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (kinfo_proc, kp_eproc.e_ucred.cr_uid) == 420);
 #[cfg (not (feature = "have_android"))]
 #[cfg (not (feature = "have_android"))]
@@ -473,13 +464,20 @@ pub const RUSAGE_INFO_CURRENT: c_int = 6;
 /// host and an 8-byte one on bionic, so the constant is spelled as C's all-ones conversion).
 pub const NODEV: dev_t = (-1i64) as dev_t;   /* C's `((dev_t) -1)` */
 
-/// `<signal.h>`: `#define SA_RESTART 0x0002` (measured).
+/// `<signal.h>`: `SA_RESTART` (0x0002 Darwin, 0x10000000 Linux).
+#[cfg (not (target_os = "linux"))]
 pub const SA_RESTART: c_int = 0x0002;
-/// `<signal.h>`: `SA_ONSTACK 0x0001`, `SA_SIGINFO 0x0040` (measured; `SA_RESTART` is 2 and
-/// `signal.rs`'s mirror does not carry the two the file needs — `syssignal.h`'s mirror
-/// carries `SA_SIGINFO`?  it does not, so they are declared here).
+#[cfg (target_os = "linux")]
+pub const SA_RESTART: c_int = 0x1000_0000;
+/// `<signal.h>`: `SA_ONSTACK` (0x0001 Darwin, 0x08000000 Linux), `SA_SIGINFO` (0x0040 Darwin, 0x0004 Linux).
+#[cfg (not (target_os = "linux"))]
 pub const SA_ONSTACK: c_int = 1;
+#[cfg (target_os = "linux")]
+pub const SA_ONSTACK: c_int = 0x0800_0000;
+#[cfg (not (target_os = "linux"))]
 pub const SA_SIGINFO: c_int = 0x40;
+#[cfg (target_os = "linux")]
+pub const SA_SIGINFO: c_int = 0x0004;
 /// `<signal.h>`: `SIG_DFL`'s and `SIG_IGN`'s handler words (`signal.rs` carries `SIG_IGN`).
 pub const SIG_ERR: usize = !0usize;
 
@@ -517,7 +515,18 @@ unsafe extern "C" {
   /* `int snprintf (char *, size_t, const char *, ...)` comes from `lib/include/stdio.rs`
      (status 3.263): the mirror carries it, so this block does not (0.1-3).  */
   /* char *strerror (int);  */
+  #[cfg (any (feature = "gnu_linux", target_os = "linux"))]
+  fn set_unwind_protect_ptr (
+    count: specpdl_ref,
+    func: Option<unsafe extern "C-unwind" fn (*mut c_void)>,
+    arg: *mut c_void,
+  );
+  #[cfg (any (feature = "gnu_linux", target_os = "linux"))]
+  fn clock_gettime (clock_id: c_int, tp: *mut timespec) -> c_int;
 }
+
+#[cfg (any (feature = "gnu_linux", target_os = "linux"))]
+const CLOCK_BOOTTIME: c_int = 7;
 
 /// C 81-83's `#ifndef STDERR_FILENO` / `# define STDERR_FILENO fileno (GetStdHandle
 /// (STD_ERROR_HANDLE))` — the dead `WINDOWSNT` arm, carried with the name the port's const
@@ -589,7 +598,10 @@ unsafe extern "C" {
 pub unsafe fn sigfillset (set: *mut sigset_t) -> c_int {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  *set = sigset_t { __val: !0 };
+  #[cfg (not (target_os = "linux"))]
+  { *set = sigset_t { __val: !0 }; }
+  #[cfg (target_os = "linux")]
+  { *set = sigset_t { __val: [!0; 16] }; }
   0
 
   }
@@ -869,8 +881,14 @@ pub const ISTRIP: tcflag_t = 0x00000020;
 pub const INLCR: tcflag_t = 0x00000040;
 pub const IGNCR: tcflag_t = 0x00000080;
 pub const ICRNL: tcflag_t = 0x00000100;
+#[cfg (not (target_os = "linux"))]
 pub const IXON: tcflag_t = 0x00000200;
+#[cfg (target_os = "linux")]
+pub const IXON: tcflag_t = 0x00000400;
+#[cfg (not (target_os = "linux"))]
 pub const IXOFF: tcflag_t = 0x00000400;
+#[cfg (target_os = "linux")]
+pub const IXOFF: tcflag_t = 0x00001000;
 pub const IXANY: tcflag_t = 0x00000800;
 /// `<termios.h>`: `IUCLC` and `OLCUC` do **not** exist on this target (measured: undeclared),
 /// so C 549-560's arms are dead; the port keeps the two names with the Linux values
@@ -880,11 +898,12 @@ pub const IUCLC: tcflag_t = 0x00000100;
 #[cfg (feature = "olcuc")]
 pub const OLCUC: tcflag_t = 0x00000002;
 
-/// `<termios.h>`'s output flags (measured): OPOST 1, ONLCR 2, TABDLY 3076 (0x00000c04,
-/// whose low bit is OXTABS), TAB3 4 (OXTABS), NLDLY 0x00000300, CRDLY 0x00003000, BSDLY
-/// 0x00008000, VTDLY 0x00010000, FFDLY 0x00004000.
+/// `<termios.h>`'s output flags (measured on Darwin and Linux).
 pub const OPOST: tcflag_t = 0x00000001;
+#[cfg (not (target_os = "linux"))]
 pub const ONLCR: tcflag_t = 0x00000002;
+#[cfg (target_os = "linux")]
+pub const ONLCR: tcflag_t = 0x00000004;
 pub const TABDLY: tcflag_t = 0x00000c04;
 pub const TAB3: tcflag_t = 0x00000004;
 pub const OXTABS: tcflag_t = 0x00000004;
@@ -896,69 +915,179 @@ pub const FFDLY: tcflag_t = 0x00004000;
 /// `<termios.h>`: `#define TAB0 0` (measured; the `speeds`-style names the file reaches).
 pub const TAB0: tcflag_t = 0;
 
-/// `<termios.h>`'s control flags (measured): CSIZE 0x00000300, CS5 0, CS6 0x00000100,
-/// CS7 0x00000200, CS8 0x00000300, CSTOPB 0x00000400, CREAD 0x00000800, PARENB 0x00001000,
-/// PARODD 0x00002000, HUPCL 0x00004000, CLOCAL 0x00008000, CCTS_OFLOW 0x00010000,
-/// CRTS_IFLOW 0x00020000, CRTSCTS 0x00030000.
+/// `<termios.h>`'s control flags (measured on Darwin and Linux).
+#[cfg (not (target_os = "linux"))]
 pub const CSIZE: tcflag_t = 0x00000300;
+#[cfg (target_os = "linux")]
+pub const CSIZE: tcflag_t = 0x00000030;
 pub const CS5: tcflag_t = 0x00000000;
+#[cfg (not (target_os = "linux"))]
 pub const CS6: tcflag_t = 0x00000100;
+#[cfg (target_os = "linux")]
+pub const CS6: tcflag_t = 0x00000010;
+#[cfg (not (target_os = "linux"))]
 pub const CS7: tcflag_t = 0x00000200;
+#[cfg (target_os = "linux")]
+pub const CS7: tcflag_t = 0x00000020;
+#[cfg (not (target_os = "linux"))]
 pub const CS8: tcflag_t = 0x00000300;
+#[cfg (target_os = "linux")]
+pub const CS8: tcflag_t = 0x00000030;
+#[cfg (not (target_os = "linux"))]
 pub const CSTOPB: tcflag_t = 0x00000400;
+#[cfg (target_os = "linux")]
+pub const CSTOPB: tcflag_t = 0x00000040;
+#[cfg (not (target_os = "linux"))]
 pub const CREAD: tcflag_t = 0x00000800;
+#[cfg (target_os = "linux")]
+pub const CREAD: tcflag_t = 0x00000080;
+#[cfg (not (target_os = "linux"))]
 pub const PARENB: tcflag_t = 0x00001000;
+#[cfg (target_os = "linux")]
+pub const PARENB: tcflag_t = 0x00000100;
+#[cfg (not (target_os = "linux"))]
 pub const PARODD: tcflag_t = 0x00002000;
+#[cfg (target_os = "linux")]
+pub const PARODD: tcflag_t = 0x00000200;
+#[cfg (not (target_os = "linux"))]
 pub const HUPCL: tcflag_t = 0x00004000;
+#[cfg (target_os = "linux")]
+pub const HUPCL: tcflag_t = 0x00000400;
+#[cfg (not (target_os = "linux"))]
 pub const CLOCAL: tcflag_t = 0x00008000;
+#[cfg (target_os = "linux")]
+pub const CLOCAL: tcflag_t = 0x00000800;
 pub const CCTS_OFLOW: tcflag_t = 0x00010000;
 pub const CRTS_IFLOW: tcflag_t = 0x00020000;
+#[cfg (not (target_os = "linux"))]
 pub const CRTSCTS: tcflag_t = CCTS_OFLOW | CRTS_IFLOW;
+#[cfg (target_os = "linux")]
+pub const CRTSCTS: tcflag_t = 0x80000000;
 /// `<termios.h>`: `CNEW_RTSCTS` does not exist on this target, so C 3272-3288's arm is dead
 /// and carried with the BSD spelling of the same flag (the arm is never compiled).
 #[cfg (feature = "cnew_rtscts")]
 pub const CNEW_RTSCTS: tcflag_t = CCTS_OFLOW | CRTS_IFLOW;
 
-/// `<termios.h>`'s local flags (measured): ECHOKE 1, ECHOE 2, ECHOK 4, ECHO 8, ECHONL 16,
-/// ECHOPRT 32, ECHOCTL 64, ISIG 128, ICANON 256, ALTWERASE 512, IEXTEN 1024, EXTPROC 2048,
-/// TOSTOP 4194304, FLUSHO 8388608, PENDIN 536870912, NOFLSH 2147483648.
+/// `<termios.h>`'s local flags (measured on Darwin and Linux).
+#[cfg (not (target_os = "linux"))]
 pub const ECHOKE: tcflag_t = 0x00000001;
+#[cfg (target_os = "linux")]
+pub const ECHOKE: tcflag_t = 0x00000800;
+#[cfg (not (target_os = "linux"))]
 pub const ECHOE: tcflag_t = 0x00000002;
+#[cfg (target_os = "linux")]
+pub const ECHOE: tcflag_t = 0x00000010;
+#[cfg (not (target_os = "linux"))]
 pub const ECHOK: tcflag_t = 0x00000004;
+#[cfg (target_os = "linux")]
+pub const ECHOK: tcflag_t = 0x00000020;
 pub const ECHO: tcflag_t = 0x00000008;
+#[cfg (not (target_os = "linux"))]
 pub const ECHONL: tcflag_t = 0x00000010;
+#[cfg (target_os = "linux")]
+pub const ECHONL: tcflag_t = 0x00000040;
+#[cfg (not (target_os = "linux"))]
 pub const ECHOPRT: tcflag_t = 0x00000020;
+#[cfg (target_os = "linux")]
+pub const ECHOPRT: tcflag_t = 0x00000400;
+#[cfg (not (target_os = "linux"))]
 pub const ECHOCTL: tcflag_t = 0x00000040;
+#[cfg (target_os = "linux")]
+pub const ECHOCTL: tcflag_t = 0x00000200;
+#[cfg (not (target_os = "linux"))]
 pub const ISIG: tcflag_t = 0x00000080;
+#[cfg (target_os = "linux")]
+pub const ISIG: tcflag_t = 0x00000001;
+#[cfg (not (target_os = "linux"))]
 pub const ICANON: tcflag_t = 0x00000100;
+#[cfg (target_os = "linux")]
+pub const ICANON: tcflag_t = 0x00000002;
 pub const ALTWERASE: tcflag_t = 0x00000200;
+#[cfg (not (target_os = "linux"))]
 pub const IEXTEN: tcflag_t = 0x00000400;
+#[cfg (target_os = "linux")]
+pub const IEXTEN: tcflag_t = 0x00008000;
 pub const EXTPROC: tcflag_t = 0x00000800;
+#[cfg (not (target_os = "linux"))]
 pub const TOSTOP: tcflag_t = 0x00400000;
+#[cfg (target_os = "linux")]
+pub const TOSTOP: tcflag_t = 0x00000100;
+#[cfg (not (target_os = "linux"))]
 pub const FLUSHO: tcflag_t = 0x00800000;
+#[cfg (target_os = "linux")]
+pub const FLUSHO: tcflag_t = 0x00001000;
+#[cfg (not (target_os = "linux"))]
 pub const PENDIN: tcflag_t = 0x20000000;
+#[cfg (target_os = "linux")]
+pub const PENDIN: tcflag_t = 0x00004000;
+#[cfg (not (target_os = "linux"))]
 pub const NOFLSH: tcflag_t = 0x80000000;
+#[cfg (target_os = "linux")]
+pub const NOFLSH: tcflag_t = 0x00000080;
 
-/// `<termios.h>`'s `c_cc` indices (measured): VEOF 0, VEOL 1, VEOL2 2, VERASE 3, VWERASE 4,
-/// VKILL 5, VREPRINT 6, VINTR 8, VQUIT 9, VSUSP 10, VDSUSP 11, VSTART 12, VSTOP 13,
-/// VLNEXT 14, VDISCARD 15, VMIN 16, VTIME 17.
+/// `<termios.h>`'s `c_cc` indices (measured on Darwin and Linux).
+#[cfg (not (target_os = "linux"))]
 pub const VEOF: usize = 0;
+#[cfg (target_os = "linux")]
+pub const VEOF: usize = 4;
+#[cfg (not (target_os = "linux"))]
 pub const VEOL: usize = 1;
+#[cfg (target_os = "linux")]
+pub const VEOL: usize = 11;
+#[cfg (not (target_os = "linux"))]
 pub const VEOL2: usize = 2;
+#[cfg (target_os = "linux")]
+pub const VEOL2: usize = 16;
+#[cfg (not (target_os = "linux"))]
 pub const VERASE: usize = 3;
+#[cfg (target_os = "linux")]
+pub const VERASE: usize = 2;
+#[cfg (not (target_os = "linux"))]
 pub const VWERASE: usize = 4;
+#[cfg (target_os = "linux")]
+pub const VWERASE: usize = 14;
+#[cfg (not (target_os = "linux"))]
 pub const VKILL: usize = 5;
+#[cfg (target_os = "linux")]
+pub const VKILL: usize = 3;
+#[cfg (not (target_os = "linux"))]
 pub const VREPRINT: usize = 6;
+#[cfg (target_os = "linux")]
+pub const VREPRINT: usize = 12;
+#[cfg (not (target_os = "linux"))]
 pub const VINTR: usize = 8;
+#[cfg (target_os = "linux")]
+pub const VINTR: usize = 0;
+#[cfg (not (target_os = "linux"))]
 pub const VQUIT: usize = 9;
+#[cfg (target_os = "linux")]
+pub const VQUIT: usize = 1;
 pub const VSUSP: usize = 10;
 pub const VDSUSP: usize = 11;
+#[cfg (not (target_os = "linux"))]
 pub const VSTART: usize = 12;
+#[cfg (target_os = "linux")]
+pub const VSTART: usize = 8;
+#[cfg (not (target_os = "linux"))]
 pub const VSTOP: usize = 13;
+#[cfg (target_os = "linux")]
+pub const VSTOP: usize = 9;
+#[cfg (not (target_os = "linux"))]
 pub const VLNEXT: usize = 14;
+#[cfg (target_os = "linux")]
+pub const VLNEXT: usize = 15;
+#[cfg (not (target_os = "linux"))]
 pub const VDISCARD: usize = 15;
+#[cfg (target_os = "linux")]
+pub const VDISCARD: usize = 13;
+#[cfg (not (target_os = "linux"))]
 pub const VMIN: usize = 16;
+#[cfg (target_os = "linux")]
+pub const VMIN: usize = 6;
+#[cfg (not (target_os = "linux"))]
 pub const VTIME: usize = 17;
+#[cfg (target_os = "linux")]
+pub const VTIME: usize = 5;
 /// `<termios.h>`: `VSWTCH` and `V_DSUSP` are other systems' spellings (Solaris/BSD); the
 /// frozen target has neither (measured), so C 1199-1210's arms are dead and carried.
 #[cfg (feature = "vswtch")]
@@ -973,16 +1102,28 @@ pub const TCSADRAIN: c_int = 1;
 pub const TCSAFLUSH: c_int = 2;
 pub const TCOON: c_int = 2;
 
-/// `<sys/ioctl.h>`'s request words (measured): TIOCSTI 2147578994 (0x80017472),
-/// TIOCSTART 536900718 (0x2000746e), TIOCGWINSZ 1074295912 (0x40087468),
-/// TIOCSWINSZ 2148037735 (0x80087467), TIOCEXCL 536900621 (0x2000740d),
-/// FIONBIO 2147772030 (0x8004667e).
+/// `<sys/ioctl.h>`'s request words (measured on Darwin and Linux).
+#[cfg (not (target_os = "linux"))]
 pub const TIOCSTI: c_ulong = 2147578994;
+#[cfg (target_os = "linux")]
+pub const TIOCSTI: c_ulong = 0x5412;
 pub const TIOCSTART: c_ulong = 536900718;
+#[cfg (not (target_os = "linux"))]
 pub const TIOCGWINSZ: c_ulong = 1074295912;
+#[cfg (target_os = "linux")]
+pub const TIOCGWINSZ: c_ulong = 0x5413;
+#[cfg (not (target_os = "linux"))]
 pub const TIOCSWINSZ: c_ulong = 2148037735;
+#[cfg (target_os = "linux")]
+pub const TIOCSWINSZ: c_ulong = 0x5414;
+#[cfg (not (target_os = "linux"))]
 pub const TIOCEXCL: c_ulong = 536900621;
+#[cfg (target_os = "linux")]
+pub const TIOCEXCL: c_ulong = 0x540c;
+#[cfg (not (target_os = "linux"))]
 pub const FIONBIO: c_ulong = 2147772030;
+#[cfg (target_os = "linux")]
+pub const FIONBIO: c_ulong = 0x5421;
 /// `<sys/ioctl.h>`: `TCXONC`, `TIOCSSIZE` and `TIOCGSIZE` do not exist on this target
 /// (measured), so C 1281, 1412 and 1467's arms are dead and carried.  SunOS's `TIOCSSIZE`
 /// value is 0x5477 and `TIOCGSIZE` is `TIOCGWINSZ` on the systems that have it (BSD);
@@ -994,8 +1135,11 @@ pub const TIOCSSIZE: c_ulong = 0x5477;
 #[cfg (feature = "tiocgsize")]
 pub const TIOCGSIZE: c_ulong = TIOCGWINSZ;
 
-/// `<unistd.h>`: `#define _PC_PIPE_BUF 6` (measured).
+/// `<unistd.h>`: `#define _PC_PIPE_BUF 6` on Darwin, `5` on Linux (measured).
+#[cfg (not (target_os = "linux"))]
 pub const _PC_PIPE_BUF: c_int = 6;
+#[cfg (target_os = "linux")]
+pub const _PC_PIPE_BUF: c_int = 5;
 
 /* `struct save_signal` and the two helpers around it (C 531-538).  */
 /* Record a signal code and the action for it.  */
@@ -1009,10 +1153,12 @@ pub struct save_signal {
 /* `struct save_signal` is `{ int code; struct sigaction action; }`, so its size follows the
    target's `sigaction`: 8 + 16 = 24 where the frozen target's is 16 bytes, 8 + 32 = 40 where
    bionic's is 32 (measured, P-237).  */
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::size_of::<save_signal> () == 24);
 #[cfg (feature = "have_android")]
 const _: () = core::assert! (std::mem::size_of::<save_signal> () == 40);
+#[cfg (target_os = "linux")]
+const _: () = core::assert! (std::mem::size_of::<save_signal> () == 160);
 const _: () = core::assert! (std::mem::offset_of! (save_signal, code) == 0);
 const _: () = core::assert! (std::mem::offset_of! (save_signal, action) == 8);
 
@@ -1052,7 +1198,10 @@ unsafe extern "C" { pub static interrupts_deferred: VmGlobal<bool>; }
 
 /// `<fcntl.h>`: `#define FASYNC O_ASYNC` — the frozen target's `O_ASYNC` is 0x0040
 /// (measured).
+#[cfg (not (target_os = "linux"))]
 pub const FASYNC: c_int = 0x0040;
+#[cfg (target_os = "linux")]
+pub const FASYNC: c_int = 0x2000;
 
 /// `<termios.h>`/`<stdlib.h>`: the four conversions and the list helpers the serial and
 /// signal arms reach; their mirrors land with those units, so the port declares them at
@@ -2984,8 +3133,12 @@ pub unsafe extern "C-unwind" fn init_system_name () {
 // C 1653-1656: `sigset_t empty_mask;` and `static struct sigaction process_fatal_action;`.
 // The declaration is `syssignal.h`'s (the mirror's `syssignal_decls` module); this unit
 // defines the object, as C does.
+#[cfg (not (target_os = "linux"))]
 #[unsafe(no_mangle)]
 pub static empty_mask: VmGlobal<sigset_t> = VmGlobal::<sigset_t>::new (sigset_t { __val: 0 });
+#[cfg (target_os = "linux")]
+#[unsafe(no_mangle)]
+pub static empty_mask: VmGlobal<sigset_t> = VmGlobal::<sigset_t>::new (sigset_t { __val: [0; 16] });
 
 static process_fatal_action: VmGlobal<sigaction> = VmGlobal::<sigaction>::new (unsafe { std::mem::zeroed () });
 
@@ -3091,16 +3244,23 @@ pub unsafe extern "C-unwind" fn deliver_process_signal (sig: c_int, handler: sig
      might change errno.  Races can occur even in single-threaded hosts.  */
   let old_errno: c_int = *errno ();
 
+  #[cfg (feature = "isolate_vm")]
+  if !crate::sys::isolate::is_isolate_active () {
+    *errno () = old_errno;
+    return;
+  }
+
   let mut on_main_thread: bool = true;
   /* C 1738-1748: `#ifdef FORWARD_SIGNAL_TO_MAIN_THREAD` is live.  */
   {
-    if pthread_equal (pthread_self (), (*main_thread_id.as_mut_ptr ())) == 0
+    let target = *main_thread_id.as_mut_ptr ();
+    if target != (0 as pthread_t) && pthread_equal (pthread_self (), target) == 0
       {
 	let mut blocked: sigset_t = std::mem::zeroed ();
 	sigemptyset (&mut blocked);
 	sigaddset (&mut blocked, sig);
 	pthread_sigmask (SIG_BLOCK, &blocked, std::ptr::null_mut ());
-	pthread_kill ((*main_thread_id.as_mut_ptr ()), sig);
+	pthread_kill (target, sig);
 	on_main_thread = false;
       }
   }
@@ -3133,12 +3293,13 @@ unsafe extern "C-unwind" fn deliver_thread_signal (sig: c_int, handler: signal_h
      link; C's macro is what C itself tests).  */
   #[cfg (feature = "forward_signal_to_main_thread")]
   {
-    if pthread_equal (pthread_self (), (*main_thread_id.as_mut_ptr ())) == 0
+    let target = *main_thread_id.as_mut_ptr ();
+    if target != (0 as pthread_t) && pthread_equal (pthread_self (), target) == 0
       {
 	(*thread_backtrace_npointers.as_mut_ptr ()) =
 	  backtrace (thread_backtrace_buffer.as_mut_ptr (), BACKTRACE_LIMIT_MAX as c_int);
 	sigaction (sig, &(*process_fatal_action.as_mut_ptr ()), std::ptr::null_mut ());
-	pthread_kill ((*main_thread_id.as_mut_ptr ()), sig);
+	pthread_kill (target, sig);
 
 	/* Avoid further damage while the main thread is exiting.  */
 	while true
@@ -3863,13 +4024,13 @@ pub unsafe fn renameat_noreplace (srcfd: c_int, src: *const c_char, dstfd: c_int
      configuration nor bionic, which is why `tools/gen-android-config.sh` measures it with the
      target's own compiler and the arm is gated on C's macro: `feature = "not_rename_excl"` is
      exactly `#ifndef RENAME_EXCL`, and the frozen target sets no features at all.  */
-  #[cfg (not (feature = "not_rename_excl"))]
+  #[cfg (all (not (feature = "not_rename_excl"), not (target_os = "linux")))]
   {
     return renameatx_np (srcfd, src, dstfd, dst, RENAME_EXCL);
   }
-  #[cfg (feature = "have_renameat2")]
+  #[cfg (any (feature = "have_renameat2", target_os = "linux"))]
   {
-    return renameat2 (srcfd, src, dstfd, dst, RENAME_NOREPLACE);
+    return renameat2 (srcfd, src, dstfd, dst, RENAME_NOREPLACE as c_uint);
   }
   #[cfg (feature = "sys_renameat2")]
   {
@@ -3879,7 +4040,7 @@ pub unsafe fn renameat_noreplace (srcfd: c_int, src: *const c_char, dstfd: c_int
   // C 2409-2416's `#else` - the arm Android and any other target without one of the three
   // features above takes; `no_rename_excl` was a gate no configuration produces.
   #[cfg (all (feature = "not_rename_excl", not (feature = "have_renameat2"),
-              not (feature = "sys_renameat2")))]
+              not (feature = "sys_renameat2"), not (target_os = "linux")))]
   {
     #[cfg (feature = "windowsnt")]
     {
@@ -3895,32 +4056,31 @@ pub unsafe fn renameat_noreplace (srcfd: c_int, src: *const c_char, dstfd: c_int
 }
 
 /// The two names C's earlier `renameat_noreplace` arms use (Linux's entry and its request
-/// number); the arms are never compiled, and `RENAME_NOREPLACE` is Linux's 1.
-#[cfg (any (feature = "have_renameat2", feature = "sys_renameat2"))]
+/// number); `RENAME_NOREPLACE` is Linux's 1.
+#[cfg (any (feature = "have_renameat2", feature = "sys_renameat2", target_os = "linux"))]
 pub const RENAME_NOREPLACE: c_int = 1;
 #[cfg (any (feature = "have_renameat2", feature = "sys_renameat2"))]
 pub const SYS_renameat2: c_int = 316;
-#[cfg (any (feature = "have_renameat2", feature = "sys_renameat2"))]
+#[cfg (any (feature = "have_renameat2", feature = "sys_renameat2", target_os = "linux"))]
 unsafe extern "C" {
   pub fn renameat2 (olddirfd: c_int, oldpath: *const c_char, newdirfd: c_int,
                     newpath: *const c_char, flags: c_uint) -> c_int;
+  #[cfg (feature = "sys_renameat2")]
   pub fn syscall (number: c_long, ...) -> c_long;
+  #[cfg (feature = "sys_renameat2")]
   pub fn sys_rename_replace (from: *const c_char, to: *const c_char, force: c_int) -> c_int;
 }
 
 /// `<stdio.h>`: `int renameatx_np (int, const char *, int, const char *, unsigned int);`
-/// — Darwin's entry C 2388 calls, gated with the arm that calls it: bionic declares neither the
-/// entry nor `RENAME_EXCL` (measured with the target's own preprocessor), and the device does not
-/// export it.
-#[cfg (not (feature = "not_rename_excl"))]
+/// — Darwin's entry C 2388 calls, gated out on Linux and Android.
+#[cfg (all (not (feature = "not_rename_excl"), not (target_os = "linux")))]
 unsafe extern "C" {
   pub fn renameatx_np (fromfd: c_int, from: *const c_char, tofd: c_int, to: *const c_char,
                        flags: c_uint) -> c_int;
 }
 
-/// `<stdio.h>`: `#define RENAME_EXCL 0x00000004` (the frozen macro table); gated with the arm
-/// that reads it, so the Android unit carries neither name - C's own Android unit does not.
-#[cfg (not (feature = "not_rename_excl"))]
+/// `<stdio.h>`: `#define RENAME_EXCL 0x00000004` (Darwin).
+#[cfg (all (not (feature = "not_rename_excl"), not (target_os = "linux")))]
 pub const RENAME_EXCL: c_uint = 0x00000004;
 
 /* C 2399-2405: `#if !defined HAVE_NTGUI && !(defined HAVE_ANDROID && !defined
@@ -4773,16 +4933,15 @@ pub struct speed_struct {
   pub internal: speed_t,
 }
 
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::size_of::<speed_struct> () == 16);
-/* Two `speed_t`: 8 + 8 on the host, 4 + 4 where bionic's `speed_t` is `unsigned int`
-   (status 4.795).  */
-#[cfg (feature = "have_android")]
+/* Two `speed_t`: 8 + 8 on the host, 4 + 4 on bionic / Linux. */
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 const _: () = core::assert! (std::mem::size_of::<speed_struct> () == 8);
 const _: () = core::assert! (std::mem::offset_of! (speed_struct, value) == 0);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (speed_struct, internal) == 8);
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 const _: () = core::assert! (std::mem::offset_of! (speed_struct, internal) == 4);
 
 static speeds: [speed_struct; 21] =
@@ -5021,12 +5180,14 @@ pub unsafe extern "C-unwind" fn serial_configure (p: *mut Lisp_Process, contact:
 /* System depended enumeration of and access to system processes a-la ps(1).  */
 
 // C 3314: `#ifdef HAVE_PROCFS` — dead (`HAVE_PROCFS` is undefined); carried.
-#[cfg (feature = "have_procfs")]
+#[cfg (any (feature = "have_procfs", target_os = "linux"))]
 /* Process enumeration and access via /proc.  */
 
-#[cfg (feature = "have_procfs")]
+#[cfg (any (feature = "have_procfs", target_os = "linux"))]
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn list_system_processes () -> Lisp_Object {
+  // SAFETY: low-level VM/OS subsystem boundary reading `/proc` directory entries with owning VM lock.
+  unsafe {
   let mut procdir: Lisp_Object = Qnil ();
   let mut match_: Lisp_Object = Qnil ();
   let mut proclist: Lisp_Object = Qnil ();
@@ -5055,6 +5216,7 @@ pub unsafe extern "C-unwind" fn list_system_processes () -> Lisp_Object {
      that.  */
   proclist = Fnreverse (proclist);
   return proclist;
+  }
 }
 
 // C 3346-3404: `#elif defined DARWIN_OS || defined __FreeBSD__ || defined __OpenBSD__` — the
@@ -5130,7 +5292,7 @@ pub unsafe extern "C-unwind" fn list_system_processes () -> Lisp_Object {
 // (clang's chain takes the DARWIN_OS arm above); carried.
 /* C 3396-3404: `#elif !defined (WINDOWSNT) && !defined (MSDOS) && !defined (HAIKU)` - the
    complement of the two arms above, spelled as such so the three stay exclusive.  */
-#[cfg (all (not (feature = "have_procfs"),
+#[cfg (all (not (feature = "have_procfs"), not (target_os = "linux"),
             not (target_os = "macos"), not (target_os = "freebsd"), not (target_os = "openbsd"),
             not (feature = "windowsnt"), not (feature = "msdos"), not (feature = "haiku")))]
 #[unsafe(no_mangle)]
@@ -5163,27 +5325,32 @@ unsafe fn make_lisp_timeval (t: timeval) -> Lisp_Object {
 
 // C 3431-3810: `#if defined (GNU_LINUX) || defined (CYGWIN) || defined __ANDROID__` — dead;
 // carried in full.
-#[cfg (feature = "gnu_linux")]
-fn time_from_jiffies (ticks: c_ulonglong, hz: Lisp_Object, form: Lisp_Object)
+#[cfg (any (feature = "gnu_linux", target_os = "linux"))]
+unsafe fn time_from_jiffies (ticks: c_ulonglong, hz: Lisp_Object, form: Lisp_Object)
   -> Lisp_Object {
+  // SAFETY: Low-level VM time conversion under active Lisp thread lock.
+  unsafe {
   return Ftime_convert (Fcons (make_uint (ticks as uintmax_t), hz), form);
+  }
 }
 
-#[cfg (feature = "gnu_linux")]
-fn put_jiffies (attrs: Lisp_Object, propname: Lisp_Object, ticks: c_ulonglong,
+#[cfg (any (feature = "gnu_linux", target_os = "linux"))]
+unsafe fn put_jiffies (attrs: Lisp_Object, propname: Lisp_Object, ticks: c_ulonglong,
 		       hz: Lisp_Object) -> Lisp_Object {
+  // SAFETY: Low-level VM list construction under active Lisp thread lock.
+  unsafe {
   return Fcons (Fcons (propname, time_from_jiffies (ticks, hz, Qnil ())), attrs);
+  }
 }
 
 /* Return the host uptime with resolution HZ if successful, otherwise nil.
    Do not use get_boot_time, which returns a container's
    boot time instead of the underlying host's boot time.  */
-#[cfg (feature = "gnu_linux")]
-fn get_host_uptime (hz: Lisp_Object) -> Lisp_Object {
+#[cfg (any (feature = "gnu_linux", target_os = "linux"))]
+unsafe fn get_host_uptime (hz: Lisp_Object) -> Lisp_Object {
   /* clock_gettime is available in glibc 2.14+, Android, and musl libc.  */
-  /* C 3453's `# if !defined __GLIBC__ || 2 < __GLIBC__ + (14 <= __GLIBC_MINOR__)` is
-     live (`__GLIBC__` is undefined, so `!defined` is true).  */
-  {
+  // SAFETY: `upt` is stack-allocated and `clock_gettime` initializes it on success.
+  unsafe {
     let mut upt: timespec = std::mem::zeroed ();
     if 0 <= clock_gettime (CLOCK_BOOTTIME, &mut upt)
       { return Ftime_convert (timespec_to_lisp (upt), hz); }
@@ -5194,15 +5361,17 @@ fn get_host_uptime (hz: Lisp_Object) -> Lisp_Object {
 // C 3461-3507: `# if defined GNU_LINUX || defined __ANDROID__` — dead; carried.
 
 /// C 3462-3463's `MAJOR`/`MINOR` (the Linux device-number decoders).
-#[cfg (feature = "gnu_linux")]
+#[cfg (any (feature = "gnu_linux", target_os = "linux"))]
 macro_rules! MAJOR { ($d:expr) => { (($d as c_uint) >> 8) & 0xfff }; }
-#[cfg (feature = "gnu_linux")]
+#[cfg (any (feature = "gnu_linux", target_os = "linux"))]
 macro_rules! MINOR { ($d:expr) => {
   (($d as c_uint) & 0xff) | ((($d as c_uint) & 0xfff00000) >> 12)
 }; }
 
-#[cfg (feature = "gnu_linux")]
+#[cfg (any (feature = "gnu_linux", target_os = "linux"))]
 unsafe fn procfs_ttyname (rdev: c_int) -> Lisp_Object {
+  // SAFETY: Reads `/proc/tty/drivers` with bounded stack buffers under VM input block.
+  unsafe {
   let mut fdev: *mut FILE;
   let mut name: [c_char; PATH_MAX as usize] = [0; PATH_MAX as usize];
 
@@ -5216,7 +5385,7 @@ unsafe fn procfs_ttyname (rdev: c_int) -> Lisp_Object {
       let mut minor_beg: c_ulong = 0;
       let mut minor_end: c_ulong = 0;
       let mut minor: [c_char; 25] = [0; 25];	/* 2 32-bit numbers + dash */
-      let mut endp: *mut c_char;
+      let mut endp: *mut c_char = std::ptr::null_mut ();
 
       while feof (fdev) == 0 && ferror (fdev) == 0
 	{
@@ -5233,7 +5402,7 @@ unsafe fn procfs_ttyname (rdev: c_int) -> Lisp_Object {
 	      else
 		{ continue; }
 
-	      if MINOR! (rdev) >= minor_beg && MINOR! (rdev) <= minor_end
+	      if MINOR! (rdev) as c_ulong >= minor_beg && MINOR! (rdev) as c_ulong <= minor_end
 		{
 		  sprintf (name.as_mut_ptr ().add (strlen (name.as_ptr ())),
 			   c"%u".as_ptr (), MINOR! (rdev));
@@ -5241,15 +5410,18 @@ unsafe fn procfs_ttyname (rdev: c_int) -> Lisp_Object {
 		}
 	    }
 	}
-      emacs_fclose (fdev);
+      emacs_fclose! (fdev);
     }
   unblock_input ();
   return build_string (name.as_ptr ());
+  }
 }
 
 /* Total usable RAM in KiB.  */
-#[cfg (feature = "gnu_linux")]
+#[cfg (any (feature = "gnu_linux", target_os = "linux"))]
 unsafe fn procfs_get_total_memory () -> uintmax_t {
+  // SAFETY: Reads `/proc/meminfo` via stdio under VM input block.
+  unsafe {
   let mut fmem: *mut FILE;
   let mut retval: uintmax_t = 2 * 1024 * 1024; /* default: 2 GiB */
   let mut c: c_int;
@@ -5291,15 +5463,18 @@ unsafe fn procfs_get_total_memory () -> uintmax_t {
 	    { break; }
 	}
 
-      emacs_fclose (fmem);
+      emacs_fclose! (fmem);
     }
   unblock_input ();
   return retval;
+  }
 }
 
-#[cfg (feature = "gnu_linux")]
+#[cfg (any (feature = "gnu_linux", target_os = "linux"))]
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn system_process_attributes (pid: Lisp_Object) -> Lisp_Object {
+  // SAFETY: low-level VM/OS subsystem boundary reading `/proc/<pid>/*` with owning VM lock.
+  unsafe {
   let mut procfn: [c_char; PATH_MAX as usize] = [0; PATH_MAX as usize];
   let mut fn_: [c_char; PATH_MAX as usize] = [0; PATH_MAX as usize];
   let mut st: stat = std::mem::zeroed ();
@@ -5309,10 +5484,10 @@ pub unsafe extern "C-unwind" fn system_process_attributes (pid: Lisp_Object) -> 
   let mut procfn_end: *mut c_char;
   let mut procbuf: [c_char; 1025] = [0; 1025];
   let mut p: *mut c_char;
-  let mut q: *mut c_char;
+  let mut q: *mut c_char = std::ptr::null_mut ();
   let mut fd: c_int;
   let mut nread: ssize_t;
-  static default_cmd: [c_char; 4] = *b"???\0";
+  static default_cmd: [c_char; 4] = [b'?' as c_char, b'?' as c_char, b'?' as c_char, 0];
   let mut cmd: *const c_char = default_cmd.as_ptr ();
   let mut cmdsize: c_int = std::mem::size_of::<[c_char; 4]> () as c_int - 1;
   let mut cmdline: *mut c_char = std::ptr::null_mut ();
@@ -5377,9 +5552,9 @@ pub unsafe extern "C-unwind" fn system_process_attributes (pid: Lisp_Object) -> 
     { nread = 0; }
   else
     {
-      record_unwind_protect_int (close_file_unwind, fd);
+      record_unwind_protect_int (Some (close_file_unwind), fd);
       nread = emacs_read_quit (fd, procbuf.as_mut_ptr () as *mut c_void,
-			       std::mem::size_of::<[c_char; 1025]> () as ptrdiff_t - 1);
+			       std::mem::size_of::<[c_char; 1025]> () as ptrdiff_t - 1) as ssize_t;
     }
   if 0 < nread
     {
@@ -5506,7 +5681,7 @@ pub unsafe extern "C-unwind" fn system_process_attributes (pid: Lisp_Object) -> 
     {
       let mut readsize: ptrdiff_t;
       let mut nread_incr: ptrdiff_t;
-      record_unwind_protect_int (close_file_unwind, fd);
+      record_unwind_protect_int (Some (close_file_unwind), fd);
       record_unwind_protect_nothing ();
       nread = 0;
       cmdline_size = 0;
@@ -5519,11 +5694,11 @@ pub unsafe extern "C-unwind" fn system_process_attributes (pid: Lisp_Object) -> 
 				  cmdline as *mut c_void);
 
 	  /* Leave room even if every byte needs escaping below.  */
-	  readsize = (cmdline_size >> 1) - nread;
+	  readsize = ((cmdline_size >> 1) as ssize_t - nread) as ptrdiff_t;
 
 	  nread_incr = emacs_read_quit (fd, cmdline.add (nread as usize) as *mut c_void,
 					readsize);
-	  nread += std::cmp::max (0, nread_incr);
+	  nread += std::cmp::max (0, nread_incr) as ssize_t;
 	  if nread_incr != readsize
 	    { break; }
 	}
@@ -5568,6 +5743,7 @@ pub unsafe extern "C-unwind" fn system_process_attributes (pid: Lisp_Object) -> 
     }
 
   return attrs;
+  }
 }
 
 // C 3794-3927: `#elif defined (SOLARIS2) && defined (HAVE_PROCFS)` — dead; carried.
@@ -6469,7 +6645,7 @@ pub const SIDL: c_int = 1;
 // behind `no_tty_process_attributes`, which no configuration emits, so the Android build compiled
 // the Darwin body instead of this one (status 4.749).  The condition is C's, with the chain's
 // earlier arms negated the way an `#elif` means them.
-#[cfg (all (not (feature = "gnu_linux"), not (feature = "cygwin"),
+#[cfg (all (not (feature = "gnu_linux"), not (target_os = "linux"), not (feature = "cygwin"),
             not (all (feature = "solaris2", feature = "have_procfs")),
             not (feature = "freebsd"), not (feature = "openbsd"),
             not (target_os = "macos"),

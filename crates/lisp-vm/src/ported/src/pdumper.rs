@@ -181,7 +181,10 @@ pub const PROT_EXEC: c_int = 0x04;
 pub const MAP_SHARED: c_int = 0x0001;
 pub const MAP_PRIVATE: c_int = 0x0002;
 pub const MAP_FIXED: c_int = 0x0010;
-/// `<sys/mman.h>`: `#define MAP_ANON 0x1000` (`MAP_ANONYMOUS` is an alias of it).
+/// `<sys/mman.h>`: `#define MAP_ANON 0x1000` on Darwin, `0x20` on Linux/Android (`MAP_ANONYMOUS` is an alias).
+#[cfg (any (target_os = "linux", target_os = "android"))]
+pub const MAP_ANON: c_int = 0x0020;
+#[cfg (not (any (target_os = "linux", target_os = "android")))]
 pub const MAP_ANON: c_int = 0x1000;
 /// `<sys/mman.h>`: `#define MAP_FAILED ((void *) -1)`.
 pub const MAP_FAILED: *mut c_void = usize::MAX as *mut c_void;

@@ -28,10 +28,11 @@ pub const NAME_OF_NONCE_DEVICE: &[u8; 13] = b"/dev/urandom\0";
    Return the number of bytes written (> 0).
    Upon error, return -1 and set errno.  */
 
+#[cfg (not (target_os = "linux"))]
 static randfd: VmGlobal<[c_int; 2]> = VmGlobal::<[c_int; 2]>::new ([-1, -1]);
 
 /// Close any open per-isolate random device descriptors before tearing down isolate globals.
-#[cfg (feature = "isolate_vm")]
+#[cfg (all (feature = "isolate_vm", not (target_os = "linux")))]
 pub(crate) unsafe fn close_isolate_random_fds ()
 {
   // SAFETY: Runs on the owning thread inside the active isolate guard right before dropping isolate globals.
@@ -50,10 +51,16 @@ pub(crate) unsafe fn close_isolate_random_fds ()
   }
 }
 
+/// On Linux, `getrandom(2)` resolves directly to glibc's syscall wrapper with no cached descriptor.
+#[cfg (all (feature = "isolate_vm", target_os = "linux"))]
+pub(crate) unsafe fn close_isolate_random_fds () {}
+
 /* C 112-193's `ssize_t getrandom (void *buffer, size_t length, unsigned int flags)`.  C 116's
    `#undef getrandom` restores the system declaration for the dead `#elif HAVE_GETRANDOM` arm,
    so the port keeps that entry in a `system` module and defines the replacement under C's name
-   here (the getgroups.c/cloexec.c shape).  */
+   here (the getgroups.c/cloexec.c shape).  On Linux we omit the gnulib replacement so both
+   `lisp-vm` and Rust `std` link directly against glibc's native `getrandom(2)`.  */
+#[cfg (not (target_os = "linux"))]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn getrandom (buffer: *mut c_void, length: usize, flags: c_uint) -> ssize_t
 {
@@ -94,6 +101,7 @@ pub unsafe extern "C" fn getrandom (buffer: *mut c_void, length: usize, flags: c
 }
 
 /* C 116's `#undef getrandom`: the system entry the dead `#elif HAVE_GETRANDOM` arm calls.  */
+#[cfg (not (target_os = "linux"))]
 mod system {
   use super::*;
 

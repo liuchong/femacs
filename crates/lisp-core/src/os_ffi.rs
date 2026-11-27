@@ -143,7 +143,34 @@ pub fn pid_rusage_info(pid: i32) -> Option<(u64, u64, u64)> {
     }
 }
 
-#[cfg(not(target_os = "macos"))]
+#[cfg(target_os = "linux")]
+pub fn pid_rusage_info(pid: i32) -> Option<(u64, u64, u64)> {
+    if pid <= 0 {
+        return None;
+    }
+    let status = std::fs::read_to_string(format!("/proc/{pid}/status")).ok()?;
+    let mut vm_rss_bytes: Option<u64> = None;
+    let mut rss_anon_bytes: Option<u64> = None;
+    for line in status.lines() {
+        if let Some(rest) = line.strip_prefix("VmRSS:") {
+            let kb = rest.split_whitespace().next()?.parse::<u64>().ok()?;
+            vm_rss_bytes = Some(kb.saturating_mul(1024));
+        } else if let Some(rest) = line.strip_prefix("RssAnon:") {
+            let kb = rest.split_whitespace().next()?.parse::<u64>().ok()?;
+            rss_anon_bytes = Some(kb.saturating_mul(1024));
+        }
+    }
+    let rss = vm_rss_bytes?;
+    let footprint = rss_anon_bytes.unwrap_or(rss);
+    let stat = std::fs::read_to_string(format!("/proc/{pid}/stat")).ok()?;
+    let rparen = stat.rfind(')')?;
+    let after = stat.get(rparen + 1..)?;
+    // Fields after `(comm)` start at field 3 (state = index 0); field 22 (starttime) is index 19.
+    let start_ticks = after.split_whitespace().nth(19)?.parse::<u64>().ok()?;
+    Some((rss, footprint, start_ticks))
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "linux")))]
 pub fn pid_rusage_info(_pid: i32) -> Option<(u64, u64, u64)> {
     None
 }

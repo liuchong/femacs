@@ -14,7 +14,7 @@ const _: () = core::assert!(
 
 pub const STAT_TIME_H: c_int = 1;
 
-#[cfg(not(feature = "have_android"))]
+#[cfg(not(any(feature = "have_android", target_os = "linux")))]
 macro_rules! STAT_TIMESPEC {
     ($st:expr, st_atim) => {
         ($st).st_atimespec
@@ -29,7 +29,7 @@ macro_rules! STAT_TIMESPEC {
         ($st).st_birthtimespec
     };
 }
-#[cfg(feature = "have_android")]
+#[cfg(any(feature = "have_android", target_os = "linux"))]
 macro_rules! STAT_TIMESPEC {
     ($st:expr, st_atim) => {
         ($st).st_atim
@@ -42,7 +42,7 @@ macro_rules! STAT_TIMESPEC {
     };
 }
 
-#[cfg(not(feature = "have_android"))]
+#[cfg(not(any(feature = "have_android", target_os = "linux")))]
 macro_rules! STAT_TIMESPEC_OFFSETOF {
     (st_atim) => {
         std::mem::offset_of!(stat, st_atimespec)
@@ -54,7 +54,7 @@ macro_rules! STAT_TIMESPEC_OFFSETOF {
         std::mem::offset_of!(stat, st_ctimespec)
     };
 }
-#[cfg(feature = "have_android")]
+#[cfg(any(feature = "have_android", target_os = "linux"))]
 macro_rules! STAT_TIMESPEC_OFFSETOF {
     (st_atim) => {
         std::mem::offset_of!(stat, st_atim)
@@ -92,12 +92,12 @@ pub const fn get_stat_mtime_ns(st: &stat) -> c_long {
 
 #[inline(always)]
 pub const fn get_stat_birthtime_ns(st: &stat) -> c_long {
-    #[cfg(feature = "have_android")]
+    #[cfg(any(feature = "have_android", target_os = "linux"))]
     {
         let _ = st;
         0
     }
-    #[cfg(not(feature = "have_android"))]
+    #[cfg(not(any(feature = "have_android", target_os = "linux")))]
     {
         STAT_TIMESPEC!(st, st_birthtim).tv_nsec
     }
@@ -120,12 +120,12 @@ pub const fn get_stat_mtime(st: &stat) -> timespec {
 
 #[inline(always)]
 pub const fn get_stat_birthtime(st: &stat) -> timespec {
-    #[cfg(feature = "have_android")]
+    #[cfg(any(feature = "have_android", target_os = "linux"))]
     let mut t: timespec = {
         let _ = st;
         _gl_make_timespec(-1, -1)
     };
-    #[cfg(not(feature = "have_android"))]
+    #[cfg(not(any(feature = "have_android", target_os = "linux")))]
     let mut t: timespec = STAT_TIMESPEC!(st, st_birthtim);
 
     if !(t.tv_sec != 0 && 0 <= t.tv_nsec && t.tv_nsec < 1_000_000_000) {

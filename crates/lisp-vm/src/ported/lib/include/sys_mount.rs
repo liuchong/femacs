@@ -56,7 +56,7 @@ pub struct fsid_t {
 
 /// <sys/mount.h>'s `struct statfs` on the host: 2168 bytes with the three name arrays (the
 /// offsets above).
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct statfs {
@@ -79,15 +79,13 @@ pub struct statfs {
   pub f_reserved: [u32; 7],
 }
 
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::size_of::<statfs> () == 2168);
 
-/// bionic's `struct statfs`: 120 bytes and a different field set and order (NDK,
-/// aarch64-linux-android21: size 120, `f_bsize` 8, `f_blocks` 16, `f_bavail` 32, `f_fsid` 56,
-/// `f_namelen` 64, `f_frsize` 72, `f_flags` 80, `f_spare[4]` 88 - status 4.795).  The host's
-/// `f_iosize`/`f_owner`/`f_fstypename`/`f_mntonname`/`f_mntfromname`/`f_flags_ext`/`f_reserved`
-/// members do not exist here.
-#[cfg (feature = "have_android")]
+/// bionic / Linux `struct statfs`: 120 bytes and a different field set and order (NDK,
+/// aarch64-linux-android21 & Linux glibc aarch64/x86_64: size 120, `f_bsize` 8, `f_blocks` 16,
+/// `f_bavail` 32, `f_fsid` 56, `f_namelen` 64, `f_frsize` 72, `f_flags` 80, `f_spare[4]` 88).
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct statfs {
@@ -105,52 +103,52 @@ pub struct statfs {
   pub f_spare: [c_long; 4],      /* 88 */
 }
 
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 const _: () = core::assert! (std::mem::size_of::<statfs> () == 120);
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 const _: () = core::assert! (std::mem::offset_of! (statfs, f_bsize) == 8);
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 const _: () = core::assert! (std::mem::offset_of! (statfs, f_blocks) == 16);
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 const _: () = core::assert! (std::mem::offset_of! (statfs, f_bavail) == 32);
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 const _: () = core::assert! (std::mem::offset_of! (statfs, f_fsid) == 56);
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 const _: () = core::assert! (std::mem::offset_of! (statfs, f_namelen) == 64);
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 const _: () = core::assert! (std::mem::offset_of! (statfs, f_flags) == 80);
 
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (statfs, f_bsize) == 0);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (statfs, f_iosize) == 4);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (statfs, f_blocks) == 8);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (statfs, f_bfree) == 16);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (statfs, f_bavail) == 24);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (statfs, f_files) == 32);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (statfs, f_ffree) == 40);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (statfs, f_fsid) == 48);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (statfs, f_owner) == 56);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (statfs, f_type) == 60);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (statfs, f_flags) == 64);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (statfs, f_fssubtype) == 68);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (statfs, f_fstypename) == 72);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (statfs, f_mntonname) == 88);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (statfs, f_mntfromname) == 1112);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (statfs, f_flags_ext) == 2136);
 
 unsafe extern "C" {

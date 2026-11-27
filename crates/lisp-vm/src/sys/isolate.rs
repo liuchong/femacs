@@ -219,6 +219,9 @@ impl IsolateContext {
     /// cloning the static template bytes on first access.
     #[inline]
     pub fn get_or_alloc(&mut self, static_ptr: *const u8, size: usize, align: usize) -> *mut u8 {
+        if size == 0 {
+            return core::ptr::without_provenance_mut(align.max(1));
+        }
         let key = static_ptr as usize;
         debug_assert!(key != 0);
         if let Some((ptr, existing_size)) = self.find_exact(key) {
@@ -234,6 +237,9 @@ impl IsolateContext {
     #[cold]
     #[inline(never)]
     fn alloc_and_insert(&mut self, static_ptr: *const u8, size: usize, align: usize) -> *mut u8 {
+        if size == 0 {
+            return core::ptr::without_provenance_mut(align.max(1));
+        }
         let key = static_ptr as usize;
         if let Some((ptr, existing_size)) = self.find_exact(key) {
             assert!(
@@ -242,7 +248,7 @@ impl IsolateContext {
             );
             return ptr;
         }
-        if size > 0 {
+        {
             let req_end = key
                 .checked_add(size)
                 .expect("isolate_vm: static address overflow");
@@ -267,39 +273,35 @@ impl IsolateContext {
                 );
             }
         }
-        let effective_ptr: *mut u8 = if size == 0 {
-            NonNull::<u8>::dangling().as_ptr()
-        } else {
-            let layout = Layout::from_size_align(size, align.max(1))
-                .expect("invalid VmGlobal layout for isolate allocation");
-            // SAFETY: `layout.size() > 0` and `layout.align()` is valid and power-of-two.
-            let raw = unsafe { alloc(layout) };
-            let Some(non_null) = NonNull::new(raw) else {
-                handle_alloc_error(layout);
-            };
-            // SAFETY: `static_ptr` is a `'static` `VmGlobal<T>` template of `size` readable bytes
-            // and `raw` is a freshly allocated, non-overlapping buffer of `size` writable bytes.
-            unsafe {
-                ptr::copy_nonoverlapping(static_ptr, non_null.as_ptr(), size);
-            }
-            self.owned_allocs.push(OwnedAlloc {
-                ptr: non_null,
-                layout,
-            });
-            self.intervals.push(IntervalEntry {
-                static_start: key,
-                static_end: key.saturating_add(size),
-                isolate_start: non_null.as_ptr() as usize,
-            });
-            self.intervals_sorted = false;
-            self.reverse_intervals.push(ReverseIntervalEntry {
-                isolate_start: non_null.as_ptr() as usize,
-                isolate_end: (non_null.as_ptr() as usize).saturating_add(size),
-                static_start: key,
-            });
-            self.reverse_sorted = false;
-            non_null.as_ptr()
+        let layout = Layout::from_size_align(size, align.max(1))
+            .expect("invalid VmGlobal layout for isolate allocation");
+        // SAFETY: `layout.size() > 0` and `layout.align()` is valid and power-of-two.
+        let raw = unsafe { alloc(layout) };
+        let Some(non_null) = NonNull::new(raw) else {
+            handle_alloc_error(layout);
         };
+        // SAFETY: `static_ptr` is a `'static` `VmGlobal<T>` template of `size` readable bytes
+        // and `raw` is a freshly allocated, non-overlapping buffer of `size` writable bytes.
+        unsafe {
+            ptr::copy_nonoverlapping(static_ptr, non_null.as_ptr(), size);
+        }
+        self.owned_allocs.push(OwnedAlloc {
+            ptr: non_null,
+            layout,
+        });
+        self.intervals.push(IntervalEntry {
+            static_start: key,
+            static_end: key.saturating_add(size),
+            isolate_start: non_null.as_ptr() as usize,
+        });
+        self.intervals_sorted = false;
+        self.reverse_intervals.push(ReverseIntervalEntry {
+            isolate_start: non_null.as_ptr() as usize,
+            isolate_end: (non_null.as_ptr() as usize).saturating_add(size),
+            static_start: key,
+        });
+        self.reverse_sorted = false;
+        let effective_ptr = non_null.as_ptr();
 
         self.insert_slot(key, effective_ptr, size);
         effective_ptr
@@ -406,7 +408,7 @@ impl IsolateContext {
     /// and allocates an isolate copy for untouched standalone `VmGlobal<T>` pointers.
     #[inline]
     pub fn resolve_fwd_ptr(&mut self, ptr: *mut u8, size: usize, align: usize) -> *mut u8 {
-        if ptr.is_null() {
+        if ptr.is_null() || size == 0 {
             return ptr;
         }
         let addr = ptr as usize;
@@ -723,5 +725,24 @@ mod tests {
             *tail_iso = 88;
             assert_eq!((*COMPOSITE_FWD.as_ptr()).tail, 88);
         }
+    }
+
+    #[test]
+    fn zst_global_does_not_poison_adjacent_nonzero_slot() {
+        static ZST_ADJACENT_TEST: VmGlobal<i64> = VmGlobal::new(12345);
+
+        let mut iso = IsolateContext::new();
+        let addr = ZST_ADJACENT_TEST.as_static_ptr() as *const u8;
+        let zst_ptr = iso.get_or_alloc(addr, 0, 1);
+        assert!(!zst_ptr.is_null());
+
+        let iso_ptr = iso.pre_register(&ZST_ADJACENT_TEST);
+        // SAFETY: `iso_ptr` is a freshly cloned per-isolate `i64` buffer.
+        unsafe {
+            assert_eq!(*iso_ptr, 12345);
+            *iso_ptr = 67890;
+        }
+        assert_eq!(ZST_ADJACENT_TEST.get(), 12345);
+        assert_eq!(iso.resolve_ptr(addr) as *mut i64, iso_ptr);
     }
 }

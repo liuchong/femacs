@@ -75,9 +75,9 @@ pub const F_GETFD: c_int = 1;
 #[cfg (feature = "no_f_dupfd_cloexec")]
 pub const F_DUPFD_CLOEXEC: c_int = 0x40000000;
 /// `F_DUPFD_CLOEXEC 67` (frozen).
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub const F_DUPFD_CLOEXEC: c_int = 67;
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 pub const F_DUPFD_CLOEXEC: c_int = 1030;
 #[cfg (feature = "no_f_dupfd_cloexec")]
 pub const GNULIB_defined_F_DUPFD_CLOEXEC: c_int = 1;
@@ -109,97 +109,89 @@ pub const O_RDWR: c_int = 2;
    `O_ACCMODE` to that five-flag mask - which `darwin-arm64.macros.tsv` 3077 records and is
    both the frozen value and the arm the extractor compares.  */
 pub const O_ACCMODE: c_int = O_RDONLY | O_WRONLY | O_RDWR | O_EXEC | O_SEARCH;
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub const O_CREAT: c_int = 0x200;
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 pub const O_CREAT: c_int = 64;
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub const O_TRUNC: c_int = 0x400;
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 pub const O_TRUNC: c_int = 512;
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub const O_EXCL: c_int = 0x800;
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 pub const O_EXCL: c_int = 128;
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub const O_APPEND: c_int = 0x8;
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 pub const O_APPEND: c_int = 1024;
 /* `O_NONBLOCK` has two template arms (`#ifndef O_NONBLOCK / # define O_NONBLOCK O_NDELAY` and
    the nonblocking module's `0x40000000`), so the extractor does not compare its body
    (P-24); the frozen value is the system's 0x4 (`darwin-arm64.macros.tsv` 3104).  */
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub const O_NONBLOCK: c_int = 0x4;
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 pub const O_NONBLOCK: c_int = 2048;
-/* C 336-341's `#ifndef O_CLOEXEC / # define O_CLOEXEC 0x40000000`; two arms as well, and the
-   frozen value is the system's 0x1000000 (`...macros.tsv` 3082).  Its witness
-   `GNULIB_defined_O_CLOEXEC` is 0 in the frozen header (the `#else` arm).
-
-   The value is the *delivered target's* header, so the port carries one arm per target (the
-   `Emacs_GC`/`O_DIRECTORY` shape): 0x1000000 is Darwin's, while bionic defines it as
-   `02000000` octal = 0x80000 - measured with the target's own preprocessor,
-
-       $ clang --target=aarch64-linux-android24 -E -dM -include fcntl.h - </dev/null
-       #define O_CLOEXEC 02000000
-
-   Status 4.780: passing Darwin's 0x1000000 to `pipe2` on Android makes it fail with `EINVAL`,
-   and `setEmacsParams` then takes C's `if (pipe2 (...) < 0) emacs_abort ()` arm - which is the
-   tombstone that wheel read as a native crash.  */
-#[cfg (not (feature = "have_android"))]
+/* C 336-341's `#ifndef O_CLOEXEC / # define O_CLOEXEC 0x40000000`; Darwin is 0x1000000,
+   bionic/glibc Linux is 0o2000000 (0x80000). */
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub const O_CLOEXEC: c_int = 0x1000000;
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 pub const O_CLOEXEC: c_int = 0o2000000;
 pub const GNULIB_defined_O_CLOEXEC: c_int = 0;
-/* C 347-349's `#ifndef O_DIRECTORY / # define O_DIRECTORY 0x20000000` - dead: the system
-   defines it as 0x100000 (`...macros.tsv` 3086).  */
+/* C 347-349's `#ifndef O_DIRECTORY`: Darwin 0x100000, Linux aarch64/bionic 0x4000, Linux x86_64 0x10000. */
 #[cfg (feature = "no_o_directory")]
 pub const O_DIRECTORY: c_int = 0x20000000;
 /// `O_DIRECTORY 0x00100000` (frozen).
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub const O_DIRECTORY: c_int = 0x100000;
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", all (target_os = "linux", target_arch = "aarch64")))]
 pub const O_DIRECTORY: c_int = 16384;
-/* C 392-394's `#ifndef O_NOFOLLOW / # define O_NOFOLLOW 0` - dead: the system defines it as
-   0x100 (`...macros.tsv` 3100).  */
+#[cfg (all (target_os = "linux", target_arch = "x86_64"))]
+pub const O_DIRECTORY: c_int = 0x10000;
+/* C 392-394's `#ifndef O_NOFOLLOW`: Darwin 0x100, Linux aarch64/bionic 0x8000, Linux x86_64 0x20000. */
 #[cfg (feature = "no_o_nofollow")]
 pub const O_NOFOLLOW: c_int = 0;
 /// `O_NOFOLLOW 0x00000100` (frozen).
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub const O_NOFOLLOW: c_int = 0x100;
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", all (target_os = "linux", target_arch = "aarch64")))]
 pub const O_NOFOLLOW: c_int = 32768;
+#[cfg (all (target_os = "linux", target_arch = "x86_64"))]
+pub const O_NOFOLLOW: c_int = 0x20000;
 /* C 420-422's `#ifndef O_SYNC / # define O_SYNC 0` - dead: the system's is 0x80 (3114).  */
 #[cfg (feature = "no_o_sync")]
 pub const O_SYNC: c_int = 0;
 /// `O_SYNC 0x0080` (frozen).
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub const O_SYNC: c_int = 0x80;
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 pub const O_SYNC: c_int = 1052672;
 /* C 343-345's `#ifndef O_DIRECT / # define O_DIRECT 0` - live (this target has no O_DIRECT;
    lchmod.c's `#ifdef O_PATH` arm is dead for the same reason).  */
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub const O_DIRECT: c_int = 0;
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", all (target_os = "linux", target_arch = "aarch64")))]
 pub const O_DIRECT: c_int = 65536;
+#[cfg (all (target_os = "linux", target_arch = "x86_64"))]
+pub const O_DIRECT: c_int = 0x4000;
 /* C 351-353's `#ifndef O_DSYNC / # define O_DSYNC 0` - dead: the system's is 0x400000
    (`...macros.tsv` 3090).  */
 #[cfg (feature = "no_o_dsync")]
 pub const O_DSYNC: c_int = 0;
 /// `O_DSYNC 0x400000` (frozen).
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub const O_DSYNC: c_int = 0x400000;
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 pub const O_DSYNC: c_int = 4096;
 /* C 355-357's `#ifndef O_EXEC / # define O_EXEC O_RDONLY` - dead: the system's is
    0x40000000 (`...macros.tsv` 3093).  */
 #[cfg (feature = "no_o_exec")]
 pub const O_EXEC: c_int = O_RDONLY;
 /// `O_EXEC 0x40000000` (frozen).
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub const O_EXEC: c_int = 0x40000000;
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 pub const O_EXEC: c_int = 0;
 /* C 416-418's `#ifndef O_SEARCH / # define O_SEARCH O_RDONLY` - dead: the system's is
    `(O_EXEC | O_DIRECTORY)` (`...macros.tsv` 3111, `O_EXEC 0x40000000` +
@@ -207,9 +199,9 @@ pub const O_EXEC: c_int = 0;
 #[cfg (feature = "no_o_search")]
 pub const O_SEARCH: c_int = O_RDONLY;
 /// `O_SEARCH (O_EXEC | O_DIRECTORY)` (frozen).
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub const O_SEARCH: c_int = O_EXEC | O_DIRECTORY;
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 pub const O_SEARCH: c_int = O_RDONLY;
 /* C 359-361's `#ifndef O_IGNORE_CTTY / # define O_IGNORE_CTTY 0` - live.  */
 pub const O_IGNORE_CTTY: c_int = 0;
@@ -220,27 +212,27 @@ pub const O_NDELAY: c_int = 0;
 /// `O_NDELAY O_NONBLOCK` (frozen).
 pub const O_NDELAY: c_int = O_NONBLOCK;
 /* C 367-369's `#ifndef O_NOATIME / # define O_NOATIME 0` - live.  */
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub const O_NOATIME: c_int = 0;
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 pub const O_NOATIME: c_int = 262144;
 /* C 388-390's `#ifndef O_NOCTTY / # define O_NOCTTY 0` - dead: the system's is 0x20000
    (`...macros.tsv` 3099).  */
 #[cfg (feature = "no_o_noctty")]
 pub const O_NOCTTY: c_int = 0;
 /// `O_NOCTTY 0x00020000` (frozen).
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub const O_NOCTTY: c_int = 0x20000;
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 pub const O_NOCTTY: c_int = 256;
 /* C 396-406's `O_NOLINK`/`O_NOLINKS`/`O_NOTRANS` and C 408-410's `O_RSYNC`, C 424-426's
    `O_TTY_INIT` - all live fallbacks (the system has none of them).  */
 pub const O_NOLINK: c_int = 0;
 pub const O_NOLINKS: c_int = 0;
 pub const O_NOTRANS: c_int = 0;
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub const O_RSYNC: c_int = 0;
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 pub const O_RSYNC: c_int = 1052672;
 pub const O_TTY_INIT: c_int = 0;
 /* C 433-450's `O_BINARY`/`O_TEXT`: two template arms each, and this target's system header has
@@ -263,49 +255,48 @@ pub const GNULIB_defined_O_NONBLOCK: c_int = 0;
 #[cfg (feature = "no_at_fdcwd")]
 pub const AT_FDCWD: c_int = -3041965;
 /// `AT_FDCWD -2` (frozen).
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub const AT_FDCWD: c_int = -2;
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 pub const AT_FDCWD: c_int = -100;
 /* C 471-473's `#ifndef AT_SYMLINK_NOFOLLOW / # define AT_SYMLINK_NOFOLLOW 4096`.  */
 #[cfg (feature = "no_at_symlink_nofollow")]
 pub const AT_SYMLINK_NOFOLLOW: c_int = 4096;
 /// `AT_SYMLINK_NOFOLLOW 0x0020` (frozen).
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub const AT_SYMLINK_NOFOLLOW: c_int = 0x20;
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 pub const AT_SYMLINK_NOFOLLOW: c_int = 256;
 /* C 475-477's `#ifndef AT_REMOVEDIR / # define AT_REMOVEDIR 1`.  */
 #[cfg (feature = "no_at_removedir")]
 pub const AT_REMOVEDIR: c_int = 1;
 /// `AT_REMOVEDIR 0x0080` (frozen).
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub const AT_REMOVEDIR: c_int = 0x80;
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 pub const AT_REMOVEDIR: c_int = 512;
 /* C 480-482's `#ifndef AT_SYMLINK_FOLLOW / # define AT_SYMLINK_FOLLOW 2`.  */
 #[cfg (feature = "no_at_symlink_follow")]
 pub const AT_SYMLINK_FOLLOW: c_int = 2;
 /// `AT_SYMLINK_FOLLOW 0x0040` (frozen).
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub const AT_SYMLINK_FOLLOW: c_int = 0x40;
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 pub const AT_SYMLINK_FOLLOW: c_int = 1024;
 /* C 484-486's `#ifndef AT_EACCESS / # define AT_EACCESS 4`.  */
 #[cfg (feature = "no_at_eaccess")]
 pub const AT_EACCESS: c_int = 4;
 /// `AT_EACCESS 0x0010` (frozen).
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub const AT_EACCESS: c_int = 0x10;
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 pub const AT_EACCESS: c_int = 512;
 /* C 488-491's `#ifndef AT_NO_AUTOMOUNT / # define AT_NO_AUTOMOUNT 0` - live (the Linux-only
    name); `lib/fstatat.c`'s `AT_EMPTY_PATH` has the same shape at its own use site.  */
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub const AT_NO_AUTOMOUNT: c_int = 0;
-/* Measured on the delivery target (bionic), status 4.781: the frozen arm above is
-   the Darwin value and the two platforms number this one differently. */
-#[cfg (feature = "have_android")]
+/* Measured on the delivery target (bionic & glibc Linux), status 4.781. */
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 pub const AT_NO_AUTOMOUNT: c_int = 2048;
 
 /* C 493-500's `#if defined __FreeBSD__ ... # define _GL_OPENAT_ESYMLINK EMLINK / #elif

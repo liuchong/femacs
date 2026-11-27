@@ -146,7 +146,8 @@ const _: () = ();
    table is zero-initialised and C compares an entry with NULL; P-27's `Option` shape).  */
 pub type fd_callback = Option<unsafe extern "C-unwind" fn (fd: c_int, data: *mut c_void)>;
 
-/* <sys/socket.h>: `struct sockaddr`, measured 16/1; `sa_len`@0, `sa_family`@1, `sa_data`@2.  */
+/* <sys/socket.h>: `struct sockaddr`. Darwin has `sa_len`/`sa_family` (u8/u8); Linux has 16-bit `sa_family`. */
+#[cfg (not (target_os = "linux"))]
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct sockaddr {
@@ -154,9 +155,20 @@ pub struct sockaddr {
   pub sa_family: u8,
   pub sa_data: [c_char; 14],
 }
+#[cfg (target_os = "linux")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct sockaddr {
+  pub sa_family: u16,
+  pub sa_data: [c_char; 14],
+}
 const _: () = core::assert! (std::mem::size_of::<sockaddr> () == 16);
+#[cfg (not (target_os = "linux"))]
 const _: () = core::assert! (std::mem::offset_of! (sockaddr, sa_len) == 0);
+#[cfg (not (target_os = "linux"))]
 const _: () = core::assert! (std::mem::offset_of! (sockaddr, sa_family) == 1);
+#[cfg (target_os = "linux")]
+const _: () = core::assert! (std::mem::offset_of! (sockaddr, sa_family) == 0);
 const _: () = core::assert! (std::mem::offset_of! (sockaddr, sa_data) == 2);
 
 /* <netinet/in.h>: `struct in_addr { in_addr_t s_addr; }`.  */
@@ -171,7 +183,8 @@ const _: () = core::assert! (std::mem::size_of::<in_addr> () == 4);
 pub struct in6_addr { pub __u6_addr8: [u8; 16] }
 const _: () = core::assert! (std::mem::size_of::<in6_addr> () == 16);
 
-/* <netinet/in.h>: `struct sockaddr_in`, measured 16/4.  */
+/* <netinet/in.h>: `struct sockaddr_in`, 16/4. */
+#[cfg (not (target_os = "linux"))]
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct sockaddr_in {
@@ -181,11 +194,21 @@ pub struct sockaddr_in {
   pub sin_addr: in_addr,  // 4
   pub sin_zero: [c_char; 8], // 8
 }
+#[cfg (target_os = "linux")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct sockaddr_in {
+  pub sin_family: u16,    // 0
+  pub sin_port: u16,      // 2
+  pub sin_addr: in_addr,  // 4
+  pub sin_zero: [c_char; 8], // 8
+}
 const _: () = core::assert! (std::mem::size_of::<sockaddr_in> () == 16);
 const _: () = core::assert! (std::mem::offset_of! (sockaddr_in, sin_addr) == 4);
 const _: () = core::assert! (std::mem::offset_of! (sockaddr_in, sin_zero) == 8);
 
-/* <netinet/in.h>: `struct sockaddr_in6`, measured 28/4.  */
+/* <netinet/in.h>: `struct sockaddr_in6`, 28/4. */
+#[cfg (not (target_os = "linux"))]
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct sockaddr_in6 {
@@ -196,11 +219,22 @@ pub struct sockaddr_in6 {
   pub sin6_addr: in6_addr,    // 8
   pub sin6_scope_id: u32,     // 24
 }
+#[cfg (target_os = "linux")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct sockaddr_in6 {
+  pub sin6_family: u16,       // 0
+  pub sin6_port: u16,         // 2
+  pub sin6_flowinfo: u32,     // 4
+  pub sin6_addr: in6_addr,    // 8
+  pub sin6_scope_id: u32,     // 24
+}
 const _: () = core::assert! (std::mem::size_of::<sockaddr_in6> () == 28);
 const _: () = core::assert! (std::mem::offset_of! (sockaddr_in6, sin6_addr) == 8);
 const _: () = core::assert! (std::mem::offset_of! (sockaddr_in6, sin6_scope_id) == 24);
 
-/* <sys/un.h>: `struct sockaddr_un`, measured 106/1.  */
+/* <sys/un.h>: `struct sockaddr_un`: 106B on Darwin (104B path), 110B on Linux (108B path). */
+#[cfg (not (target_os = "linux"))]
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct sockaddr_un {
@@ -208,7 +242,17 @@ pub struct sockaddr_un {
   pub sun_family: u8,       // 1
   pub sun_path: [c_char; 104], // 2
 }
+#[cfg (target_os = "linux")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct sockaddr_un {
+  pub sun_family: u16,      // 0
+  pub sun_path: [c_char; 108], // 2
+}
+#[cfg (not (target_os = "linux"))]
 const _: () = core::assert! (std::mem::size_of::<sockaddr_un> () == 106);
+#[cfg (target_os = "linux")]
+const _: () = core::assert! (std::mem::size_of::<sockaddr_un> () == 110);
 const _: () = core::assert! (std::mem::offset_of! (sockaddr_un, sun_path) == 2);
 
 /* <sys/socket.h>: `struct sockaddr_storage`, measured 128/8.  */
@@ -233,7 +277,8 @@ pub struct sockaddr_dl {
 const _: () = core::assert! (std::mem::size_of::<sockaddr_dl> () == 20);
 const _: () = core::assert! (std::mem::offset_of! (sockaddr_dl, sdl_data) == 8);
 
-/* <netdb.h>: `struct addrinfo`, measured 48/8.  */
+/* <netdb.h>: `struct addrinfo`, 48/8; glibc places `ai_addr` before `ai_canonname`. */
+#[cfg (not (target_os = "linux"))]
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct addrinfo {
@@ -246,9 +291,25 @@ pub struct addrinfo {
   pub ai_addr: *mut sockaddr,   // 32
   pub ai_next: *mut addrinfo,   // 40
 }
+#[cfg (target_os = "linux")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct addrinfo {
+  pub ai_flags: c_int,          // 0
+  pub ai_family: c_int,         // 4
+  pub ai_socktype: c_int,       // 8
+  pub ai_protocol: c_int,       // 12
+  pub ai_addrlen: socklen_t,    // 16
+  pub ai_addr: *mut sockaddr,   // 24
+  pub ai_canonname: *mut c_char, // 32
+  pub ai_next: *mut addrinfo,   // 40
+}
 const _: () = core::assert! (std::mem::size_of::<addrinfo> () == 48);
 const _: () = core::assert! (std::mem::offset_of! (addrinfo, ai_addrlen) == 16);
+#[cfg (not (target_os = "linux"))]
 const _: () = core::assert! (std::mem::offset_of! (addrinfo, ai_addr) == 32);
+#[cfg (target_os = "linux")]
+const _: () = core::assert! (std::mem::offset_of! (addrinfo, ai_addr) == 24);
 const _: () = core::assert! (std::mem::offset_of! (addrinfo, ai_next) == 40);
 
 /* <ifaddrs.h>: `struct ifaddrs`, measured 56/8.  */
@@ -360,14 +421,20 @@ pub union u_sockaddr
   pub in6: sockaddr_in6,      // C 169: `#ifdef AF_INET6`
   pub un: sockaddr_un,        // C 172: `#ifdef HAVE_LOCAL_SOCKETS`
 }
+#[cfg (not (target_os = "linux"))]
 const _: () = core::assert! (std::mem::size_of::<u_sockaddr> () == 108);
+#[cfg (target_os = "linux")]
+const _: () = core::assert! (std::mem::size_of::<u_sockaddr> () == 112);
 
-/* C 176-181: `#ifndef SOCK_CLOEXEC` / `#ifndef SOCK_NONBLOCK` are live on this target (the
-   system headers define neither), so the file supplies 0 for both.  */
-/* C 177.  */
+/* C 176-181: `#ifndef SOCK_CLOEXEC` / `#ifndef SOCK_NONBLOCK` on macOS, or Linux `<sys/socket.h>`. */
+#[cfg (not (target_os = "linux"))]
 pub const SOCK_CLOEXEC: c_int = 0;
-/* C 180.  */
+#[cfg (target_os = "linux")]
+pub const SOCK_CLOEXEC: c_int = 0x80000;
+#[cfg (not (target_os = "linux"))]
 pub const SOCK_NONBLOCK: c_int = 0;
+#[cfg (target_os = "linux")]
+pub const SOCK_NONBLOCK: c_int = 0x800;
 
 /* C 182-189: `would_block` —  ``True if ERRNUM represents an error where the system call
    would block if a blocking variant were used.''  */
@@ -2833,7 +2900,10 @@ unsafe fn close_process_fd (fd_addr: *mut c_int)
 
 /* C 2167-2184: `dissociate_controlling_tty`.  */
 /// C: `#define TIOCNOTTY 536900721` (`<sys/ioctl.h>`, `_IO ('t', 113)`)
+#[cfg (not (target_os = "linux"))]
 pub const TIOCNOTTY: c_int = 536900721;
+#[cfg (target_os = "linux")]
+pub const TIOCNOTTY: c_int = 0x5422;
 #[unsafe(no_mangle)]
 pub unsafe fn dissociate_controlling_tty ()
 {
@@ -3470,7 +3540,7 @@ unsafe fn conv_lisp_to_sockaddr (family: c_int, address: Lisp_Object, sa: *mut s
 	  hostport = XFIXNUM (FAM_ELEM! ((*p).contents, len));
 	  (*sin).sin_port = htons (hostport as u16);
 	  cp = &raw mut (*sin).sin_addr as *mut u8;
-	  (*sa).sa_family = family as u8;
+	  (*sa).sa_family = family as _;
 	}
       else if (family == AF_INET6)
 	{
@@ -3492,7 +3562,7 @@ unsafe fn conv_lisp_to_sockaddr (family: c_int, address: Lisp_Object, sa: *mut s
 		}
 	      i += 1;
 	    }
-	  (*sa).sa_family = family as u8;
+	  (*sa).sa_family = family as _;
 	  return;
 	}
       else
@@ -3513,7 +3583,7 @@ unsafe fn conv_lisp_to_sockaddr (family: c_int, address: Lisp_Object, sa: *mut s
 	      cp = cp.offset (1);
 	      i += 1;
 	    }
-	  (*sa).sa_family = family as u8;
+	  (*sa).sa_family = family as _;
 	}
       return;
     }
@@ -3759,21 +3829,38 @@ pub const AF_LOCAL: c_int = AF_UNIX;
 /// C: `#define AF_INET 2` (`<sys/socket.h>`)
 pub const AF_INET: c_int = 2;
 /// C: `#define AF_INET6 30` (`<sys/socket.h>`)
+#[cfg (not (target_os = "linux"))]
 pub const AF_INET6: c_int = 30;
-/// C: `#define SOL_SOCKET 65535` (`<sys/socket.h>`)
+#[cfg (target_os = "linux")]
+pub const AF_INET6: c_int = 10;
+#[cfg (not (target_os = "linux"))]
 pub const SOL_SOCKET: c_int = 65535;
-/// C: `#define SO_REUSEADDR 4` (`<sys/socket.h>`)
+#[cfg (target_os = "linux")]
+pub const SOL_SOCKET: c_int = 1;
+#[cfg (not (target_os = "linux"))]
 pub const SO_REUSEADDR: c_int = 4;
-/// C: `#define SO_LINGER 128` (`<sys/socket.h>`)
+#[cfg (target_os = "linux")]
+pub const SO_REUSEADDR: c_int = 2;
+#[cfg (not (target_os = "linux"))]
 pub const SO_LINGER: c_int = 128;
-/// C: `#define SO_BROADCAST 32` (`<sys/socket.h>`)
+#[cfg (target_os = "linux")]
+pub const SO_LINGER: c_int = 13;
+#[cfg (not (target_os = "linux"))]
 pub const SO_BROADCAST: c_int = 32;
-/// C: `#define SO_KEEPALIVE 8` (`<sys/socket.h>`)
+#[cfg (target_os = "linux")]
+pub const SO_BROADCAST: c_int = 6;
+#[cfg (not (target_os = "linux"))]
 pub const SO_KEEPALIVE: c_int = 8;
-/// C: `#define SO_OOBINLINE 256` (`<sys/socket.h>`)
+#[cfg (target_os = "linux")]
+pub const SO_KEEPALIVE: c_int = 9;
+#[cfg (not (target_os = "linux"))]
 pub const SO_OOBINLINE: c_int = 256;
-/// C: `#define SO_DONTROUTE 16` (`<sys/socket.h>`)
+#[cfg (target_os = "linux")]
+pub const SO_OOBINLINE: c_int = 10;
+#[cfg (not (target_os = "linux"))]
 pub const SO_DONTROUTE: c_int = 16;
+#[cfg (target_os = "linux")]
+pub const SO_DONTROUTE: c_int = 5;
 /// C: `#define IPPROTO_TCP 6` (`<netinet/in.h>`)
 pub const IPPROTO_TCP: c_int = 6;
 /// C: `#define TCP_NODELAY 1` (`<netinet/tcp.h>`)
@@ -4486,7 +4573,10 @@ pub const SOCK_SEQPACKET: c_int = 5;
 /// C: `#define SOCK_DGRAM 2` (`<sys/socket.h>`)
 pub const SOCK_DGRAM: c_int = 2;
 /// C: `#define SO_ERROR 4103` (`<sys/socket.h>`)
+#[cfg (not (target_os = "linux"))]
 pub const SO_ERROR: c_int = 4103;
+#[cfg (target_os = "linux")]
+pub const SO_ERROR: c_int = 4;
 
 /* C 3812-4326: `Fmake_network_process`.  C's four forward `goto open_socket` jumps are the
    port's labelled block `'open_socket` (PORTING.md 2.2): `break 'open_socket` leaves it where
@@ -5251,7 +5341,10 @@ pub const IFF_LINK1: c_int = 8192;
 /// C: `#define IFF_LINK2 16384` (`<net/if.h>`)
 pub const IFF_LINK2: c_int = 16384;
 /// C: `#define IFF_MULTICAST 32768` (`<net/if.h>`)
+#[cfg (not (target_os = "linux"))]
 pub const IFF_MULTICAST: c_int = 32768;
+#[cfg (target_os = "linux")]
+pub const IFF_MULTICAST: c_int = 0x1000;
 /// C: `#define SIOCGIFCONF 3222038820` (`<sys/ioctl.h>`)
 pub const SIOCGIFCONF: c_int = 3222038820u32 as c_int;
 /// C: `#define SIOCGIFFLAGS 3223349521` (`<sys/ioctl.h>`)
@@ -6378,7 +6471,10 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
 		 this target's `sigset_t` is one 32-bit word, so the bit is tested directly
 		 (`SIGCHLD` - 1 = 19 here).  The instrument must not add a libc dependency the
 		 reference does not have: gate-fast's partial-link check flags exactly that.  */
+	      #[cfg (not (target_os = "linux"))]
 	      let blocked: c_int = ((cur.__val >> (SIGCHLD - 1)) & 1) as c_int;
+	      #[cfg (target_os = "linux")]
+	      let blocked: c_int = ((cur.__val[((SIGCHLD - 1) / 64) as usize] >> ((SIGCHLD - 1) % 64)) & 1) as c_int;
 	      fprintf ((*stderr.as_mut_ptr ()), c"child-state: handler=%p flags=%d blocked=%d\n".as_ptr (),
 		       handler, act.sa_flags, blocked);
 	    }
@@ -8078,10 +8174,13 @@ unsafe fn process_send_signal (process: Lisp_Object, signo: c_int, current_group
 pub type tcflag_t = c_ulong;
 /// C: `<termios.h>`: `typedef unsigned char cc_t;`
 pub type cc_t = c_uchar;
-/// C: `<termios.h>`: `#define NCCS 20`.
+/// C: `<termios.h>`: `#define NCCS 20` (Darwin), `32` (Linux glibc).
+#[cfg (not (target_os = "linux"))]
 pub const NCCS: usize = 20;
-/// C: `<termios.h>`'s `struct termios`, measured 72/8 (`c_iflag`@0, `c_oflag`@8, `c_cflag`@16,
-/// `c_lflag`@24, `c_cc`@32, `c_ispeed`@56, `c_ospeed`@64).
+#[cfg (target_os = "linux")]
+pub const NCCS: usize = 32;
+/// C: `<termios.h>`'s `struct termios`, measured 72/8 on Darwin.
+#[cfg (not (target_os = "linux"))]
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct termios
@@ -8094,22 +8193,68 @@ pub struct termios
   pub c_ispeed: c_ulong,
   pub c_ospeed: c_ulong,
 }
+#[cfg (not (target_os = "linux"))]
 const _: () = core::assert! (std::mem::size_of::<termios> () == 72);
+#[cfg (not (target_os = "linux"))]
 const _: () = core::assert! (std::mem::offset_of! (termios, c_iflag) == 0);
+#[cfg (not (target_os = "linux"))]
 const _: () = core::assert! (std::mem::offset_of! (termios, c_oflag) == 8);
+#[cfg (not (target_os = "linux"))]
 const _: () = core::assert! (std::mem::offset_of! (termios, c_cflag) == 16);
+#[cfg (not (target_os = "linux"))]
 const _: () = core::assert! (std::mem::offset_of! (termios, c_lflag) == 24);
+#[cfg (not (target_os = "linux"))]
 const _: () = core::assert! (std::mem::offset_of! (termios, c_cc) == 32);
+#[cfg (not (target_os = "linux"))]
 const _: () = core::assert! (std::mem::offset_of! (termios, c_ispeed) == 56);
+#[cfg (not (target_os = "linux"))]
 const _: () = core::assert! (std::mem::offset_of! (termios, c_ospeed) == 64);
+/// C: `<termios.h>`'s `struct termios`, measured 60/4 on glibc Linux.
+#[cfg (target_os = "linux")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct termios
+{
+  pub c_iflag: u32,
+  pub c_oflag: u32,
+  pub c_cflag: u32,
+  pub c_lflag: u32,
+  pub c_line: cc_t,
+  pub c_cc: [cc_t; NCCS],
+  pub _pad0: [u8; 3],
+  pub c_ispeed: u32,
+  pub c_ospeed: u32,
+}
+#[cfg (target_os = "linux")]
+const _: () = core::assert! (std::mem::size_of::<termios> () == 60);
+#[cfg (target_os = "linux")]
+const _: () = core::assert! (std::mem::offset_of! (termios, c_line) == 16);
+#[cfg (target_os = "linux")]
+const _: () = core::assert! (std::mem::offset_of! (termios, c_cc) == 17);
+#[cfg (target_os = "linux")]
+const _: () = core::assert! (std::mem::offset_of! (termios, c_ispeed) == 52);
+#[cfg (target_os = "linux")]
+const _: () = core::assert! (std::mem::offset_of! (termios, c_ospeed) == 56);
 /// C: `<termios.h>`'s `c_cc` indices, measured: VINTR 8, VQUIT 9, VSUSP 10.
+#[cfg (not (target_os = "linux"))]
 pub const VINTR: usize = 8;
+#[cfg (target_os = "linux")]
+pub const VINTR: usize = 0;
+#[cfg (not (target_os = "linux"))]
 pub const VQUIT: usize = 9;
+#[cfg (target_os = "linux")]
+pub const VQUIT: usize = 1;
 pub const VSUSP: usize = 10;
-/// C: `"systty.h"`: `#define CDISABLE _POSIX_VDISABLE`, measured 255.
+/// C: `"systty.h"`: `#define CDISABLE _POSIX_VDISABLE` (255 Darwin, 0 Linux).
+#[cfg (not (target_os = "linux"))]
 pub const CDISABLE: cc_t = 255;
-/// C: `#define TIOCGPGRP 1074033783` (`<sys/ioctl.h>`)
+#[cfg (target_os = "linux")]
+pub const CDISABLE: cc_t = 0;
+/// C: `#define TIOCGPGRP 1074033783` on Darwin, `0x540f` on Linux (`<sys/ioctl.h>`)
+#[cfg (not (target_os = "linux"))]
 pub const TIOCGPGRP: c_int = 1074033783;
+#[cfg (target_os = "linux")]
+pub const TIOCGPGRP: c_int = 0x540f;
 /* `SIGINT_`/`SIGQUIT_`/`SIGTSTP_` are the three `case` labels of C's `switch (signo)`; the
    mirror's `SIGINT`/`SIGQUIT`/`SIGTSTP` are used, so the arms below name them through the
    `match` patterns directly.  */
@@ -8674,7 +8819,10 @@ unsafe extern "C-unwind" {
 }
 /* C: `<sys/wait.h>`'s `WUNTRACED` and `WCONTINUED`, measured 2 and 16.  */
 pub const WUNTRACED: c_int = 2;
+#[cfg (not (target_os = "linux"))]
 pub const WCONTINUED: c_int = 16;
+#[cfg (target_os = "linux")]
+pub const WCONTINUED: c_int = 8;
 /* C: lisp.h 5194's `TYPE_MINIMUM (pid_t)` / `TYPE_MAXIMUM (pid_t)`, measured INT32_MIN/MAX.  */
 const PID_T_MIN: EMACS_INT = i32::MIN as EMACS_INT;
 const PID_T_MAX: EMACS_INT = i32::MAX as EMACS_INT;
@@ -9676,12 +9824,7 @@ pub unsafe fn init_process_emacs (sockfd: c_int)
   #[cfg (not (feature = "have_glib"))]
   {
     #[cfg (feature = "isolate_vm")]
-    if crate::sys::isolate::is_isolate_active () {
-      static SIGCHLD_ONCE: std::sync::Once = std::sync::Once::new ();
-      SIGCHLD_ONCE.call_once (|| {
-        catch_child_signal ();
-      });
-    } else {
+    if !crate::sys::isolate::is_isolate_active () {
       catch_child_signal ();
     }
     #[cfg (not (feature = "isolate_vm"))]
@@ -9804,7 +9947,10 @@ unsafe extern "C" {
 /// C: `#define SIG2STR_MAX 16` (sig2str.h 24)
 pub const SIG2STR_MAX: usize = 16;
 /// C: `#define SA_SIGINFO 0x0040` (`<signal.h>`)
+#[cfg (not (target_os = "linux"))]
 pub const SA_SIGINFO: c_int = 0x0040;
+#[cfg (target_os = "linux")]
+pub const SA_SIGINFO: c_int = 0x0004;
 
 /// C 9100-9102's `#define ADD_SUBFEATURE(key, val) subfeatures = Fcons (Fcons (key,
 /// Fcons (val, Qnil)), subfeatures)` — the port's macro takes the local it assigns as its

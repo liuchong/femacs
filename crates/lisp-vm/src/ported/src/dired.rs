@@ -76,7 +76,7 @@ const _: () = ();
    back with `llvm-nm -S`: 280 bytes, `d_name` at 19, `d_type` at 18, `d_off` at 8).  Reading the
    host's 1024-byte `d_name` out of bionic's 280-byte record ran past the library's buffer and
    died with SIGBUS the first time the Android font scan called `readdir` (status 4.792).  */
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 #[repr(C)]
 pub struct dirent
 {
@@ -87,14 +87,14 @@ pub struct dirent
   pub d_type: u8,
   pub d_name: [c_char; 1024],
 }
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert!(std::mem::size_of::<dirent> () == 1048);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert!(std::mem::offset_of! (dirent, d_type) == 20);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert!(std::mem::offset_of! (dirent, d_name) == 21);
 
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 #[repr(C)]
 pub struct dirent
 {
@@ -104,11 +104,11 @@ pub struct dirent
   pub d_type: u8,
   pub d_name: [c_char; 256],
 }
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 const _: () = core::assert!(std::mem::size_of::<dirent> () == 280);
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 const _: () = core::assert!(std::mem::offset_of! (dirent, d_type) == 18);
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 const _: () = core::assert!(std::mem::offset_of! (dirent, d_name) == 19);
 
 /// C: `<dirent.h>`'s `#define DT_UNKNOWN 0`, `DT_DIR 4`, `DT_LNK 10` on the frozen target

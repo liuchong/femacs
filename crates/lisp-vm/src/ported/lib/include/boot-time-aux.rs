@@ -77,7 +77,8 @@ pub unsafe fn get_linux_uptime (p_uptime: *mut timespec) -> c_int
 
   /* C 36: `# if !defined __ANDROID__` - /proc/uptime has no read permission on Android.  */
   #[cfg (not (feature = "have_android"))]
-  {
+  // SAFETY: Low-level POSIX/stdio boundary reading `/proc/uptime` and writing caller-provided `*mut timespec`.
+  unsafe {
     let mut fp: *mut FILE = fopen (c"/proc/uptime".as_ptr (), c"re".as_ptr ());
     if !fp.is_null ()
       {
@@ -283,7 +284,7 @@ pub unsafe fn get_openbsd_boot_time (p_boot_time: *mut timespec) -> c_int
    the system is running in a virtual machine and this VM has been put into "saved" or
    "sleep" state and then resumed."  It sits under C 230-232's `#if`, so it carries that gate:
    with the body compiled on Android the unit imported `sysctl` (status 4.749).  */
-#[cfg (all (not (feature = "not_have_sys_sysctl_h"), not (feature = "not_have_sysctl")))]
+#[cfg (all (not (feature = "not_have_sys_sysctl_h"), not (feature = "not_have_sysctl"), not (target_os = "linux")))]
 pub unsafe fn get_bsd_boot_time_final_fallback (p_boot_time: *mut timespec) -> c_int
 {
   // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.

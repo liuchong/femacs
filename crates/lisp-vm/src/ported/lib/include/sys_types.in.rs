@@ -75,28 +75,32 @@ pub type GETGROUPS_T = gid_t;
    record field or truncates an argument.  Measured with the NDK for aarch64-linux-android21
    (`char a[sizeof (mode_t)];` … read back with `llvm-nm -S`): `dev_t` 8, `mode_t` 4, `nlink_t` 4,
    `blksize_t` 8 (status 4.794).  */
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub type mode_t = u16;
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 pub type mode_t = c_uint;
 /// The frozen target's `nlink_t` (`__uint16_t`, measured above).
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub type nlink_t = u16;
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", all (target_os = "linux", target_arch = "aarch64")))]
 pub type nlink_t = c_uint;
+#[cfg (all (target_os = "linux", target_arch = "x86_64"))]
+pub type nlink_t = c_ulong;
 /// The frozen target's `blksize_t` (`__int32_t`, measured above).
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", all (target_os = "linux", target_arch = "x86_64"))))]
 pub type blksize_t = c_int;
 #[cfg (feature = "have_android")]
 pub type blksize_t = i64;
+#[cfg (all (target_os = "linux", target_arch = "x86_64"))]
+pub type blksize_t = c_long;
 /// The frozen target's `blkcnt_t` (`__int64_t`, measured above).
 pub type blkcnt_t = i64;
 /// The frozen target's `ino_t` (`__uint64_t`, measured above).
 pub type ino_t = u64;
 /// The frozen target's `dev_t` (`__int32_t`, measured above).
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub type dev_t = c_int;
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 pub type dev_t = u64;
 
 /* The four aliases bionic spells differently, asserted so `tools/check-android-layout.py` can

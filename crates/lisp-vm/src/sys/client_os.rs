@@ -17,16 +17,34 @@ use std::path::{Path, PathBuf};
 
 const AF_UNIX_C: c_int = 1;
 const SOCK_STREAM_C: c_int = 1;
+#[cfg(target_os = "macos")]
 const SOL_SOCKET_C: c_int = 0xffff;
+#[cfg(not(target_os = "macos"))]
+const SOL_SOCKET_C: c_int = 1;
+#[cfg(target_os = "macos")]
 const SO_LINGER_C: c_int = 0x0080;
+#[cfg(not(target_os = "macos"))]
+const SO_LINGER_C: c_int = 13;
+#[cfg(target_os = "macos")]
 const SO_ERROR_C: c_int = 0x1007;
+#[cfg(not(target_os = "macos"))]
+const SO_ERROR_C: c_int = 4;
 const CS_DARWIN_USER_TEMP_DIR: c_int = 65537;
+#[cfg(target_os = "macos")]
 const O_PATH_COMPAT: c_int = O_SEARCH;
+#[cfg(target_os = "linux")]
+const O_PATH_COMPAT: c_int = 0x200000;
+#[cfg(not(any(target_os = "macos", target_os = "linux")))]
+const O_PATH_COMPAT: c_int = O_RDONLY;
+#[cfg(target_os = "macos")]
 pub const SUN_PATH_CAPACITY: usize = 104;
+#[cfg(not(target_os = "macos"))]
+pub const SUN_PATH_CAPACITY: usize = 108;
 
 type socklen_t = u32;
 type SignalHandler = Option<unsafe extern "C" fn(c_int)>;
 
+#[cfg(target_os = "macos")]
 #[repr(C)]
 #[derive(Clone, Copy)]
 struct Sockaddr {
@@ -35,11 +53,28 @@ struct Sockaddr {
     sa_data: [c_char; 14],
 }
 
+#[cfg(not(target_os = "macos"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+struct Sockaddr {
+    sa_family: u16,
+    sa_data: [c_char; 14],
+}
+
+#[cfg(target_os = "macos")]
 #[repr(C)]
 #[derive(Clone, Copy)]
 struct SockaddrUn {
     sun_len: u8,
     sun_family: u8,
+    sun_path: [c_char; SUN_PATH_CAPACITY],
+}
+
+#[cfg(not(target_os = "macos"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+struct SockaddrUn {
+    sun_family: u16,
     sun_path: [c_char; SUN_PATH_CAPACITY],
 }
 
@@ -338,9 +373,15 @@ fn build_sockaddr_un(raw_name: &[u8]) -> Result<SockaddrUn, LocalConnectError> {
     if raw_name.is_empty() || raw_name.len() >= SUN_PATH_CAPACITY || raw_name.contains(&0) {
         return Err(LocalConnectError::NameTooLong);
     }
+    #[cfg(target_os = "macos")]
     let mut un = SockaddrUn {
         sun_len: 0,
         sun_family: AF_UNIX_C as u8,
+        sun_path: [0; SUN_PATH_CAPACITY],
+    };
+    #[cfg(not(target_os = "macos"))]
+    let mut un = SockaddrUn {
+        sun_family: AF_UNIX_C as u16,
         sun_path: [0; SUN_PATH_CAPACITY],
     };
     for (dst, &b) in un.sun_path[..raw_name.len()].iter_mut().zip(raw_name.iter()) {

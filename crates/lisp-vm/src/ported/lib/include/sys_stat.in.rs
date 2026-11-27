@@ -61,7 +61,7 @@ macro_rules! _GL_ATTRIBUTE_NOTHROW {
    second half of this header already defined the type").  */
 pub const GNULIB_defined_struct_stat: c_int = 1;
 
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 /// The frozen target's `struct stat` (144 bytes, 8-byte alignment; layouts measured above).
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -116,7 +116,7 @@ pub struct stat
 /// `st_rdev` 32, `st_size` 48, `st_blksize` 56, `st_blocks` 64, `st_atim` 72, `st_mtim` 88,
 /// `st_ctim` 104).  A host-shaped record made every `stat`-based decision on the device read
 /// another field's bytes (status 4.794).  */
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", all (target_os = "linux", target_arch = "aarch64")))]
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct stat
@@ -130,7 +130,7 @@ pub struct stat
   pub st_rdev: dev_t,         /* 32 */
   pub __pad1: u64,            /* 40 */
   pub st_size: off_t,         /* 48 */
-  pub st_blksize: c_int,      /* 56 (bionic spells this field `int`, not `blksize_t`) */
+  pub st_blksize: c_int,      /* 56 */
   pub __pad2: c_int,          /* 60 */
   pub st_blocks: blkcnt_t,    /* 64 */
   pub st_atim: timespec,      /* 72 */
@@ -140,52 +140,89 @@ pub struct stat
   pub __unused5: c_uint,      /* 124 */
 }
 
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", all (target_os = "linux", target_arch = "aarch64")))]
 const _: () = core::assert! (std::mem::size_of::<stat> () == 128);
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", all (target_os = "linux", target_arch = "aarch64")))]
 const _: () = core::assert! (std::mem::offset_of! (stat, st_ino) == 8);
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", all (target_os = "linux", target_arch = "aarch64")))]
 const _: () = core::assert! (std::mem::offset_of! (stat, st_mode) == 16);
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", all (target_os = "linux", target_arch = "aarch64")))]
 const _: () = core::assert! (std::mem::offset_of! (stat, st_nlink) == 20);
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", all (target_os = "linux", target_arch = "aarch64")))]
 const _: () = core::assert! (std::mem::offset_of! (stat, st_size) == 48);
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", all (target_os = "linux", target_arch = "aarch64")))]
 const _: () = core::assert! (std::mem::offset_of! (stat, st_blocks) == 64);
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", all (target_os = "linux", target_arch = "aarch64")))]
 const _: () = core::assert! (std::mem::offset_of! (stat, st_mtim) == 88);
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", all (target_os = "linux", target_arch = "aarch64")))]
 const _: () = core::assert! (std::mem::offset_of! (stat, st_ctim) == 104);
 
-#[cfg (not (feature = "have_android"))]
+#[cfg (all (target_os = "linux", target_arch = "x86_64"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct stat
+{
+  pub st_dev: dev_t,          /* 0 */
+  pub st_ino: ino_t,          /* 8 */
+  pub st_nlink: nlink_t,      /* 16 */
+  pub st_mode: mode_t,        /* 24 */
+  pub st_uid: uid_t,          /* 28 */
+  pub st_gid: gid_t,          /* 32 */
+  pub __pad0: c_int,          /* 36 */
+  pub st_rdev: dev_t,         /* 40 */
+  pub st_size: off_t,         /* 48 */
+  pub st_blksize: blksize_t,  /* 56 */
+  pub st_blocks: blkcnt_t,    /* 64 */
+  pub st_atim: timespec,      /* 72 */
+  pub st_mtim: timespec,      /* 88 */
+  pub st_ctim: timespec,      /* 104 */
+  pub __glibc_reserved: [c_long; 3], /* 120 */
+}
+
+#[cfg (all (target_os = "linux", target_arch = "x86_64"))]
 const _: () = core::assert! (std::mem::size_of::<stat> () == 144);
-#[cfg (not (feature = "have_android"))]
+#[cfg (all (target_os = "linux", target_arch = "x86_64"))]
+const _: () = core::assert! (std::mem::offset_of! (stat, st_nlink) == 16);
+#[cfg (all (target_os = "linux", target_arch = "x86_64"))]
+const _: () = core::assert! (std::mem::offset_of! (stat, st_mode) == 24);
+#[cfg (all (target_os = "linux", target_arch = "x86_64"))]
+const _: () = core::assert! (std::mem::offset_of! (stat, st_size) == 48);
+#[cfg (all (target_os = "linux", target_arch = "x86_64"))]
+const _: () = core::assert! (std::mem::offset_of! (stat, st_blocks) == 64);
+#[cfg (all (target_os = "linux", target_arch = "x86_64"))]
+const _: () = core::assert! (std::mem::offset_of! (stat, st_mtim) == 88);
+#[cfg (all (target_os = "linux", target_arch = "x86_64"))]
+const _: () = core::assert! (std::mem::offset_of! (stat, st_ctim) == 104);
+
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
+const _: () = core::assert! (std::mem::size_of::<stat> () == 144);
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (stat, st_dev) == 0);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (stat, st_mode) == 4);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (stat, st_nlink) == 6);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (stat, st_ino) == 8);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (stat, st_uid) == 16);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (stat, st_gid) == 20);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (stat, st_rdev) == 24);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (stat, st_atimespec) == 32);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (stat, st_mtimespec) == 48);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (stat, st_ctimespec) == 64);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (stat, st_birthtimespec) == 80);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (stat, st_size) == 96);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (stat, st_blocks) == 104);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (stat, st_blksize) == 112);
 
 /* The mode bits (the frozen target's <sys/stat.h>, measured above).  */

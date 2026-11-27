@@ -185,12 +185,35 @@ unsafe extern "C" {
    `posix_spawn_file_actions_t` and `posix_spawnattr_t` as pointers to opaque records;
    measured with the frozen clang: `sizeof` is 8 for both, `POSIX_SPAWN_SETSID` 1024,
    `POSIX_SPAWN_SETSIGDEF` 4 and `POSIX_SPAWN_SETSIGMASK` 8.  */
+#[cfg (not (target_os = "linux"))]
 #[repr(C)] pub struct _posix_spawn_file_actions { _private: [u8; 0] }
+#[cfg (not (target_os = "linux"))]
 #[repr(C)] pub struct _posix_spawnattr { _private: [u8; 0] }
+#[cfg (not (target_os = "linux"))]
 pub type posix_spawn_file_actions_t = *mut _posix_spawn_file_actions;
+#[cfg (not (target_os = "linux"))]
 pub type posix_spawnattr_t = *mut _posix_spawnattr;
-/// <spawn.h>: `#define POSIX_SPAWN_SETSID 0x0400`.
+#[cfg (target_os = "linux")]
+#[repr(C, align(8))]
+#[derive(Clone, Copy)]
+pub struct posix_spawn_file_actions_t {
+  _data: [u8; 80],
+}
+#[cfg (target_os = "linux")]
+const _: () = core::assert! (std::mem::size_of::<posix_spawn_file_actions_t> () == 80);
+#[cfg (target_os = "linux")]
+#[repr(C, align(8))]
+#[derive(Clone, Copy)]
+pub struct posix_spawnattr_t {
+  _data: [u8; 336],
+}
+#[cfg (target_os = "linux")]
+const _: () = core::assert! (std::mem::size_of::<posix_spawnattr_t> () == 336);
+/// <spawn.h>: `#define POSIX_SPAWN_SETSID 0x0400` (Darwin), `0x80` (Linux glibc).
+#[cfg (not (target_os = "linux"))]
 const POSIX_SPAWN_SETSID: c_short = 1024;
+#[cfg (target_os = "linux")]
+const POSIX_SPAWN_SETSID: c_short = 0x80;
 /// <spawn.h>: `#define POSIX_SPAWN_SETSIGDEF 0x0004`.
 const POSIX_SPAWN_SETSIGDEF: c_short = 4;
 /// <spawn.h>: `#define POSIX_SPAWN_SETSIGMASK 0x0008`.
@@ -209,8 +232,15 @@ unsafe extern "C" {
   fn posix_spawn_file_actions_adddup2 (actions: *mut posix_spawn_file_actions_t,
                                        fd: c_int, newfd: c_int) -> c_int;
   /// C: int posix_spawn_file_actions_addchdir (posix_spawn_file_actions_t *, const char *)
+  #[cfg (all (not (target_os = "linux"), not (feature = "not_have_posix_spawn_file_actions_addchdir"),
+              not (feature = "have_haiku")))]
   fn posix_spawn_file_actions_addchdir (actions: *mut posix_spawn_file_actions_t,
                                         path: *const c_char) -> c_int;
+  /// C: int posix_spawn_file_actions_addchdir_np (posix_spawn_file_actions_t *, const char *)
+  #[cfg (any (target_os = "linux", feature = "not_have_posix_spawn_file_actions_addchdir",
+              feature = "have_haiku"))]
+  fn posix_spawn_file_actions_addchdir_np (actions: *mut posix_spawn_file_actions_t,
+                                           path: *const c_char) -> c_int;
   /// C: int posix_spawn_file_actions_destroy (posix_spawn_file_actions_t *)
   fn posix_spawn_file_actions_destroy (actions: *mut posix_spawn_file_actions_t) -> c_int;
   /// C: int posix_spawnattr_init (posix_spawnattr_t *)
@@ -227,11 +257,11 @@ unsafe extern "C" {
   fn posix_spawnattr_destroy (attr: *mut posix_spawnattr_t) -> c_int;
 }
 
-/// <sys/ioctl.h>: `#define TIOCSCTTY _IO('T', 97)` — measured with the frozen clang:
-/// 536900705 (0x20007461).  This is the frozen macro table's one blind spot for this file:
-/// `#ifdef TIOCSCTTY` (C 1561) *is* true for the frozen build (the macro comes from the
-/// system header, not `config.h`), and the port follows clang (see the file header).
+/// <sys/ioctl.h>: `#define TIOCSCTTY _IO('T', 97)` (536900705 Darwin, 0x540e Linux).
+#[cfg (not (target_os = "linux"))]
 const TIOCSCTTY: c_ulong = 536900705;
+#[cfg (target_os = "linux")]
+const TIOCSCTTY: c_ulong = 0x540e;
 
 /// <signal.h>: `#define SIG_DFL ((void (*)(int)) 0)` — the integer 0 (signal.rs's `SIG_IGN`
 /// row's twin).
@@ -1584,10 +1614,10 @@ unsafe fn emacs_posix_spawn_init_actions (actions: *mut posix_spawn_file_actions
       // C 1358: `#if defined HAVE_POSIX_SPAWN_FILE_ACTIONS_ADDCHDIR && !defined HAIKU`, whose
       // `#else` (C 1360-1362) is the `_np` spelling.  `no_posix_spawn_addchdir` was a gate no
       // configuration produces, so Android took the first arm and imported the name.
-      #[cfg (all (not (feature = "not_have_posix_spawn_file_actions_addchdir"),
+      #[cfg (all (not (target_os = "linux"), not (feature = "not_have_posix_spawn_file_actions_addchdir"),
                   not (feature = "have_haiku")))]
       { error = posix_spawn_file_actions_addchdir (actions, cwd); }
-      #[cfg (not (all (not (feature = "not_have_posix_spawn_file_actions_addchdir"),
+      #[cfg (not (all (not (target_os = "linux"), not (feature = "not_have_posix_spawn_file_actions_addchdir"),
                        not (feature = "have_haiku"))))]
       { error = posix_spawn_file_actions_addchdir_np (actions, cwd); }
       if error != 0
@@ -1852,12 +1882,11 @@ pub unsafe extern "C-unwind" fn emacs_spawn (mut newpid: *mut pid_t, mut std_in:
   #[cfg (feature = "not_usable_posix_spawn")]
   let use_posix_spawn: bool = false;
 
-  /* PORTING.md 1.5: Darwin's two spawn types are pointers, so C's
-     uninitialized declarations start at null.  */
+  /* PORTING.md 1.5: zero-initialize opaque spawn descriptor handles/structs before `*_init`. */
   #[cfg (not (feature = "not_usable_posix_spawn"))]
-  let mut actions: posix_spawn_file_actions_t = std::ptr::null_mut ();
+  let mut actions: posix_spawn_file_actions_t = std::mem::zeroed ();
   #[cfg (not (feature = "not_usable_posix_spawn"))]
-  let mut attributes: posix_spawnattr_t = std::ptr::null_mut ();
+  let mut attributes: posix_spawnattr_t = std::mem::zeroed ();
 
   #[cfg (not (feature = "not_usable_posix_spawn"))]
   if use_posix_spawn

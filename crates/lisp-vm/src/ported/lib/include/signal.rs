@@ -8,23 +8,17 @@
 use super::*;
 pub const SIGABRT: c_int = 6;
 pub const SIGALRM: c_int = 14;
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub const SIGBUS: c_int = 10;
-/* Measured on the delivery target (bionic), status 4.781: the frozen arm above is
-   the Darwin value and the two platforms number this one differently. */
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 pub const SIGBUS: c_int = 7;
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub const SIGCHLD: c_int = 20;
-/* Measured on the delivery target (bionic), status 4.781: the frozen arm above is
-   the Darwin value and the two platforms number this one differently. */
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 pub const SIGCHLD: c_int = 17;
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub const SIGCONT: c_int = 19;
-/* Measured on the delivery target (bionic), status 4.781: the frozen arm above is
-   the Darwin value and the two platforms number this one differently. */
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 pub const SIGCONT: c_int = 18;
 pub const SIGEMT: c_int = 7;
 pub const SIGFPE: c_int = 8;
@@ -33,65 +27,53 @@ pub const SIGILL: c_int = 4;
 pub const SIGINFO: c_int = 29;
 pub const SIGINT: c_int = 2;
 pub const SIGIOT: c_int = 6;	// = SIGABRT on this target (measured)
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub const SIGIO: c_int = 23;
-/* Measured on the delivery target (bionic), status 4.781: the frozen arm above is
-   the Darwin value and the two platforms number this one differently. */
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 pub const SIGIO: c_int = 29;
 pub const SIGKILL: c_int = 9;
 pub const SIGPIPE: c_int = 13;
 pub const SIGPROF: c_int = 27;
 pub const SIGQUIT: c_int = 3;
 pub const SIGSEGV: c_int = 11;
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub const SIGSTOP: c_int = 17;
-/* Measured on the delivery target (bionic), status 4.781: the frozen arm above is
-   the Darwin value and the two platforms number this one differently. */
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 pub const SIGSTOP: c_int = 19;
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub const SIGSYS: c_int = 12;
-/* Measured on the delivery target (bionic), status 4.781: the frozen arm above is
-   the Darwin value and the two platforms number this one differently. */
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 pub const SIGSYS: c_int = 31;
 pub const SIGTERM: c_int = 15;
 pub const SIGTRAP: c_int = 5;
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub const SIGTSTP: c_int = 18;
-/* Measured on the delivery target (bionic), status 4.781: the frozen arm above is
-   the Darwin value and the two platforms number this one differently. */
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 pub const SIGTSTP: c_int = 20;
 pub const SIGTTIN: c_int = 21;
 pub const SIGTTOU: c_int = 22;
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub const SIGURG: c_int = 16;
-/* Measured on the delivery target (bionic), status 4.781: the frozen arm above is
-   the Darwin value and the two platforms number this one differently. */
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 pub const SIGURG: c_int = 23;
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub const SIGUSR1: c_int = 30;
-/* Measured on the delivery target (bionic), status 4.781: the frozen arm above is
-   the Darwin value and the two platforms number this one differently. */
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 pub const SIGUSR1: c_int = 10;
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub const SIGUSR2: c_int = 31;
-/* Measured on the delivery target (bionic), status 4.781: the frozen arm above is
-   the Darwin value and the two platforms number this one differently. */
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 pub const SIGUSR2: c_int = 12;
 pub const SIGVTALRM: c_int = 26;
 pub const SIGWINCH: c_int = 28;
 pub const SIGXCPU: c_int = 24;
 pub const SIGXFSZ: c_int = 25;
 
-/// `<signal.h>`'s `NSIG` is `__DARWIN_NSIG` on this target (measured: 32); sig2str.h's
-/// `SIGNUM_BOUND` is `NSIG - 1`.
+/// `<signal.h>`'s `NSIG` (`32` Darwin, `65` glibc Linux).
+#[cfg (not (target_os = "linux"))]
 pub const NSIG: c_int = 32;
+#[cfg (target_os = "linux")]
+pub const NSIG: c_int = 65;
 
 /// `<signal.h>`: `#define SIG_IGN ((void (*)(int)) 1)` - the integer one cast to the
 /// handler type (`SIG_DFL` is the integer 0).  The port keeps the integer, because the
@@ -114,6 +96,15 @@ pub type sigset_t = c_uint;
 /* bionic's `sigset_t` is an `unsigned long` - 8 bytes on aarch64 - while Darwin's is the
    4-byte `__darwin_sigset_t` the comment above records.  Measured with the same probe
    (`sizeof(sigset_t)` from the NDK's `<signal.h>`).  */
+#[cfg (all (not (feature = "windowsnt"), target_os = "linux"))]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub struct sigset_t
+{
+  pub __val: [c_ulong; 16],
+}
+#[cfg (all (not (feature = "windowsnt"), target_os = "linux"))]
+const _: () = core::assert! (std::mem::size_of::<sigset_t> () == 128);
 #[cfg (feature = "have_android")]
 #[repr(C)]
 #[derive (Clone, Copy)]
@@ -123,7 +114,7 @@ pub struct sigset_t
 }
 #[cfg (feature = "have_android")]
 const _: () = core::assert! (std::mem::size_of::<sigset_t> () == 8);
-#[cfg (all (not (feature = "windowsnt"), not (feature = "have_android")))]
+#[cfg (all (not (feature = "windowsnt"), not (feature = "have_android"), not (target_os = "linux")))]
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct sigset_t
@@ -131,28 +122,23 @@ pub struct sigset_t
   pub __val: u32,
 }
 
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::size_of::<sigset_t> () == 4);
 
-/// <signal.h>: `#define SIG_BLOCK 1` on Darwin, **0 on bionic**
-/// (`sysroot/usr/include/asm-generic/signal-defs.h` 48: `#define SIG_BLOCK 0`).
-/// The two targets disagree, and the wrong value is not a near miss: `pthread_sigmask (1, …)`
-/// on bionic is `SIG_UNBLOCK`, so the select thread ended up with an **empty** mask
-/// (`/proc/<tid>/status` `SigBlk: 0`), SIGUSR1 went to the handler instead of staying pending,
-/// `sigwait` never returned and `android_select` never came back (status 4.956).
-#[cfg (not (feature = "have_android"))]
+/// <signal.h>: `#define SIG_BLOCK 1` on Darwin, **0 on bionic/Linux**.
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub const SIG_BLOCK: c_int = 1;
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 pub const SIG_BLOCK: c_int = 0;
-/// <signal.h>: `#define SIG_UNBLOCK 2` on Darwin, **1 on bionic** (same header, 51).
-#[cfg (not (feature = "have_android"))]
+/// <signal.h>: `#define SIG_UNBLOCK 2` on Darwin, **1 on bionic/Linux**.
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub const SIG_UNBLOCK: c_int = 2;
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 pub const SIG_UNBLOCK: c_int = 1;
-/// <signal.h>: `#define SIG_SETMASK 3` on Darwin, **2 on bionic** (same header, 54).
-#[cfg (not (feature = "have_android"))]
+/// <signal.h>: `#define SIG_SETMASK 3` on Darwin, **2 on bionic/Linux**.
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub const SIG_SETMASK: c_int = 3;
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 pub const SIG_SETMASK: c_int = 2;
 
 /* `struct sigaction` and its handler union (signal.h 73-77's `union __sigaction_u`, whose
@@ -205,6 +191,27 @@ pub union __sigaction_u
    `sizeof` 32, `sa_flags`@0, the handler union@8, `sa_mask`@16, `sa_restorer`@24 (status 4.831).
    The old order wrote the handler over `sa_flags` and `sigfillset`'s mask over the handler slot,
    so every `sigaction` call installed a wild handler pointer on Android.  */
+#[cfg (target_os = "linux")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct sigaction
+{
+  pub __sigaction_u: __sigaction_u,
+  pub sa_mask: sigset_t,
+  pub sa_flags: c_int,
+  pub _pad: c_int,
+  pub sa_restorer: Option<unsafe extern "C" fn ()>,
+}
+#[cfg (target_os = "linux")]
+const _: () = core::assert! (std::mem::size_of::<sigaction> () == 152);
+#[cfg (target_os = "linux")]
+const _: () = core::assert! (std::mem::offset_of! (sigaction, __sigaction_u) == 0);
+#[cfg (target_os = "linux")]
+const _: () = core::assert! (std::mem::offset_of! (sigaction, sa_mask) == 8);
+#[cfg (target_os = "linux")]
+const _: () = core::assert! (std::mem::offset_of! (sigaction, sa_flags) == 136);
+#[cfg (target_os = "linux")]
+const _: () = core::assert! (std::mem::offset_of! (sigaction, sa_restorer) == 144);
 #[cfg (feature = "have_android")]
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -225,7 +232,7 @@ const _: () = core::assert! (std::mem::offset_of! (sigaction, __sigaction_u) == 
 const _: () = core::assert! (std::mem::offset_of! (sigaction, sa_mask) == 16);
 #[cfg (feature = "have_android")]
 const _: () = core::assert! (std::mem::offset_of! (sigaction, sa_restorer) == 24);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct sigaction
@@ -235,13 +242,13 @@ pub struct sigaction
   pub sa_flags: c_int,
 }
 
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::size_of::<sigaction> () == 16);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (sigaction, sa_mask) == 8);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (sigaction, sa_flags) == 12);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::size_of::<__sigaction_u> () == 8);
 
 /* The `sigset_t` operations, in a uniquely-named module + glob import (the stdio.rs shape):
@@ -276,8 +283,8 @@ pub mod signal_decls {
      arms, and the `w32font` arm read `E0610`/`E0071` on it - `u32` has no fields (status 3.541).
      No MinGW header exists on this machine, so the scalar arm's bodies are the mirror's own
      recorded evidence and carry that mark.  */
-  /// C: `#define sigemptyset(set) (*(set) = 0, 0)` (Darwin arm)
-  #[cfg (not (feature = "windowsnt"))]
+  /// C: `#define sigemptyset(set) (*(set) = 0, 0)` (Darwin / bionic arm)
+  #[cfg (all (not (feature = "windowsnt"), not (target_os = "linux")))]
   #[inline(always)]
   pub unsafe fn sigemptyset (set: *mut sigset_t) -> c_int
   {
@@ -288,6 +295,17 @@ pub mod signal_decls {
   
   }
 }
+
+  #[cfg (all (not (feature = "windowsnt"), target_os = "linux"))]
+  #[inline(always)]
+  pub unsafe fn sigemptyset (set: *mut sigset_t) -> c_int
+  {
+    // SAFETY: Caller provides a valid writable `*mut sigset_t` matching glibc 128-byte `sigset_t`.
+    unsafe {
+      *set = sigset_t { __val: [0; 16] };
+      0
+    }
+  }
 
   /// C: `#define sigemptyset(set) (*(set) = 0, 0)` (MinGW arm; **UNVERIFIED** reading)
   #[cfg (feature = "windowsnt")]
@@ -303,7 +321,7 @@ pub mod signal_decls {
   /// One arm per target, as C has one macro per platform: `__val` is 4 bytes on darwin and 8 on
   /// bionic, and C's `|=` widens automatically where Rust needs the width spelled out
   /// (`u64 |= u32` fails; status 4.622).
-  #[cfg (all (not (feature = "windowsnt"), not (feature = "have_android")))]
+  #[cfg (all (not (feature = "windowsnt"), not (feature = "have_android"), not (target_os = "linux")))]
   #[inline(always)]
   pub unsafe fn sigaddset (set: *mut sigset_t, signo: c_int) -> c_int
   {
@@ -314,6 +332,23 @@ pub mod signal_decls {
   
   }
 }
+
+  #[cfg (all (not (feature = "windowsnt"), target_os = "linux"))]
+  #[inline(always)]
+  pub unsafe fn sigaddset (set: *mut sigset_t, signo: c_int) -> c_int
+  {
+    // SAFETY: Caller provides a valid writable `*mut sigset_t`; index is bounds-checked inside `1..=1024`.
+    unsafe {
+      if signo >= 1 && signo <= 1024 {
+        let idx = ((signo - 1) / (core::mem::size_of::<c_ulong> () as c_int * 8)) as usize;
+        let bit = ((signo - 1) % (core::mem::size_of::<c_ulong> () as c_int * 8)) as u32;
+        if idx < (*set).__val.len () {
+          (*set).__val[idx] |= (1 as c_ulong) << bit;
+        }
+      }
+      0
+    }
+  }
 
   /// C: the same macro on bionic, where `sigset_t` is an `unsigned long`.
   #[cfg (feature = "have_android")]

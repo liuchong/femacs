@@ -32,31 +32,31 @@
 use super::*;
 /// <termios.h>: `typedef unsigned long tcflag_t;` (measured `sizeof` 8 on the host; bionic's is
 /// `unsigned int`, 4 bytes - status 4.795).
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub type tcflag_t = c_ulong;
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 pub type tcflag_t = c_uint;
 
-/// <termios.h>: `typedef unsigned long speed_t;` (8 on the host, 4 on bionic).
-#[cfg (not (feature = "have_android"))]
+/// <termios.h>: `typedef unsigned long speed_t;` (8 on the host, 4 on bionic/Linux).
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub type speed_t = c_ulong;
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "linux"))]
 pub type speed_t = c_uint;
 
 /// <termios.h>: `typedef unsigned char cc_t;`.
 pub type cc_t = c_uchar;
 
-/// <termios.h>: `#define NCCS 20` (measured).
-#[cfg (not (feature = "have_android"))]
+/// <termios.h>: `#define NCCS 20` (Darwin), `19` (bionic), `32` (Linux glibc).
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub const NCCS: c_int = 20;
-/* Measured on the delivery target (bionic), status 4.781: the frozen arm above is
-   the Darwin value and the two platforms number this one differently. */
 #[cfg (feature = "have_android")]
 pub const NCCS: c_int = 19;
+#[cfg (target_os = "linux")]
+pub const NCCS: c_int = 32;
 
 /// <termios.h>'s `struct termios`: 72 bytes on the host.  ``(measured: 72 bytes, the offsets
 /// above)``.
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct termios
@@ -70,22 +70,51 @@ pub struct termios
   pub c_ospeed: speed_t,   /* 64 */
 }
 
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::size_of::<termios> () == 72);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (termios, c_iflag) == 0);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (termios, c_oflag) == 8);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (termios, c_cflag) == 16);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (termios, c_lflag) == 24);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (termios, c_cc) == 32);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (termios, c_ispeed) == 56);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::offset_of! (termios, c_ospeed) == 64);
+
+/// glibc Linux `struct termios`: 60 bytes, `tcflag_t`/`speed_t` 4 bytes, `c_line` at 16,
+/// `c_cc[32]` at 17, `c_ispeed` at 52, `c_ospeed` at 56.
+#[cfg (target_os = "linux")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct termios
+{
+  pub c_iflag: tcflag_t,           /* 0 */
+  pub c_oflag: tcflag_t,           /* 4 */
+  pub c_cflag: tcflag_t,           /* 8 */
+  pub c_lflag: tcflag_t,           /* 12 */
+  pub c_line: cc_t,                /* 16 */
+  pub c_cc: [cc_t; NCCS as usize], /* 17 */
+  pub _pad0: [u8; 3],              /* 49 */
+  pub c_ispeed: speed_t,           /* 52 */
+  pub c_ospeed: speed_t,           /* 56 */
+}
+
+#[cfg (target_os = "linux")]
+const _: () = core::assert! (std::mem::size_of::<termios> () == 60);
+#[cfg (target_os = "linux")]
+const _: () = core::assert! (std::mem::offset_of! (termios, c_line) == 16);
+#[cfg (target_os = "linux")]
+const _: () = core::assert! (std::mem::offset_of! (termios, c_cc) == 17);
+#[cfg (target_os = "linux")]
+const _: () = core::assert! (std::mem::offset_of! (termios, c_ispeed) == 52);
+#[cfg (target_os = "linux")]
+const _: () = core::assert! (std::mem::offset_of! (termios, c_ospeed) == 56);
 
 /// bionic's `struct termios`: 36 bytes, `tcflag_t` 4 bytes, `c_line` before `c_cc[19]`, and no
 /// `c_ispeed`/`c_ospeed` members at all (NDK, aarch64-linux-android21: size 36, `c_cc` at 17,

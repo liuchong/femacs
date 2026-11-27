@@ -1151,27 +1151,42 @@ pub const BOOL_VECTOR_BITS_PER_CHAR: usize = 8;
    `sigsetjmp` write 68 bytes past it, into the statics that follow - `Vauto_save_timeout` is the
    next one in the linked layout, and the first GC then aborted on a value whose type tag is
    unused (status 4.789).  */
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub type jmp_buf = [u8; 192];
 #[cfg (feature = "have_android")]
 pub type jmp_buf = [u8; 256];
-#[cfg (not (feature = "have_android"))]
+#[cfg (all (target_os = "linux", target_arch = "aarch64"))]
+pub type jmp_buf = [u8; 312];
+#[cfg (all (target_os = "linux", target_arch = "x86_64"))]
+pub type jmp_buf = [u8; 200];
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub type sigjmp_buf = [u8; 196];
 #[cfg (feature = "have_android")]
 pub type sigjmp_buf = [u8; 264];
+#[cfg (all (target_os = "linux", target_arch = "aarch64"))]
+pub type sigjmp_buf = [u8; 312];
+#[cfg (all (target_os = "linux", target_arch = "x86_64"))]
+pub type sigjmp_buf = [u8; 200];
 
 /* The two records are read and written by the C library itself, so their sizes are the target's
-   contract, not a detail: a host-sized `sigjmp_buf` let `command_loop`'s `sigsetjmp` clobber the
-   statics that follow `return_to_command_loop` on the device (status 4.788).  These assertions
-   are what `tools/check-android-layout.py` reads back against the NDK.  */
-#[cfg (not (feature = "have_android"))]
+   contract.  Measured with GCC/Clang `<setjmp.h>`: Darwin 192/196, bionic 256/264,
+   aarch64-linux-gnu 312/312, x86_64-linux-gnu 200/200.  */
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (core::mem::size_of::<jmp_buf> () == 192);
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (core::mem::size_of::<sigjmp_buf> () == 196);
 #[cfg (feature = "have_android")]
 const _: () = core::assert! (core::mem::size_of::<jmp_buf> () == 256);
 #[cfg (feature = "have_android")]
 const _: () = core::assert! (core::mem::size_of::<sigjmp_buf> () == 264);
+#[cfg (all (target_os = "linux", target_arch = "aarch64"))]
+const _: () = core::assert! (core::mem::size_of::<jmp_buf> () == 312);
+#[cfg (all (target_os = "linux", target_arch = "aarch64"))]
+const _: () = core::assert! (core::mem::size_of::<sigjmp_buf> () == 312);
+#[cfg (all (target_os = "linux", target_arch = "x86_64"))]
+const _: () = core::assert! (core::mem::size_of::<jmp_buf> () == 200);
+#[cfg (all (target_os = "linux", target_arch = "x86_64"))]
+const _: () = core::assert! (core::mem::size_of::<sigjmp_buf> () == 200);
 
 // lisp.h 3570's `typedef struct kboard KBOARD;` is not declared here: the tag's definition
 // lives in keyboard.h, and a mirror may only name a type it declares itself or reaches through

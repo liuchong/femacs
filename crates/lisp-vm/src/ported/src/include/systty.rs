@@ -28,7 +28,10 @@ pub const EMACS_SYSTTY_H: bool = true;
 
 /// C 50: `#define CDISABLE _POSIX_VDISABLE` - the frozen target's `_POSIX_VDISABLE` is
 /// `((unsigned char)'\377')`, i.e. 255 (measured; macros.tsv).
+#[cfg (not (target_os = "linux"))]
 pub const CDISABLE: cc_t = 255;
+#[cfg (target_os = "linux")]
+pub const CDISABLE: cc_t = 0;
 
 /// C 78-86: `struct emacs_tty { struct termios main; };` (the `DOS_NT` arm is dead).
 #[repr(C)]
@@ -38,12 +41,13 @@ pub struct emacs_tty
   pub main: termios,
 }
 
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 const _: () = core::assert! (std::mem::size_of::<emacs_tty> () == 72);
-/* `emacs_tty` is C's `struct termios` alone, so the record follows the target's: 36 bytes where
-   bionic's `struct termios` is that (status 4.795).  */
+/* `emacs_tty` is C's `struct termios` alone: 36B bionic, 60B Linux glibc, 72B Darwin. */
 #[cfg (feature = "have_android")]
 const _: () = core::assert! (std::mem::size_of::<emacs_tty> () == 36);
+#[cfg (target_os = "linux")]
+const _: () = core::assert! (std::mem::size_of::<emacs_tty> () == 60);
 
 pub mod systty_decls {
   use super::*;

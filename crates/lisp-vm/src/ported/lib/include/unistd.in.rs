@@ -118,6 +118,7 @@ unsafe extern "C" {
      `char ***_NSGetEnviron (void);`, and the arm's `# else` branch - `extern char **environ;`
      - is the declaration this mirror keeps so that a unit reading the variable itself (the
      2011 C source's `alloc.c` does, and the port's alloc.rs includes this mirror) resolves.  */
+  #[cfg (target_os = "macos")]
   pub fn _NSGetEnviron () -> *mut *mut *mut core::ffi::c_char;
   pub static environ: VmGlobal<*mut *mut core::ffi::c_char>;
 }
@@ -148,19 +149,28 @@ pub const _GL_USE_CRT_EXTERNS: bool = true;
    from the frozen target (`docs/baseline/config/darwin-arm64.macros.tsv` has
    `_SC_NPROCESSORS_CONF 57` and `_SC_NPROCESSORS_ONLN 58`), and `_SC_PAGESIZE` (29) is the
    argument the dead `_gl_getpagesize` arm below names.  */
-#[cfg (not (feature = "have_android"))]
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub const _SC_NPROCESSORS_CONF: c_int = 57;
-/* Measured on the delivery target (bionic), status 4.781: the frozen arm above is
-   the Darwin value and the two platforms number this one differently. */
+/* Measured on the delivery target (bionic), status 4.781. */
 #[cfg (feature = "have_android")]
 pub const _SC_NPROCESSORS_CONF: c_int = 96;
-#[cfg (not (feature = "have_android"))]
+/* Measured on Linux glibc (Debian 12 aarch64/x86_64). */
+#[cfg (target_os = "linux")]
+pub const _SC_NPROCESSORS_CONF: c_int = 83;
+#[cfg (not (any (feature = "have_android", target_os = "linux")))]
 pub const _SC_NPROCESSORS_ONLN: c_int = 58;
-/* Measured on the delivery target (bionic), status 4.781: the frozen arm above is
-   the Darwin value and the two platforms number this one differently. */
+/* Measured on the delivery target (bionic), status 4.781. */
 #[cfg (feature = "have_android")]
 pub const _SC_NPROCESSORS_ONLN: c_int = 97;
+/* Measured on Linux glibc (Debian 12 aarch64/x86_64). */
+#[cfg (target_os = "linux")]
+pub const _SC_NPROCESSORS_ONLN: c_int = 84;
+#[cfg (not (target_os = "linux"))]
 pub const _SC_PAGESIZE: core::ffi::c_int = 29;
+#[cfg (target_os = "linux")]
+pub const _SC_PAGESIZE: core::ffi::c_int = 30;
+#[cfg (target_os = "linux")]
+pub const _SC_CLK_TCK: core::ffi::c_int = 2;
 
 /* ---- the template's own half (PORTING.md P-26) -----------------------------------------
    Everything below is a `@PLACEHOLDER@` arm that the frozen substitution settles.  A name
@@ -244,7 +254,10 @@ macro_rules! pipe2 { ($fd:expr, $flags:expr) => { rpl_pipe2 ($fd, $flags) } }
    the two `#define`s the extractor counts for `environ`; the live one is spelled out here
    (the port has no preprocessor rewriting the identifier, and a macro and the static above
    live in different namespaces, so both can stand).  */
+#[cfg (target_os = "macos")]
 macro_rules! environ { () => { (*_NSGetEnviron ()) } }
+#[cfg (not (target_os = "macos"))]
+macro_rules! environ { () => { (*rpl_environ ()) } }
 
 /* C 167-249: inside `# if @GNULIB_GETHOSTNAME@ && @UNISTD_H_HAVE_WINSOCK2_H@` (the second
    substitution is 0, so the whole block is dead here) and its `#  if !defined

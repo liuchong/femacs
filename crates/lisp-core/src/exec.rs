@@ -724,11 +724,34 @@ fn reap_tracked_tree(tree: &mut TrackedTree) -> bool {
     )
 }
 
+fn shell_quote_posix(arg: &str) -> String {
+    let mut out = String::with_capacity(arg.len() + 2);
+    out.push('\'');
+    for ch in arg.chars() {
+        if ch == '\'' {
+            out.push_str("'\\''");
+        } else {
+            out.push(ch);
+        }
+    }
+    out.push('\'');
+    out
+}
+
 fn build_child_command(spec: &SuperviseSpec) -> Command {
     let mut cmd = if spec.pty && cfg!(target_os = "macos") {
         let mut c = Command::new("/usr/bin/script");
         c.args(["-q", "/dev/null", &spec.program]);
         c.args(&spec.program_args);
+        c
+    } else if spec.pty && cfg!(target_os = "linux") {
+        let mut cmd_parts = Vec::with_capacity(1 + spec.program_args.len());
+        cmd_parts.push(shell_quote_posix(&spec.program));
+        for arg in &spec.program_args {
+            cmd_parts.push(shell_quote_posix(arg));
+        }
+        let mut c = Command::new("script");
+        c.args(["-qefc", &cmd_parts.join(" "), "/dev/null"]);
         c
     } else {
         let mut c = Command::new(&spec.program);
