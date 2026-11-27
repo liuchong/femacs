@@ -41716,3 +41716,10 @@ DEFUN!("tab-bar-height", Ftab_bar_height, Stab_bar_height, 0, 2, 0,
 
 #[cfg(feature = "have_ns")]
 unsafe extern "C-unwind" { fn decode_window_system_frame(frame: Lisp_Object) -> *mut frame; }
+
+#[cfg (feature = "isolate_vm")]
+pub(crate) fn pre_register_xdisp_globals ()
+{
+  crate::sys::isolate::pre_register_global (&echo_buffer);
+  crate::sys::isolate::pre_register_global (&echo_area_buffer);
+}

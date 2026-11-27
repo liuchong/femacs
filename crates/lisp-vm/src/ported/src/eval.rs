@@ -5749,3 +5749,9 @@ DEFUN! ("autoload-do-load", Fautoload_do_load, Sautoload_do_load, 1, 3, 0,
 	{ return fun; }
     }
 });
+
+#[cfg (feature = "isolate_vm")]
+pub(crate) fn pre_register_eval_globals ()
+{
+  crate::sys::isolate::pre_register_global (&Vinternal_interpreter_environment);
+}

@@ -5,6 +5,8 @@ pub mod brand;
 #[cfg(feature = "vm")]
 pub mod cli;
 #[cfg(feature = "vm")]
+pub mod concurrency;
+#[cfg(feature = "vm")]
 pub mod engine;
 pub mod error;
 pub mod exec;
@@ -16,6 +18,6 @@ pub mod stdlib_cache;
 pub mod value;
 
 #[cfg(feature = "vm")]
-pub use engine::{BootstrapMode, Engine, EngineConfig};
+pub use engine::{BootstrapMode, ConcurrencyMode, Engine, EngineConfig};
 pub use error::Error;
 pub use value::Value;

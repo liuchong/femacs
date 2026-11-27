@@ -9674,19 +9674,58 @@ pub unsafe fn init_process_emacs (sockfd: c_int)
       }
   }
   #[cfg (not (feature = "have_glib"))]
-  catch_child_signal ();
+  {
+    #[cfg (feature = "isolate_vm")]
+    if crate::sys::isolate::is_isolate_active () {
+      static SIGCHLD_ONCE: std::sync::Once = std::sync::Once::new ();
+      SIGCHLD_ONCE.call_once (|| {
+        catch_child_signal ();
+      });
+    } else {
+      catch_child_signal ();
+    }
+    #[cfg (not (feature = "isolate_vm"))]
+    catch_child_signal ();
+  }
 
   /* `#ifdef HAVE_SETRLIMIT` is live.  */
   /* Don't allocate more than FD_SETSIZE file descriptors for Emacs itself.  ...  */
-  if (getrlimit (RLIMIT_NOFILE, nofile_limit.as_mut_ptr ()) != 0)
-    { (*nofile_limit.as_mut_ptr ()).rlim_cur = 0; }
-  else if ((FD_SETSIZE as rlim_t) < (*nofile_limit.as_mut_ptr ()).rlim_cur)
-    {
-      let mut rlim: rlimit = (*nofile_limit.as_mut_ptr ());
-      rlim.rlim_cur = FD_SETSIZE as rlim_t;
-      if (setrlimit (RLIMIT_NOFILE, &raw const rlim) != 0)
-	{ (*nofile_limit.as_mut_ptr ()).rlim_cur = 0; }
+  #[cfg (feature = "isolate_vm")]
+  if crate::sys::isolate::is_isolate_active () {
+    static NOFILE_ONCE: std::sync::Once = std::sync::Once::new ();
+    NOFILE_ONCE.call_once (|| {
+      let mut rlim: rlimit = std::mem::zeroed ();
+      if getrlimit (RLIMIT_NOFILE, &raw mut rlim) == 0 && (FD_SETSIZE as rlim_t) < rlim.rlim_cur {
+        rlim.rlim_cur = FD_SETSIZE as rlim_t;
+        let _ = setrlimit (RLIMIT_NOFILE, &raw const rlim);
+      }
+    });
+    if getrlimit (RLIMIT_NOFILE, nofile_limit.as_mut_ptr ()) != 0 {
+      (*nofile_limit.as_mut_ptr ()).rlim_cur = 0;
     }
+  } else {
+    if (getrlimit (RLIMIT_NOFILE, nofile_limit.as_mut_ptr ()) != 0)
+      { (*nofile_limit.as_mut_ptr ()).rlim_cur = 0; }
+    else if ((FD_SETSIZE as rlim_t) < (*nofile_limit.as_mut_ptr ()).rlim_cur)
+      {
+        let mut rlim: rlimit = (*nofile_limit.as_mut_ptr ());
+        rlim.rlim_cur = FD_SETSIZE as rlim_t;
+        if (setrlimit (RLIMIT_NOFILE, &raw const rlim) != 0)
+          { (*nofile_limit.as_mut_ptr ()).rlim_cur = 0; }
+      }
+  }
+  #[cfg (not (feature = "isolate_vm"))]
+  {
+    if (getrlimit (RLIMIT_NOFILE, nofile_limit.as_mut_ptr ()) != 0)
+      { (*nofile_limit.as_mut_ptr ()).rlim_cur = 0; }
+    else if ((FD_SETSIZE as rlim_t) < (*nofile_limit.as_mut_ptr ()).rlim_cur)
+      {
+        let mut rlim: rlimit = (*nofile_limit.as_mut_ptr ());
+        rlim.rlim_cur = FD_SETSIZE as rlim_t;
+        if (setrlimit (RLIMIT_NOFILE, &raw const rlim) != 0)
+          { (*nofile_limit.as_mut_ptr ()).rlim_cur = 0; }
+      }
+  }
 
   (*external_sock_fd.as_mut_ptr ()) = sockfd;
   let mut sockname: Lisp_Object = Qnil ();

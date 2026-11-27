@@ -51,10 +51,18 @@ The repository extracts the pure-Rust Lisp VM (`crates/lisp-vm`) and public gene
   - persistent history (`history.txt` under cache dir),
   - clean `Ctrl-C` line abort recovery and `Ctrl-D` graceful exit (`0`).
 
-## 3. Multi-Phase Evolution
+## 3. Multi-Core No-GIL VM & Concurrency (`Phase 2`)
 
-- **Phase 1 (Current)**: `HostFnRegistry` + `Value::Bytes`, `brand.rs`, silent cold boot + atomic background `.pdmp` warm cache, pure-Rust TTY REPL, dependency isolation + zero-`cc` static gate (`tools/check-crate-boundaries.py`).
-- **Phase 2**: Configurable No-GIL isolate VM (`isolate_vm` feature, thread-local isolate globals, `Engine: Send`, `--concurrency=no-gil|gil`, `std/task` / `std/chan` / `std/sync`), keeping `femacs-host` single-isolate compatible.
+- **Isolate-local VM Storage (`crates/lisp-vm/src/sys/isolate.rs`)**: Enabled via `lisp-vm/isolate_vm` (default in `lisp-core`, disabled in `femacs-host`/`femacs` editor builds to keep single-VM static C-ABI behavior intact).
+- **Modes (`ConcurrencyMode::NoGil | Gil`)**:
+  - `NoGil` (default in `lisp-core`): Each `Engine` owns an isolated heap, `VmGlobal` table, GC root/nonlocal state, and pdump mapping; `Engine` is `Send` across OS threads and can run multiple VMs concurrently across CPU cores with zero GIL contention.
+  - `Gil`: Preserves single-instance process semantics (`Error::AlreadyInitialized` on 2nd init) and disables `std/task` parallel spawning (`--concurrency=gil` or `LISP_CONCURRENCY=gil`).
+- **Stdlib Modules (`stdlib/std/{chan,sync,task}.el`)**: Pure-Rust `#![forbid(unsafe_code)]` MPMC channels (`std-chan-*`), atomics/mutexes/shared maps (`std-atomic-*`, `std-mutex-*`, `std-shared-*`), OS-thread task spawn/await (`std-task-spawn`, `std-task-await`), bounded worker pools (`std-task-pool-*`), and multi-core `std-task-parallel-map`.
+
+## 4. Multi-Phase Evolution
+
+- **Phase 1 (Complete)**: `HostFnRegistry` + `Value::Bytes`, `brand.rs`, silent cold boot + atomic background `.pdmp` warm cache, pure-Rust TTY REPL, dependency isolation + zero-`cc` static gate (`tools/check-crate-boundaries.py`).
+- **Phase 2 (Complete)**: Configurable No-GIL isolate VM (`isolate_vm` feature, thread-local isolate globals, `Engine: Send`, `--concurrency=no-gil|gil`, `std/task` / `std/chan` / `std/sync`), keeping `femacs-host` single-isolate compatible.
 - **Phase 3**: Pure-Rust `crates/lisp-std` standard library (`ureq`+`rustls`+`rustls-rustcrypto`, `redb`+SQL, archives, serialization, crypto, FS/CLI/log/proc) and `init`/`pkg` project workflow.
 - **Phase 4**: Linux (`aarch64`/`x86_64`) OS layer & real-machine VM verification.
 - **Phase 5**: Pure-Rust Windows OS layer & cross-compile check verification.

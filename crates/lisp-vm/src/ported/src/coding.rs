@@ -13779,3 +13779,13 @@ unsafe extern "C-unwind" fn reset_coding_after_pdumper_load ()
 
   }
 }
+
+#[cfg (feature = "isolate_vm")]
+pub(crate) fn pre_register_coding_globals ()
+{
+  crate::sys::isolate::pre_register_global (&coding_priorities);
+  crate::sys::isolate::pre_register_global (&coding_categories);
+  crate::sys::isolate::pre_register_global (&iso_code_class);
+  crate::sys::isolate::pre_register_global (&emacs_mule_bytes);
+  crate::sys::isolate::pre_register_global (&reused_workbuf_in_use);
+}

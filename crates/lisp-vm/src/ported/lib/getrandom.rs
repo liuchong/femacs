@@ -28,6 +28,28 @@ pub const NAME_OF_NONCE_DEVICE: &[u8; 13] = b"/dev/urandom\0";
    Return the number of bytes written (> 0).
    Upon error, return -1 and set errno.  */
 
+static randfd: VmGlobal<[c_int; 2]> = VmGlobal::<[c_int; 2]>::new ([-1, -1]);
+
+/// Close any open per-isolate random device descriptors before tearing down isolate globals.
+#[cfg (feature = "isolate_vm")]
+pub(crate) unsafe fn close_isolate_random_fds ()
+{
+  // SAFETY: Runs on the owning thread inside the active isolate guard right before dropping isolate globals.
+  unsafe {
+  if !crate::sys::isolate::is_isolate_active ()
+    { return; }
+  let fds = &mut *randfd.as_mut_ptr ();
+  for slot in fds.iter_mut ()
+    {
+      if *slot >= 0
+        {
+          let _ = close (*slot);
+          *slot = -1;
+        }
+    }
+  }
+}
+
 /* C 112-193's `ssize_t getrandom (void *buffer, size_t length, unsigned int flags)`.  C 116's
    `#undef getrandom` restores the system declaration for the dead `#elif HAVE_GETRANDOM` arm,
    so the port keeps that entry in a `system` module and defines the replacement under C's name
@@ -42,8 +64,6 @@ pub unsafe extern "C" fn getrandom (buffer: *mut c_void, length: usize, flags: c
   /* C 177-178's `#elif HAVE_GETRANDOM` arm is dead: this target has no system getrandom.  */
 
   /* C 181-192's `#else` arm, the live one.  */
-  static randfd: VmGlobal<[c_int; 2]> = VmGlobal::<[c_int; 2]>::new ([-1, -1]);
-
   let devrandom: bool = (flags & GRND_RANDOM as c_uint) != 0;
   let mut fd: c_int = (*randfd.as_mut_ptr ())[devrandom as usize];
 

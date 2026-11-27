@@ -4,6 +4,8 @@ pub mod client_os;
 pub mod filemode;
 pub mod filevercmp;
 pub mod globals_cell;
+#[cfg(feature = "isolate_vm")]
+pub mod isolate;
 pub mod md5;
 pub mod memmem;
 pub mod mini_gmp;

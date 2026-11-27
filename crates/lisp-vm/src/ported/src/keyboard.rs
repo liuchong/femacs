@@ -14775,21 +14775,27 @@ pub unsafe extern "C-unwind" fn init_keyboard ()
      SIGINT.  There is special code in handle_interrupt_signal to exit
      Emacs on SIGINT when there are no termcap frames on the
      controlling terminal.  */
-  let mut action: sigaction = std::mem::zeroed ();
-  emacs_sigaction_init (&raw mut action, Some (deliver_interrupt_signal));
-  sigaction (SIGINT, &raw const action, std::ptr::null_mut ());
+  #[cfg (feature = "isolate_vm")]
+  let skip_sig_install = crate::sys::isolate::is_isolate_active ();
+  #[cfg (not (feature = "isolate_vm"))]
+  let skip_sig_install = false;
+  if !skip_sig_install {
+    let mut action: sigaction = std::mem::zeroed ();
+    emacs_sigaction_init (&raw mut action, Some (deliver_interrupt_signal));
+    sigaction (SIGINT, &raw const action, std::ptr::null_mut ());
 
-  if !(*noninteractive.as_mut_ptr ())
-    {
-      /* C 13264-13270: `#ifndef DOS_NT` is live; the `#else` has no text.  */
-      /* For systems with SysV TERMIO, C-g is set up for both SIGINT and
-	 SIGQUIT and we can't tell which one it will give us.  */
-      sigaction (SIGQUIT, &raw const action, std::ptr::null_mut ());
-    }
+    if !(*noninteractive.as_mut_ptr ())
+      {
+        /* C 13264-13270: `#ifndef DOS_NT` is live; the `#else` has no text.  */
+        /* For systems with SysV TERMIO, C-g is set up for both SIGINT and
+           SIGQUIT and we can't tell which one it will give us.  */
+        sigaction (SIGQUIT, &raw const action, std::ptr::null_mut ());
+      }
+  }
   /* C 13272-13287: `#if defined (USABLE_SIGIO) || defined (USABLE_SIGPOLL)` is live
      (`USABLE_SIGIO` is 1); `#ifdef USABLE_SIGIO` inside it is live and its `#else`
      (`sigaction (SIGPOLL, ...)`) is carried as `usable_sigpoll`.  */
-  if !(*noninteractive.as_mut_ptr ())
+  if !skip_sig_install && !(*noninteractive.as_mut_ptr ())
     {
       #[cfg (not (feature = "usable_sigpoll"))]
       {

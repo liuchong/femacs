@@ -597,7 +597,7 @@ fn dump_reloc_set_offset (reloc: *mut dump_reloc, offset: dump_off)
 pub unsafe extern "C-unwind" fn dump_fingerprint (output: *mut FILE, label: *const c_char,
                                            xfingerprint: *const c_uchar)
 {
-  const hexbuf_size: c_int = 2 * (/* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { femacs_sizeof_ptr (fingerprint.as_ptr ()) }) as c_int;
+  const hexbuf_size: c_int = 2 * (/* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { femacs_sizeof_ptr (fingerprint.as_static_ptr ()) }) as c_int;
   let mut hexbuf: [c_char; hexbuf_size as usize] = [0; hexbuf_size as usize];
   unsafe {
     hexbuf_digest (hexbuf.as_mut_ptr (), xfingerprint as *const c_void,
@@ -985,7 +985,10 @@ fn error_unsupported_dump_object (ctx: *mut dump_context, object: Lisp_Object,
 
 fn emacs_basis () -> uintptr_t
 {
-  return { (Vpurify_flag.as_ptr ()) as uintptr_t };
+  #[cfg(not(feature = "isolate_vm"))]
+  { return { (Vpurify_flag.as_ptr ()) as uintptr_t }; }
+  #[cfg(feature = "isolate_vm")]
+  { return { (Vpurify_flag.as_static_ptr ()) as uintptr_t }; }
 }
 
 fn emacs_ptr_at (offset: ptrdiff_t) -> *mut c_void
@@ -999,6 +1002,8 @@ fn emacs_offset (emacs_ptr: *const c_void) -> dump_off
 {
   /* TODO: assert that EMACS_PTR is actually in the Emacs image.  */
   eassert! (!emacs_ptr.is_null ());
+  #[cfg(feature = "isolate_vm")]
+  let emacs_ptr = crate::sys::isolate::isolate_to_static (emacs_ptr as *const u8) as *const c_void;
   let emacs_ptr_value: intptr_t = emacs_ptr as intptr_t;
   let emacs_ptr_relative: ptrdiff_t = emacs_ptr_value - (emacs_basis () as intptr_t);
   return ptrdiff_t_to_dump_off (emacs_ptr_relative);
@@ -2623,22 +2628,36 @@ fn dump_field_fwd (ctx: *mut dump_context, out: *mut c_void, in_start: *const c_
     {
       Lisp_Fwd_Int
       => {
-	  let intvar: *const intmax_t = unsafe { (**in_field).u.intvar };
+	  let intvar_raw: *mut intmax_t = unsafe { (**in_field).u.intvar };
+	  #[cfg(feature = "isolate_vm")]
+	  let intvar: *const intmax_t = crate::sys::isolate::resolve_fwd_ptr (intvar_raw);
+	  #[cfg(not(feature = "isolate_vm"))]
+	  let intvar: *const intmax_t = intvar_raw;
 	  /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { dump_emacs_reloc_immediate_intmax_t (ctx, intvar, *intvar); }
 	  return;
 	}
       Lisp_Fwd_Bool
       => {
-	  let boolvar: *const bool = /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { (**in_field).u.boolvar };
+	  let boolvar_raw: *mut bool = /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { (**in_field).u.boolvar };
+	  #[cfg(feature = "isolate_vm")]
+	  let boolvar: *const bool = crate::sys::isolate::resolve_fwd_ptr (boolvar_raw);
+	  #[cfg(not(feature = "isolate_vm"))]
+	  let boolvar: *const bool = boolvar_raw;
 	  unsafe { dump_emacs_reloc_immediate_bool (ctx, boolvar, *boolvar); }
 	  return;
 	}
       Lisp_Fwd_Obj
       => {
-	  let objvar: *const Lisp_Object = /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { (**in_field).u.objvar };
+	  let objvar_raw: *mut Lisp_Object = /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { (**in_field).u.objvar };
+	  #[cfg(feature = "isolate_vm")]
+	  let objvar: *const Lisp_Object = crate::sys::isolate::resolve_fwd_ptr (objvar_raw);
+	  #[cfg(not(feature = "isolate_vm"))]
+	  let objvar: *const Lisp_Object = objvar_raw;
 	  if NILP (unsafe { Fgethash (dump_off_to_lisp (emacs_offset (objvar as *const c_void)),
 				      (*ctx).staticpro_table, Qnil ()) })
-	    { dump_emacs_reloc_to_lv (ctx, objvar, unsafe { *objvar }); }
+	    { /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */
+              dump_emacs_reloc_to_lv (ctx, objvar, unsafe { *objvar });
+            }
 	  return;
 	}
       Lisp_Fwd_Kboard_Obj
@@ -4291,6 +4310,9 @@ fn dump_merge_emacs_relocs (lreloc_a: Lisp_Object, lreloc_b: Lisp_Object) -> Lis
 {
   /* Combine copy relocations together if they're copying from
      adjacent chunks to adjacent chunks.  */
+  #[cfg (feature = "isolate_vm")]
+  if crate::sys::isolate::is_isolate_active ()
+    { return Qnil (); }
 
   #[cfg (enable_checking)]
   {
@@ -6023,6 +6045,10 @@ fn dump_make_lv_from_reloc (dump_base: uintptr_t, reloc: dump_reloc) -> Lisp_Obj
          dump is `emacs_offset (ptr)`, a signed offset, so a negative one is a huge unsigned
          here and adding the basis wraps back to the pointer (status 3.643).  */
       value = value.wrapping_add (emacs_basis ());
+      #[cfg (feature = "isolate_vm")]
+      {
+        value = crate::sys::isolate::resolve_if_known_global (value as *const u8) as uintptr_t;
+      }
     }
 
   eassert! (lisp_type != Lisp_Type::Lisp_Int0 && lisp_type != Lisp_Type::Lisp_Int1);
@@ -6104,6 +6130,10 @@ fn dump_do_dump_relocation (dump_base: uintptr_t, reloc: dump_reloc)
          dump is `emacs_offset (ptr)`, a signed offset, so a negative one is a huge unsigned
          here and adding the basis wraps back to the pointer (status 3.643).  */
       value = value.wrapping_add (emacs_basis ());
+      #[cfg(feature = "isolate_vm")]
+      {
+        value = crate::sys::isolate::resolve_if_known_global (value as *const u8) as uintptr_t;
+      }
         dump_write_word_to_dump (dump_base, reloc_offset, value);
       }
       x if x == dump_reloc_type::RELOC_DUMP_TO_DUMP_PTR_RAW as c_int
@@ -6295,8 +6325,11 @@ fn dump_do_emacs_relocation (dump_base: uintptr_t, reloc: emacs_reloc)
       x if x == emacs_reloc_type::RELOC_EMACS_COPY_FROM_DUMP as c_int
       => {
         eassume! (length > 0);
+        let dst = emacs_ptr_at (reloc.emacs_offset as ptrdiff_t);
+        #[cfg(feature = "isolate_vm")]
+        let dst = crate::sys::isolate::resolve_pdump_dst (dst as *mut u8, length as usize) as *mut c_void;
         /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe {
-          memcpy (emacs_ptr_at (reloc.emacs_offset as ptrdiff_t),
+          memcpy (dst,
                   dump_ptr (dump_base, reloc.u.dump_offset),
                   length as usize);
         }
@@ -6305,8 +6338,11 @@ fn dump_do_emacs_relocation (dump_base: uintptr_t, reloc: emacs_reloc)
       => {
         eassume! (length > 0);
         eassume! (length as usize <= core::mem::size_of::<intmax_t> ());
+        let dst = emacs_ptr_at (reloc.emacs_offset as ptrdiff_t);
+        #[cfg(feature = "isolate_vm")]
+        let dst = crate::sys::isolate::resolve_pdump_dst (dst as *mut u8, length as usize) as *mut c_void;
         /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe {
-          memcpy (emacs_ptr_at (reloc.emacs_offset as ptrdiff_t),
+          memcpy (dst,
                   (&raw const reloc.u.immediate) as *const c_void,
                   length as usize);
         }
@@ -6318,8 +6354,12 @@ fn dump_do_emacs_relocation (dump_base: uintptr_t, reloc: emacs_reloc)
            `dump_off` (that truncates the address) nor add the two in 32 bits.  */
         pval = (/* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { reloc.u.dump_offset } as uintptr_t)
           .wrapping_add (dump_base) as ptrdiff_t;
+        let dst = emacs_ptr_at (reloc.emacs_offset as ptrdiff_t);
+        #[cfg(feature = "isolate_vm")]
+        let dst = crate::sys::isolate::resolve_pdump_dst (dst as *mut u8, core::mem::size_of_val (&pval)) as *mut c_void;
+        /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */
         unsafe {
-          memcpy (emacs_ptr_at (reloc.emacs_offset as ptrdiff_t), (&raw const pval) as *const c_void,
+          memcpy (dst, (&raw const pval) as *const c_void,
                   core::mem::size_of_val (&pval));
         }
       }
@@ -6329,8 +6369,16 @@ fn dump_do_emacs_relocation (dump_base: uintptr_t, reloc: emacs_reloc)
            the same wrap as C 5535 (P-96).  */
         pval = (/* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { reloc.u.emacs_offset2 } as uintptr_t)
           .wrapping_add (emacs_basis ()) as ptrdiff_t;
+        #[cfg(feature = "isolate_vm")]
+        {
+          pval = crate::sys::isolate::resolve_if_known_global (pval as *const u8) as ptrdiff_t;
+        }
+        let dst = emacs_ptr_at (reloc.emacs_offset as ptrdiff_t);
+        #[cfg(feature = "isolate_vm")]
+        let dst = crate::sys::isolate::resolve_pdump_dst (dst as *mut u8, core::mem::size_of_val (&pval)) as *mut c_void;
+        /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */
         unsafe {
-          memcpy (emacs_ptr_at (reloc.emacs_offset as ptrdiff_t), (&raw const pval) as *const c_void,
+          memcpy (dst, (&raw const pval) as *const c_void,
                   core::mem::size_of_val (&pval));
         }
       }
@@ -6342,14 +6390,22 @@ fn dump_do_emacs_relocation (dump_base: uintptr_t, reloc: emacs_reloc)
         let obj_ptr: *mut c_void =
           if r#type == emacs_reloc_type::RELOC_EMACS_DUMP_LV as c_int
             { dump_ptr (dump_base, /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { reloc.u.dump_offset }) }
-            else { emacs_ptr_at (unsafe { reloc.u.emacs_offset2 } as ptrdiff_t) };
+            else {
+              let raw_obj_ptr = emacs_ptr_at (unsafe { reloc.u.emacs_offset2 } as ptrdiff_t);
+              #[cfg(feature = "isolate_vm")]
+              let raw_obj_ptr = crate::sys::isolate::resolve_if_known_global (raw_obj_ptr as *const u8) as *mut c_void;
+              raw_obj_ptr
+            };
         if length == Lisp_Type::Lisp_Symbol as dump_off
           { lv = make_lisp_symbol (obj_ptr as *mut Lisp_Symbol); }
         else
           { lv = make_lisp_ptr (obj_ptr,
                                 /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { core::mem::transmute::<c_int, Lisp_Type> (length) }); }
+        let dst = emacs_ptr_at (reloc.emacs_offset as ptrdiff_t);
+        #[cfg(feature = "isolate_vm")]
+        let dst = crate::sys::isolate::resolve_pdump_dst (dst as *mut u8, core::mem::size_of_val (&lv)) as *mut c_void;
         unsafe {
-          memcpy (emacs_ptr_at (reloc.emacs_offset as ptrdiff_t), (&raw const lv) as *const c_void,
+          memcpy (dst, (&raw const lv) as *const c_void,
                   core::mem::size_of_val (&lv));
         }
       }
@@ -6412,8 +6468,114 @@ pub enum dump_section
    NUMBER_DUMP_SECTIONS,
   }
 
+#[cfg (feature = "isolate_vm")]
+fn pre_register_pdump_emacs_relocs (header: *const dump_header, dump_base: uintptr_t)
+{
+  // SAFETY: Pre-allocates per-isolate copies of every `emacs_reloc` target BEFORE
+  // `EARLY_RELOCS` resolves pointers into Emacs static globals.
+  unsafe {
+    let nr_entries: dump_off = (*header).emacs_relocs.nr_entries;
+    let r: *const emacs_reloc = dump_ptr (dump_base, (*header).emacs_relocs.offset)
+      as *const emacs_reloc;
+    // Pass 1: claim full-object spans (`RELOC_EMACS_COPY_FROM_DUMP`) before interior fields.
+    let mut i: dump_off = 0;
+    while i < nr_entries {
+      let reloc = *r.offset (i as isize);
+      let r#type: c_int = emacs_reloc_type_of! (reloc);
+      let length: dump_off = emacs_reloc_length! (reloc);
+      if r#type == emacs_reloc_type::RELOC_EMACS_COPY_FROM_DUMP as c_int && length > 0 {
+        let dst = emacs_ptr_at (reloc.emacs_offset as ptrdiff_t);
+        let _ = crate::sys::isolate::resolve_pdump_dst (dst as *mut u8, length as usize);
+      }
+      i += 1;
+    }
+    // Pass 2: claim remaining standalone globals / forwarding targets.
+    i = 0;
+    while i < nr_entries {
+      let reloc = *r.offset (i as isize);
+      let r#type: c_int = emacs_reloc_type_of! (reloc);
+      let length: dump_off = emacs_reloc_length! (reloc);
+      if r#type != emacs_reloc_type::RELOC_EMACS_COPY_FROM_DUMP as c_int {
+        let dst = emacs_ptr_at (reloc.emacs_offset as ptrdiff_t);
+        let sz = if r#type == emacs_reloc_type::RELOC_EMACS_IMMEDIATE as c_int {
+          (length.max (1)) as usize
+        } else {
+          core::mem::size_of::<uintptr_t> ()
+        };
+        let _ = crate::sys::isolate::resolve_pdump_dst (dst as *mut u8, sz);
+      }
+      i += 1;
+    }
+  }
+}
+
 /* Pointer to a stack variable to avoid having to staticpro it.  */
-static pdumper_hashes: VmGlobal<*mut Lisp_Object> = VmGlobal::<*mut Lisp_Object>::new (({ zero_vector.as_mut_ptr () }) as *mut Lisp_Object);
+static pdumper_hashes: VmGlobal<*mut Lisp_Object> = VmGlobal::<*mut Lisp_Object>::new (({ zero_vector.as_static_mut_ptr () }) as *mut Lisp_Object);
+
+#[cfg (feature = "isolate_vm")]
+pub(crate) fn pre_register_pdumper_globals ()
+{
+  crate::sys::isolate::pre_register_global (&dump_hooks);
+  crate::sys::isolate::pre_register_global (&nr_dump_hooks);
+  crate::sys::isolate::pre_register_global (&dump_late_hooks);
+  crate::sys::isolate::pre_register_global (&nr_dump_late_hooks);
+  crate::sys::isolate::pre_register_global (&remembered_data);
+  crate::sys::isolate::pre_register_global (&nr_remembered_data);
+  crate::sys::isolate::pre_register_global (&dump_public);
+  crate::sys::isolate::pre_register_global (&dump_private);
+  crate::sys::isolate::pre_register_global (&pdumper_hashes);
+  crate::sys::isolate::pre_register_global (&zero_vector);
+  crate::sys::isolate::pre_register_global (&Vpurify_flag);
+  // SAFETY: Rebinds initial `pdumper_hashes` from static `zero_vector` template to isolate copy.
+  unsafe {
+    if *pdumper_hashes.as_ptr () == zero_vector.as_static_mut_ptr () {
+      *pdumper_hashes.as_mut_ptr () = zero_vector.as_mut_ptr ();
+    }
+  }
+}
+
+#[cfg (feature = "isolate_vm")]
+pub(crate) fn pdumper_release_isolate_mapping ()
+{
+  // SAFETY: Releases per-isolate `.pdmp` virtual mapping, mark bitsets, and filename during teardown.
+  unsafe {
+    let start = (*dump_public.as_ptr ()).start;
+    let end = (*dump_public.as_ptr ()).end;
+    if start != 0 && end > start {
+      dump_unmap_file (start as *mut c_void, (end - start) as size_t);
+      (*dump_public.as_mut_ptr ()).start = 0;
+      (*dump_public.as_mut_ptr ()).end = 0;
+    }
+    let mark_bits_ptr = (*dump_private.as_ptr ()).mark_bits.bits;
+    let last_bits_ptr = (*dump_private.as_ptr ()).last_mark_bits.bits;
+    // `dump_bitsets_init` allocates one contiguous buffer and GC swaps `mark_bits` / `last_mark_bits`.
+    let base_bits_ptr = match (mark_bits_ptr.is_null (), last_bits_ptr.is_null ()) {
+      (true, true) => core::ptr::null_mut (),
+      (false, true) => mark_bits_ptr,
+      (true, false) => last_bits_ptr,
+      (false, false) => {
+        if (last_bits_ptr as usize) < (mark_bits_ptr as usize) {
+          last_bits_ptr
+        } else {
+          mark_bits_ptr
+        }
+      }
+    };
+    if !base_bits_ptr.is_null () {
+      xfree (base_bits_ptr as *mut c_void);
+      (*dump_private.as_mut_ptr ()).mark_bits.bits = core::ptr::null_mut ();
+      (*dump_private.as_mut_ptr ()).mark_bits.number_words = 0;
+      (*dump_private.as_mut_ptr ()).last_mark_bits.bits = core::ptr::null_mut ();
+      (*dump_private.as_mut_ptr ()).last_mark_bits.number_words = 0;
+    }
+    let fname = (*dump_private.as_ptr ()).dump_filename;
+    if !fname.is_null () {
+      xfree (fname as *mut c_void);
+      (*dump_private.as_mut_ptr ()).dump_filename = core::ptr::null_mut ();
+    }
+    (*gflags.as_mut_ptr ()).dumped_with_pdumper = false;
+  }
+}
 
 /* Load a dump from DUMP_FILENAME.  Return an error code.
 
@@ -6613,6 +6775,11 @@ pub unsafe extern "C-unwind" fn pdumper_load (dump_filename: *const c_char, argv
   {
     (*dump_public.as_mut_ptr ()).start = dump_base;
     (*dump_public.as_mut_ptr ()).end = (*dump_public.as_mut_ptr ()).start + dump_size as uintptr_t;
+  }
+
+  #[cfg (feature = "isolate_vm")]
+  if crate::sys::isolate::is_isolate_active () {
+    pre_register_pdump_emacs_relocs (header, dump_base);
   }
 
   dump_do_all_dump_reloc_for_phase (header, dump_base, reloc_phase::EARLY_RELOCS);

@@ -65,7 +65,12 @@ fn OBJFWDP (a: lispfwd) -> bool { XFWDTYPE (a) == Lisp_Fwd_Obj }
 fn XBOOLVAR (a: lispfwd) -> *mut bool
 {
   eassert! (BOOLFWDP (a));
-  /* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { (*a).u.boolvar }
+  /* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */
+  let ptr = unsafe { (*a).u.boolvar };
+  #[cfg(feature = "isolate_vm")]
+  { crate::sys::isolate::resolve_fwd_ptr (ptr) }
+  #[cfg(not(feature = "isolate_vm"))]
+  { ptr }
 }
 #[inline(always)]
 fn XKBOARD_OFFSET (a: lispfwd) -> c_int
@@ -77,13 +82,23 @@ fn XKBOARD_OFFSET (a: lispfwd) -> c_int
 fn XINTVAR (a: lispfwd) -> *mut intmax_t
 {
   eassert! (INTFWDP (a));
-  /* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { (*a).u.intvar }
+  /* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */
+  let ptr = unsafe { (*a).u.intvar };
+  #[cfg(feature = "isolate_vm")]
+  { crate::sys::isolate::resolve_fwd_ptr (ptr) }
+  #[cfg(not(feature = "isolate_vm"))]
+  { ptr }
 }
 #[inline(always)]
 fn XOBJVAR (a: lispfwd) -> *mut Lisp_Object
 {
   eassert! (OBJFWDP (a));
-  /* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { (*a).u.objvar }
+  /* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */
+  let ptr = unsafe { (*a).u.objvar };
+  #[cfg(feature = "isolate_vm")]
+  { crate::sys::isolate::resolve_fwd_ptr (ptr) }
+  #[cfg(not(feature = "isolate_vm"))]
+  { ptr }
 }
 
 // data.c 82-116: the buffer-local-value accessors.

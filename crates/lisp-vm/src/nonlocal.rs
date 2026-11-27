@@ -136,9 +136,10 @@ static THREAD_STATES: Mutex<Option<HashMap<usize, Box<ThreadNonLocalState>>>> = 
 static STATE_EPOCH: AtomicUsize = AtomicUsize::new(1);
 
 #[derive(Clone, Copy)]
-struct TlsNonLocalState {
+pub(crate) struct TlsNonLocalState {
     vm_lock_key: usize,
     borrowed: bool,
+    cache_isolate: usize,
     cache_epoch: usize,
     cache_key: usize,
     cache_ptr: *mut ThreadNonLocalState,
@@ -148,6 +149,7 @@ impl TlsNonLocalState {
     const EMPTY: Self = Self {
         vm_lock_key: 0,
         borrowed: false,
+        cache_isolate: 0,
         cache_epoch: 0,
         cache_key: 0,
         cache_ptr: core::ptr::null_mut(),
@@ -164,6 +166,156 @@ static RETIRED_SCOPED_ROOTS_CREATED: AtomicUsize = AtomicUsize::new(0);
 static RETIRED_SCOPED_ROOTS_DROPPED: AtomicUsize = AtomicUsize::new(0);
 static HOST_PROBES_CREATED: AtomicUsize = AtomicUsize::new(0);
 static HOST_PROBES_DROPPED: AtomicUsize = AtomicUsize::new(0);
+
+#[cfg(feature = "isolate_vm")]
+pub(crate) struct IsolateNonLocalState {
+    pub(crate) thread_states: Mutex<Option<HashMap<usize, Box<ThreadNonLocalState>>>>,
+    pub(crate) state_epoch: AtomicUsize,
+    pub(crate) active_comp_native_exits: AtomicUsize,
+    pub(crate) retired_scoped_roots_created: AtomicUsize,
+    pub(crate) retired_scoped_roots_dropped: AtomicUsize,
+    pub(crate) host_probes_created: AtomicUsize,
+    pub(crate) host_probes_dropped: AtomicUsize,
+}
+
+#[cfg(feature = "isolate_vm")]
+impl Default for IsolateNonLocalState {
+    fn default() -> Self {
+        Self {
+            thread_states: Mutex::new(None),
+            state_epoch: AtomicUsize::new(1),
+            active_comp_native_exits: AtomicUsize::new(0),
+            retired_scoped_roots_created: AtomicUsize::new(0),
+            retired_scoped_roots_dropped: AtomicUsize::new(0),
+            host_probes_created: AtomicUsize::new(0),
+            host_probes_dropped: AtomicUsize::new(0),
+        }
+    }
+}
+
+#[inline(always)]
+fn current_isolate_usize() -> usize {
+    #[cfg(feature = "isolate_vm")]
+    {
+        crate::sys::isolate::current_isolate_ptr() as usize
+    }
+    #[cfg(not(feature = "isolate_vm"))]
+    {
+        0
+    }
+}
+
+#[inline(always)]
+fn nl_thread_states() -> &'static Mutex<Option<HashMap<usize, Box<ThreadNonLocalState>>>> {
+    #[cfg(feature = "isolate_vm")]
+    {
+        let iso = crate::sys::isolate::current_isolate_ptr();
+        if !iso.is_null() {
+            // SAFETY: `iso` is uniquely entered via `IsolateScopeGuard` on the current thread.
+            return unsafe { &(&*iso).nonlocal.thread_states };
+        }
+    }
+    &THREAD_STATES
+}
+
+#[inline(always)]
+fn nl_state_epoch() -> &'static AtomicUsize {
+    #[cfg(feature = "isolate_vm")]
+    {
+        let iso = crate::sys::isolate::current_isolate_ptr();
+        if !iso.is_null() {
+            // SAFETY: `iso` is uniquely entered via `IsolateScopeGuard` on the current thread.
+            return unsafe { &(&*iso).nonlocal.state_epoch };
+        }
+    }
+    &STATE_EPOCH
+}
+
+#[inline(always)]
+fn nl_active_comp_native_exits() -> &'static AtomicUsize {
+    #[cfg(feature = "isolate_vm")]
+    {
+        let iso = crate::sys::isolate::current_isolate_ptr();
+        if !iso.is_null() {
+            // SAFETY: `iso` is uniquely entered via `IsolateScopeGuard` on the current thread.
+            return unsafe { &(&*iso).nonlocal.active_comp_native_exits };
+        }
+    }
+    &ACTIVE_COMP_NATIVE_EXITS
+}
+
+#[inline(always)]
+fn nl_retired_scoped_roots_created() -> &'static AtomicUsize {
+    #[cfg(feature = "isolate_vm")]
+    {
+        let iso = crate::sys::isolate::current_isolate_ptr();
+        if !iso.is_null() {
+            // SAFETY: `iso` is uniquely entered via `IsolateScopeGuard` on the current thread.
+            return unsafe { &(&*iso).nonlocal.retired_scoped_roots_created };
+        }
+    }
+    &RETIRED_SCOPED_ROOTS_CREATED
+}
+
+#[inline(always)]
+fn nl_retired_scoped_roots_dropped() -> &'static AtomicUsize {
+    #[cfg(feature = "isolate_vm")]
+    {
+        let iso = crate::sys::isolate::current_isolate_ptr();
+        if !iso.is_null() {
+            // SAFETY: `iso` is uniquely entered via `IsolateScopeGuard` on the current thread.
+            return unsafe { &(&*iso).nonlocal.retired_scoped_roots_dropped };
+        }
+    }
+    &RETIRED_SCOPED_ROOTS_DROPPED
+}
+
+#[inline(always)]
+fn nl_host_probes_created() -> &'static AtomicUsize {
+    #[cfg(feature = "isolate_vm")]
+    {
+        let iso = crate::sys::isolate::current_isolate_ptr();
+        if !iso.is_null() {
+            // SAFETY: `iso` is uniquely entered via `IsolateScopeGuard` on the current thread.
+            return unsafe { &(&*iso).nonlocal.host_probes_created };
+        }
+    }
+    &HOST_PROBES_CREATED
+}
+
+#[inline(always)]
+fn nl_host_probes_dropped() -> &'static AtomicUsize {
+    #[cfg(feature = "isolate_vm")]
+    {
+        let iso = crate::sys::isolate::current_isolate_ptr();
+        if !iso.is_null() {
+            // SAFETY: `iso` is uniquely entered via `IsolateScopeGuard` on the current thread.
+            return unsafe { &(&*iso).nonlocal.host_probes_dropped };
+        }
+    }
+    &HOST_PROBES_DROPPED
+}
+
+#[cfg(feature = "isolate_vm")]
+pub(crate) fn swap_tls_state_for_isolate(owner_key: usize, iso_usize: usize) -> TlsNonLocalState {
+    TLS_STATE.with(|cell| {
+        let prev = cell.get();
+        cell.set(TlsNonLocalState {
+            vm_lock_key: owner_key,
+            borrowed: false,
+            cache_isolate: iso_usize,
+            cache_epoch: 0,
+            cache_key: 0,
+            cache_ptr: core::ptr::null_mut(),
+        });
+        prev
+    })
+}
+
+#[cfg(feature = "isolate_vm")]
+pub(crate) fn restore_tls_state_after_isolate(prev: TlsNonLocalState) {
+    TLS_STATE.with(|cell| cell.set(prev));
+}
 
 #[inline]
 fn current_thread_key() -> usize {
@@ -193,6 +345,7 @@ pub(crate) fn clear_tls_state_cache() {
     TLS_STATE.with(|cell| {
         let mut s = cell.get();
         s.vm_lock_key = 0;
+        s.cache_isolate = 0;
         s.cache_epoch = 0;
         s.cache_key = 0;
         s.cache_ptr = core::ptr::null_mut();
@@ -226,8 +379,9 @@ fn with_thread_state<R>(thread_key: usize, f: impl FnOnce(&mut ThreadNonLocalSta
         s
     });
     let _borrow_guard = StateBorrowGuard { prev: state.borrowed };
-    if thread_key != 0 && state.vm_lock_key == thread_key {
-        let epoch = STATE_EPOCH.load(Ordering::Acquire);
+    let cur_iso = current_isolate_usize();
+    if thread_key != 0 && state.vm_lock_key == thread_key && state.cache_isolate == cur_iso {
+        let epoch = nl_state_epoch().load(Ordering::Acquire);
         if state.cache_epoch == epoch && state.cache_key == thread_key && !state.cache_ptr.is_null() {
             // SAFETY: `state.cache_ptr` points to a heap-pinned `Box<ThreadNonLocalState>` stored in
             // `THREAD_STATES`; `set_tls_vm_lock_key` is only invoked from `pub(crate) unsafe fn
@@ -247,10 +401,11 @@ fn with_thread_state_slow<R>(thread_key: usize, f: impl FnOnce(&mut ThreadNonLoc
         crate::roots::is_vm_lock_owner(thread_key),
         "ThreadNonLocalState access requires active VM lock ownership on current OS thread"
     );
-    let mut guard = THREAD_STATES
+    let mut guard = nl_thread_states()
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());
-    let epoch = STATE_EPOCH.load(Ordering::Acquire);
+    let epoch = nl_state_epoch().load(Ordering::Acquire);
+    let cur_iso = current_isolate_usize();
     let map = guard.get_or_insert_with(HashMap::new);
     let entry = map
         .entry(thread_key)
@@ -258,6 +413,7 @@ fn with_thread_state_slow<R>(thread_key: usize, f: impl FnOnce(&mut ThreadNonLoc
     let ptr: *mut ThreadNonLocalState = &mut **entry;
     TLS_STATE.with(|cell| {
         let mut s = cell.get();
+        s.cache_isolate = cur_iso;
         s.cache_epoch = epoch;
         s.cache_key = thread_key;
         s.cache_ptr = ptr;
@@ -287,7 +443,7 @@ impl ScopedLispRoot {
     pub(crate) unsafe fn new(values: &[Lisp_Object]) -> Self {
         let len = values.len();
         if len == 0 {
-            RETIRED_SCOPED_ROOTS_CREATED.fetch_add(1, Ordering::Relaxed);
+            nl_retired_scoped_roots_created().fetch_add(1, Ordering::Relaxed);
             return Self {
                 thread_key: 0,
                 slot_index: usize::MAX,
@@ -371,7 +527,7 @@ impl Drop for ScopedLispRoot {
     #[inline(always)]
     fn drop(&mut self) {
         if self.len == 0 {
-            RETIRED_SCOPED_ROOTS_DROPPED.fetch_add(1, Ordering::Relaxed);
+            nl_retired_scoped_roots_dropped().fetch_add(1, Ordering::Relaxed);
             return;
         }
         let slot_index = self.slot_index;
@@ -404,7 +560,7 @@ pub(crate) struct HostDropGuard {
 impl HostDropGuard {
     #[inline]
     pub(crate) fn new() -> Self {
-        HOST_PROBES_CREATED.fetch_add(1, Ordering::Relaxed);
+        nl_host_probes_created().fetch_add(1, Ordering::Relaxed);
         Self {
             dropped: AtomicBool::new(false),
         }
@@ -421,15 +577,15 @@ impl Drop for HostDropGuard {
     fn drop(&mut self) {
         let already = self.dropped.swap(true, Ordering::SeqCst);
         assert!(!already, "HostDropGuard dropped more than once");
-        HOST_PROBES_DROPPED.fetch_add(1, Ordering::Relaxed);
+        nl_host_probes_dropped().fetch_add(1, Ordering::Relaxed);
     }
 }
 
 #[inline]
 pub(crate) fn host_drop_counts() -> (usize, usize) {
     (
-        HOST_PROBES_CREATED.load(Ordering::Relaxed),
-        HOST_PROBES_DROPPED.load(Ordering::Relaxed),
+        nl_host_probes_created().load(Ordering::Relaxed),
+        nl_host_probes_dropped().load(Ordering::Relaxed),
     )
 }
 
@@ -443,9 +599,9 @@ pub(crate) fn scoped_root_counts() -> (usize, usize) {
         !TLS_STATE.with(|cell| cell.get().borrowed),
         "cannot read scoped_root_counts while ThreadNonLocalState is borrowed"
     );
-    let mut created = RETIRED_SCOPED_ROOTS_CREATED.load(Ordering::Relaxed);
-    let mut dropped = RETIRED_SCOPED_ROOTS_DROPPED.load(Ordering::Relaxed);
-    let guard = THREAD_STATES
+    let mut created = nl_retired_scoped_roots_created().load(Ordering::Relaxed);
+    let mut dropped = nl_retired_scoped_roots_dropped().load(Ordering::Relaxed);
+    let guard = nl_thread_states()
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());
     if let Some(map) = guard.as_ref() {
@@ -479,7 +635,7 @@ pub(crate) unsafe fn mark_thread_explicit_roots(
         "cannot mark ThreadNonLocalState while state is borrowed"
     );
     let snapshot: Vec<Lisp_Object> = {
-        let guard = THREAD_STATES
+        let guard = nl_thread_states()
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         let Some(map) = guard.as_ref() else {
@@ -529,12 +685,13 @@ pub(crate) unsafe fn cleanup_thread_state(thread: *mut c_void) {
         !TLS_STATE.with(|cell| cell.get().borrowed),
         "cannot cleanup ThreadNonLocalState while state is borrowed"
     );
-    let mut guard = THREAD_STATES
+    let mut guard = nl_thread_states()
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());
-    STATE_EPOCH.fetch_add(1, Ordering::SeqCst);
+    nl_state_epoch().fetch_add(1, Ordering::SeqCst);
     TLS_STATE.with(|cell| {
         let mut s = cell.get();
+        s.cache_isolate = 0;
         s.cache_epoch = 0;
         s.cache_key = 0;
         s.cache_ptr = core::ptr::null_mut();
@@ -543,10 +700,10 @@ pub(crate) unsafe fn cleanup_thread_state(thread: *mut c_void) {
     if let Some(map) = guard.as_mut()
         && let Some(removed) = map.remove(&key)
     {
-        RETIRED_SCOPED_ROOTS_CREATED.fetch_add(removed.scoped_roots_created, Ordering::Relaxed);
-        RETIRED_SCOPED_ROOTS_DROPPED.fetch_add(removed.scoped_roots_dropped, Ordering::Relaxed);
+        nl_retired_scoped_roots_created().fetch_add(removed.scoped_roots_created, Ordering::Relaxed);
+        nl_retired_scoped_roots_dropped().fetch_add(removed.scoped_roots_dropped, Ordering::Relaxed);
         if removed.native_pending.is_pending() {
-            ACTIVE_COMP_NATIVE_EXITS.fetch_sub(1, Ordering::Relaxed);
+            nl_active_comp_native_exits().fetch_sub(1, Ordering::Relaxed);
         }
     }
 }
@@ -652,7 +809,7 @@ pub(crate) unsafe fn set_comp_native_exit(exit: NonLocalExit) {
             return;
         }
         if !state.native_pending.is_pending() {
-            ACTIVE_COMP_NATIVE_EXITS.fetch_add(1, Ordering::Relaxed);
+            nl_active_comp_native_exits().fetch_add(1, Ordering::Relaxed);
         }
         state.native_pending = NativePendingExit {
             kind: NativePendingKind::NonLocal(exit),
@@ -675,7 +832,7 @@ pub(crate) unsafe fn set_comp_native_host_exit(code: i32) {
             return;
         }
         if !state.native_pending.is_pending() {
-            ACTIVE_COMP_NATIVE_EXITS.fetch_add(1, Ordering::Relaxed);
+            nl_active_comp_native_exits().fetch_add(1, Ordering::Relaxed);
         }
         state.native_pending = NativePendingExit {
             kind: NativePendingKind::HostExit(code),
@@ -685,7 +842,7 @@ pub(crate) unsafe fn set_comp_native_host_exit(code: i32) {
 
 #[inline(always)]
 pub(crate) fn comp_native_exit_pending_fast() -> bool {
-    ACTIVE_COMP_NATIVE_EXITS.load(Ordering::Relaxed) != 0
+    nl_active_comp_native_exits().load(Ordering::Relaxed) != 0
 }
 
 pub(crate) fn comp_native_exit_pending_for_current_thread() -> c_int {
@@ -718,7 +875,7 @@ pub(crate) unsafe fn consume_comp_native_exit_for_handler(candidate: *mut handle
     with_thread_state(key, |state| match state.native_pending.kind {
         NativePendingKind::NonLocal(exit) if exit.target == candidate => {
             state.native_pending = NativePendingExit::default();
-            ACTIVE_COMP_NATIVE_EXITS.fetch_sub(1, Ordering::Relaxed);
+            nl_active_comp_native_exits().fetch_sub(1, Ordering::Relaxed);
             1
         }
         NativePendingKind::None | NativePendingKind::NonLocal(_) | NativePendingKind::HostExit(_) => {
@@ -737,7 +894,7 @@ unsafe fn propagate_comp_native_exit_slow() {
         let taken = state.native_pending.kind;
         if state.native_pending.is_pending() {
             state.native_pending = NativePendingExit::default();
-            ACTIVE_COMP_NATIVE_EXITS.fetch_sub(1, Ordering::Relaxed);
+            nl_active_comp_native_exits().fetch_sub(1, Ordering::Relaxed);
         }
         taken
     });

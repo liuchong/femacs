@@ -3862,3 +3862,9 @@ pub unsafe extern "C-unwind" fn syms_of_syntax ()
 
   }
 }
+
+#[cfg (feature = "isolate_vm")]
+pub(crate) fn pre_register_syntax_globals ()
+{
+  crate::sys::isolate::pre_register_global (&gl_state);
+}

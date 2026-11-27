@@ -15,6 +15,7 @@ path = "src/lib.rs"
 
 [features]
 default = []
+isolate_vm = []
 tty_terminfo = []
 have_ns = []
 have_window_system = []

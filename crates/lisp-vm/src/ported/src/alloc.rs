@@ -9855,3 +9855,188 @@ pub static gdb_make_enums_visible: VmGlobal<enums_for_gdb> = VmGlobal::<enums_fo
 const _: () = core::assert! (std::mem::offset_of! (face, font) == 232);
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 const _: () = core::assert! (std::mem::size_of::<face> () == 296);
+
+#[cfg (feature = "isolate_vm")]
+pub(crate) fn pre_register_alloc_globals ()
+{
+  crate::sys::isolate::pre_register_global (&globals);
+  crate::sys::isolate::pre_register_global (&spare_memory);
+  crate::sys::isolate::pre_register_global (&mem_root);
+  crate::sys::isolate::pre_register_global (&mem_z);
+  crate::sys::isolate::pre_register_global (&staticvec);
+  crate::sys::isolate::pre_register_global (&finalizers);
+  crate::sys::isolate::pre_register_global (&doomed_finalizers);
+  crate::sys::isolate::pre_register_global (&last_marked);
+  crate::sys::isolate::pre_register_global (&zero_vector);
+  crate::sys::isolate::pre_register_global (&vector_free_lists);
+}
+
+#[cfg (feature = "isolate_vm")]
+unsafe fn free_mem_tree_nodes (node: *mut mem_node, sentinel: *mut mem_node)
+{
+  // SAFETY: Recursively frees RB-tree metadata nodes owned by this torn-down isolate.
+  unsafe {
+    if node.is_null () || node == sentinel {
+      return;
+    }
+    free_mem_tree_nodes ((*node).left, sentinel);
+    free_mem_tree_nodes ((*node).right, sentinel);
+    rpl_free (node as *mut c_void);
+  }
+}
+
+#[cfg (feature = "isolate_vm")]
+pub(crate) fn teardown_isolate_heap ()
+{
+  // SAFETY: Runs during single-owner isolate shutdown with no live Lisp execution or GC borrows;
+  // releases per-isolate heap blocks, strings, vectors, symbols, thread stacks, and RB nodes.
+  unsafe {
+    // Clear free-lists first.
+    *cons_free_list.as_mut_ptr () = std::ptr::null_mut ();
+    *cons_block_index.as_mut_ptr () = CONS_BLOCK_SIZE as c_int;
+    *float_free_list.as_mut_ptr () = std::ptr::null_mut ();
+    *float_block_index.as_mut_ptr () = FLOAT_BLOCK_SIZE as c_int;
+    *symbol_free_list.as_mut_ptr () = std::ptr::null_mut ();
+    *symbol_block_index.as_mut_ptr () = SYMBOL_BLOCK_SIZE as c_int;
+    *interval_free_list.as_mut_ptr () = std::ptr::null_mut ();
+    *interval_block_index.as_mut_ptr () = INTERVAL_BLOCK_SIZE as c_int;
+    *string_free_list.as_mut_ptr () = std::ptr::null_mut ();
+    (*vector_free_lists.as_mut_ptr ()).fill (std::ptr::null_mut ());
+
+    // 1. Aligned block lists (`cons_block`, `float_block` via `lisp_align_malloc`).
+    let mut cb = *cons_block.as_ptr ();
+    *cons_block.as_mut_ptr () = std::ptr::null_mut ();
+    while !cb.is_null () {
+      let next = (*cb).next;
+      if !pdumper_object_p (cb as *const c_void) {
+        lisp_align_free (cb as *mut c_void);
+      }
+      cb = next;
+    }
+
+    let mut fb = *float_block.as_ptr ();
+    *float_block.as_mut_ptr () = std::ptr::null_mut ();
+    while !fb.is_null () {
+      let next = (*fb).next;
+      if !pdumper_object_p (fb as *const c_void) {
+        lisp_align_free (fb as *mut c_void);
+      }
+      fb = next;
+    }
+
+    // 2. Symbol & interval block lists (`lisp_malloc`).
+    let mut sb = *symbol_block.as_ptr ();
+    *symbol_block.as_mut_ptr () = std::ptr::null_mut ();
+    while !sb.is_null () {
+      let next = (*sb).next;
+      lisp_free (sb as *mut c_void);
+      sb = next;
+    }
+
+    let mut ib = *interval_block.as_ptr ();
+    *interval_block.as_mut_ptr () = std::ptr::null_mut ();
+    while !ib.is_null () {
+      let next = (*ib).next;
+      lisp_free (ib as *mut c_void);
+      ib = next;
+    }
+
+    // 3. Vector blocks (`xmalloc`) & large vectors (`lisp_malloc`).
+    let mut vb = *vector_blocks.as_ptr ();
+    *vector_blocks.as_mut_ptr () = std::ptr::null_mut ();
+    while !vb.is_null () {
+      let next = (*vb).next;
+      if !pdumper_object_p (vb as *const c_void) {
+        mem_delete (mem_find (std::ptr::addr_of_mut! ((*vb).data) as *mut c_void));
+        xfree (vb as *mut c_void);
+      }
+      vb = next;
+    }
+
+    let mut lv = *large_vectors.as_ptr ();
+    *large_vectors.as_mut_ptr () = std::ptr::null_mut ();
+    while !lv.is_null () {
+      let next = (*lv).next;
+      lisp_free (lv as *mut c_void);
+      lv = next;
+    }
+
+    // 4. String blocks & string data blocks (`lisp_malloc`).
+    let mut stb = *string_blocks.as_ptr ();
+    *string_blocks.as_mut_ptr () = std::ptr::null_mut ();
+    while !stb.is_null () {
+      let next = (*stb).next;
+      lisp_free (stb as *mut c_void);
+      stb = next;
+    }
+
+    let mut osb = *oldest_sblock.as_ptr ();
+    *oldest_sblock.as_mut_ptr () = std::ptr::null_mut ();
+    *current_sblock.as_mut_ptr () = std::ptr::null_mut ();
+    while !osb.is_null () {
+      let next = (*osb).next;
+      lisp_free (osb as *mut c_void);
+      osb = next;
+    }
+
+    let mut lsb = *large_sblocks.as_ptr ();
+    *large_sblocks.as_mut_ptr () = std::ptr::null_mut ();
+    while !lsb.is_null () {
+      let next = (*lsb).next;
+      lisp_free (lsb as *mut c_void);
+      lsb = next;
+    }
+
+    // 5. Spare memory (`[0]=malloc`, `[1..=4]=lisp_align_malloc`, `[5..=6]=lisp_malloc`) & stack copy.
+    let spares = spare_memory.as_mut_ptr ();
+    for (idx, slot) in (*spares).iter_mut ().enumerate () {
+      let ptr = *slot;
+      if !ptr.is_null () {
+        *slot = std::ptr::null_mut ();
+        match idx {
+          0 => rpl_free (ptr as *mut c_void),
+          1..=4 => lisp_align_free (ptr as *mut c_void),
+          _ => lisp_free (ptr as *mut c_void),
+        }
+      }
+    }
+    *free_ablock.as_mut_ptr () = std::ptr::null_mut ();
+    let sc = *stack_copy.as_ptr ();
+    if !sc.is_null () {
+      xfree (sc as *mut c_void);
+      *stack_copy.as_mut_ptr () = std::ptr::null_mut ();
+      *stack_copy_size.as_mut_ptr () = 0;
+    }
+
+    // 5. Main/current thread specpdl & bytecode stack.
+    let mut thr = *all_threads.as_ptr ();
+    *all_threads.as_mut_ptr () = std::ptr::null_mut ();
+    *current_thread.as_mut_ptr () = std::ptr::null_mut ();
+    while !thr.is_null () {
+      let next = (*thr).next_thread;
+      if !pdumper_object_p (thr as *const c_void) {
+        if !(*thr).m_specpdl.is_null () {
+          xfree ((*thr).m_specpdl.offset (-1) as *mut c_void);
+          (*thr).m_specpdl = std::ptr::null_mut ();
+          (*thr).m_specpdl_ptr = std::ptr::null_mut ();
+          (*thr).m_specpdl_end = std::ptr::null_mut ();
+        }
+        if !(*thr).bc.stack.is_null () {
+          crate::bytecode::free_bc_thread (&raw mut (*thr).bc);
+          (*thr).bc.stack = std::ptr::null_mut ();
+          (*thr).bc.stack_end = std::ptr::null_mut ();
+          (*thr).bc.fp = std::ptr::null_mut ();
+        }
+        if !crate::thread::main_thread_p (thr as *const c_void) {
+          xfree (thr as *mut c_void);
+        }
+      }
+      thr = next;
+    }
+
+    // 6. Remaining RB-tree metadata nodes if any.
+    let root = *mem_root.as_ptr ();
+    *mem_root.as_mut_ptr () = MEM_NIL! ();
+    free_mem_tree_nodes (root, MEM_NIL! ());
+  }
+}

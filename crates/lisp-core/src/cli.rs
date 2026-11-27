@@ -9,7 +9,7 @@ use std::path::PathBuf;
 use lisp_vm::host_runtime::adopt_inherited_rpc_socket;
 
 use crate::brand;
-use crate::engine::{BootstrapMode, Engine, EngineConfig};
+use crate::engine::{BootstrapMode, ConcurrencyMode, Engine, EngineConfig};
 use crate::error::Error;
 use crate::exec;
 use crate::repl;
@@ -95,6 +95,7 @@ pub struct CommonOptions {
     pub no_dump: bool,
     pub no_auto_warm: bool,
     pub verbose: bool,
+    pub concurrency: Option<ConcurrencyMode>,
     pub lisp_dir: Option<PathBuf>,
     pub data_dir: Option<PathBuf>,
     pub dump_file: Option<PathBuf>,
@@ -121,6 +122,7 @@ SUBCOMMANDS:
 
 COMMON OPTIONS:
   --cache-dir <DIR>           Override runtime stdlib / `.pdmp` cache directory
+  --concurrency <MODE>        Select VM concurrency mode: `no-gil` (default) or `gil`
   --no-dump                   Cold-boot without reading cached portable dump
   --no-auto-warm              Disable detached background `.pdmp` warm caching
   --verbose                   Emit bootstrap load progress diagnostics to stderr
@@ -261,6 +263,17 @@ pub fn parse_args(args: &[OsString]) -> Result<Command, (i32, String)> {
     parse_legacy_flags(args)
 }
 
+fn parse_concurrency_value(raw: &str) -> Result<ConcurrencyMode, (i32, String)> {
+    match raw.trim().to_ascii_lowercase().as_str() {
+        "no-gil" | "nogil" => Ok(ConcurrencyMode::NoGil),
+        "gil" => Ok(ConcurrencyMode::Gil),
+        other => Err((
+            2,
+            format!("invalid concurrency mode '{other}'; expected 'no-gil' or 'gil'"),
+        )),
+    }
+}
+
 fn merge_common_options(dst: &mut CommonOptions, lead: &CommonOptions) {
     if dst.cache_dir.is_none() {
         dst.cache_dir = lead.cache_dir.clone();
@@ -268,6 +281,9 @@ fn merge_common_options(dst: &mut CommonOptions, lead: &CommonOptions) {
     dst.no_dump |= lead.no_dump;
     dst.no_auto_warm |= lead.no_auto_warm;
     dst.verbose |= lead.verbose;
+    if dst.concurrency.is_none() {
+        dst.concurrency = lead.concurrency;
+    }
     if dst.lisp_dir.is_none() {
         dst.lisp_dir = lead.lisp_dir.clone();
     }
@@ -302,7 +318,16 @@ fn parse_common_flag(
     idx: &mut usize,
     opts: &mut CommonOptions,
 ) -> Result<bool, (i32, String)> {
+    if let Some(raw) = flag.strip_prefix("--concurrency=") {
+        opts.concurrency = Some(parse_concurrency_value(raw)?);
+        return Ok(true);
+    }
     match flag {
+        "--concurrency" => {
+            let raw = take_str(args, idx, flag)?;
+            opts.concurrency = Some(parse_concurrency_value(&raw)?);
+            Ok(true)
+        }
         "--cache-dir" => {
             opts.cache_dir = Some(PathBuf::from(take_val(args, idx, flag)?));
             Ok(true)
@@ -567,6 +592,11 @@ fn parse_legacy_flags(args: &[OsString]) -> Result<Command, (i32, String)> {
             idx += 1;
             continue;
         }
+        if let Some(raw) = s.strip_prefix("--concurrency=") {
+            options.concurrency = Some(parse_concurrency_value(raw)?);
+            idx += 1;
+            continue;
+        }
         if let Some(file) = s.strip_prefix("--load=") {
             actions.push(BatchAction::Load(file.to_string()));
             idx += 1;
@@ -593,6 +623,10 @@ fn parse_legacy_flags(args: &[OsString]) -> Result<Command, (i32, String)> {
                 }
             }
             "--repl" => repl = true,
+            "--concurrency" => {
+                let raw = take_str(args, &mut idx, "--concurrency")?;
+                options.concurrency = Some(parse_concurrency_value(&raw)?);
+            }
             "--no-dump" => options.no_dump = true,
             "--no-auto-warm" => options.no_auto_warm = true,
             "--verbose" => options.verbose = true,
@@ -746,7 +780,21 @@ pub fn actions_to_argv(actions: &[BatchAction]) -> Vec<OsString> {
     out
 }
 
-fn build_engine_config(options: &CommonOptions) -> EngineConfig {
+fn resolve_concurrency(options: &CommonOptions) -> Result<ConcurrencyMode, (i32, String)> {
+    if let Some(mode) = options.concurrency {
+        return Ok(mode);
+    }
+    if let Some(raw) = std::env::var_os(brand::ENV_CONCURRENCY) {
+        let s = raw.to_string_lossy();
+        if !s.trim().is_empty() {
+            return parse_concurrency_value(&s);
+        }
+    }
+    Ok(ConcurrencyMode::NoGil)
+}
+
+fn build_engine_config(options: &CommonOptions) -> Result<EngineConfig, (i32, String)> {
+    let concurrency = resolve_concurrency(options)?;
     let bootstrap = if options.lisp_dir.is_some() || options.dump_file.is_some() || options.data_dir.is_some() {
         BootstrapMode::Custom {
             lisp_dir: options.lisp_dir.clone(),
@@ -759,7 +807,9 @@ fn build_engine_config(options: &CommonOptions) -> EngineConfig {
     } else {
         BootstrapMode::AutoCache
     };
-    let mut cfg = EngineConfig::default().with_bootstrap(bootstrap);
+    let mut cfg = EngineConfig::default()
+        .with_bootstrap(bootstrap)
+        .with_concurrency(concurrency);
     if let Some(dir) = &options.cache_dir {
         cfg = cfg.with_cache_dir(dir);
     }
@@ -772,7 +822,7 @@ fn build_engine_config(options: &CommonOptions) -> EngineConfig {
     for dir in &options.load_paths {
         cfg = cfg.with_load_path(dir);
     }
-    cfg
+    Ok(cfg)
 }
 
 fn maybe_auto_warm(options: &CommonOptions, engine: &mut Engine) {
@@ -1010,7 +1060,14 @@ pub fn run_cli(raw_args: &[OsString]) -> i32 {
             }
         }
         Command::Eval { exprs, options } => {
-            let mut engine = match Engine::init(build_engine_config(&options)) {
+            let cfg = match build_engine_config(&options) {
+                Ok(c) => c,
+                Err((code, msg)) => {
+                    eprintln!("lisp-core: {msg}");
+                    return code;
+                }
+            };
+            let mut engine = match Engine::init(cfg) {
                 Ok(e) => e,
                 Err(err) => return exit_for_error(&err),
             };
@@ -1033,7 +1090,14 @@ pub fn run_cli(raw_args: &[OsString]) -> i32 {
             script_args,
             options,
         } => {
-            let mut engine = match Engine::init(build_engine_config(&options)) {
+            let cfg = match build_engine_config(&options) {
+                Ok(c) => c,
+                Err((code, msg)) => {
+                    eprintln!("lisp-core: {msg}");
+                    return code;
+                }
+            };
+            let mut engine = match Engine::init(cfg) {
                 Ok(e) => e,
                 Err(err) => return exit_for_error(&err),
             };
@@ -1047,7 +1111,14 @@ pub fn run_cli(raw_args: &[OsString]) -> i32 {
             }
         }
         Command::Repl { options, actions } => {
-            let mut engine = match Engine::init(build_engine_config(&options)) {
+            let cfg = match build_engine_config(&options) {
+                Ok(c) => c,
+                Err((code, msg)) => {
+                    eprintln!("lisp-core: {msg}");
+                    return code;
+                }
+            };
+            let mut engine = match Engine::init(cfg) {
                 Ok(e) => e,
                 Err(err) => return exit_for_error(&err),
             };
@@ -1065,7 +1136,14 @@ pub fn run_cli(raw_args: &[OsString]) -> i32 {
             files,
             options,
         } => {
-            let mut engine = match Engine::init(build_engine_config(&options)) {
+            let cfg = match build_engine_config(&options) {
+                Ok(c) => c,
+                Err((code, msg)) => {
+                    eprintln!("lisp-core: {msg}");
+                    return code;
+                }
+            };
+            let mut engine = match Engine::init(cfg) {
                 Ok(e) => e,
                 Err(err) => return exit_for_error(&err),
             };
@@ -1079,7 +1157,14 @@ pub fn run_cli(raw_args: &[OsString]) -> i32 {
             }
         }
         Command::Test { files, options } => {
-            let mut engine = match Engine::init(build_engine_config(&options)) {
+            let cfg = match build_engine_config(&options) {
+                Ok(c) => c,
+                Err((code, msg)) => {
+                    eprintln!("lisp-core: {msg}");
+                    return code;
+                }
+            };
+            let mut engine = match Engine::init(cfg) {
                 Ok(e) => e,
                 Err(err) => return exit_for_error(&err),
             };
@@ -1107,7 +1192,14 @@ pub fn run_cli(raw_args: &[OsString]) -> i32 {
                     return 2;
                 }
             };
-            let mut engine = match Engine::init(build_engine_config(&options)) {
+            let cfg = match build_engine_config(&options) {
+                Ok(c) => c,
+                Err((code, msg)) => {
+                    eprintln!("lisp-core: {msg}");
+                    return code;
+                }
+            };
+            let mut engine = match Engine::init(cfg) {
                 Ok(e) => e,
                 Err(err) => return exit_for_error(&err),
             };
@@ -1144,7 +1236,13 @@ pub fn run_cli(raw_args: &[OsString]) -> i32 {
             options,
             actions,
         } => {
-            let cfg = build_engine_config(&options).with_defer_delayed_custom_init(true);
+            let cfg = match build_engine_config(&options) {
+                Ok(c) => c.with_defer_delayed_custom_init(true),
+                Err((code, msg)) => {
+                    eprintln!("lisp-core: {msg}");
+                    return code;
+                }
+            };
             let mut engine = match Engine::init(cfg) {
                 Ok(e) => e,
                 Err(err) => return exit_for_error(&err),
@@ -1162,7 +1260,14 @@ pub fn run_cli(raw_args: &[OsString]) -> i32 {
             options,
             actions,
         } => {
-            let mut engine = match Engine::init(build_engine_config(&options)) {
+            let cfg = match build_engine_config(&options) {
+                Ok(c) => c,
+                Err((code, msg)) => {
+                    eprintln!("lisp-core: {msg}");
+                    return code;
+                }
+            };
+            let mut engine = match Engine::init(cfg) {
                 Ok(e) => e,
                 Err(err) => return exit_for_error(&err),
             };
@@ -1272,5 +1377,35 @@ mod tests {
 
         let err = parse_args(&os(&["--unknown-flag"])).expect_err("unknown flag");
         assert_eq!(err.0, 2);
+
+        let gil_eval = parse_args(&os(&["--concurrency=gil", "eval", "(+ 1 2)"]))
+            .expect("parse --concurrency=gil");
+        assert!(matches!(
+            gil_eval,
+            Command::Eval {
+                options: CommonOptions {
+                    concurrency: Some(ConcurrencyMode::Gil),
+                    ..
+                },
+                ..
+            }
+        ));
+
+        let nogil_eval = parse_args(&os(&["eval", "--concurrency", "no-gil", "42"]))
+            .expect("parse --concurrency no-gil");
+        assert!(matches!(
+            nogil_eval,
+            Command::Eval {
+                options: CommonOptions {
+                    concurrency: Some(ConcurrencyMode::NoGil),
+                    ..
+                },
+                ..
+            }
+        ));
+
+        let bad_conc = parse_args(&os(&["--concurrency=invalid", "eval", "1"]))
+            .expect_err("invalid concurrency mode");
+        assert_eq!(bad_conc.0, 2);
     }
 }

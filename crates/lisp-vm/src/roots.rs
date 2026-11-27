@@ -163,7 +163,7 @@ pub struct GcContext {
 impl Drop for GcContext {
     #[inline]
     fn drop(&mut self) {
-        GC_CONTEXT_ACTIVE.store(false, Ordering::Release);
+        rt_gc_context_active().store(false, Ordering::Release);
     }
 }
 
@@ -176,7 +176,7 @@ impl GcContext {
         if !is_vm_lock_owner(key) {
             return None;
         }
-        if GC_CONTEXT_ACTIVE
+        if rt_gc_context_active()
             .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
             .is_err()
         {
@@ -258,7 +258,7 @@ impl GcContext {
                 let should_narrow = (anchor_ptr as usize) < (saved as usize);
                 if should_narrow {
                     (*ct).m_stack_bottom = anchor_ptr;
-                    NARROWED_STACK_ENTRIES.fetch_add(1, Ordering::Relaxed);
+                    rt_narrowed_stack_entries().fetch_add(1, Ordering::Relaxed);
                 }
                 NarrowedStackScanGuard {
                     thread_ptr: ct,
@@ -287,7 +287,7 @@ impl GcContext {
             #[inline]
             fn drop(&mut self) {
                 if self.0 {
-                    let was_clear = GC_CONTEXT_ACTIVE
+                    let was_clear = rt_gc_context_active()
                         .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
                         .is_ok();
                     assert!(
@@ -297,7 +297,7 @@ impl GcContext {
                 }
             }
         }
-        let suspended = GC_CONTEXT_ACTIVE
+        let suspended = rt_gc_context_active()
             .compare_exchange(true, false, Ordering::AcqRel, Ordering::Acquire)
             .is_ok();
         let _restore = RestoreContextActive(suspended);
@@ -395,6 +395,7 @@ struct TlsSlabState {
     os_tid: u64,
     vm_lock_key: usize,
     borrowed: bool,
+    cache_isolate: usize,
     cache_epoch: usize,
     cache_key: usize,
     cache_ptr: *mut ThreadRootSlab,
@@ -405,6 +406,7 @@ impl TlsSlabState {
         os_tid: 0,
         vm_lock_key: 0,
         borrowed: false,
+        cache_isolate: 0,
         cache_epoch: 0,
         cache_key: 0,
         cache_ptr: core::ptr::null_mut(),
@@ -423,6 +425,318 @@ static PERSISTENT_CREATED: AtomicUsize = AtomicUsize::new(0);
 static PERSISTENT_RELEASED: AtomicUsize = AtomicUsize::new(0);
 static NARROWED_STACK_ENTRIES: AtomicUsize = AtomicUsize::new(0);
 static NARROWED_STACK_RESTORES: AtomicUsize = AtomicUsize::new(0);
+
+#[cfg(feature = "isolate_vm")]
+pub(crate) struct IsolateRootsState {
+    pub(crate) thread_root_slabs: Mutex<Option<HashMap<usize, Box<ThreadRootSlab>>>>,
+    pub(crate) persistent_roots: Mutex<Option<PersistentRootTable>>,
+    pub(crate) slab_epoch: AtomicUsize,
+    pub(crate) vm_lock_owner_thread_key: AtomicUsize,
+    pub(crate) vm_lock_owner_os_tid: AtomicU64,
+    pub(crate) gc_context_active: AtomicBool,
+    pub(crate) retired_rooted_pushed: AtomicUsize,
+    pub(crate) retired_rooted_popped: AtomicUsize,
+    pub(crate) retired_raw_spans_pushed: AtomicUsize,
+    pub(crate) retired_raw_spans_popped: AtomicUsize,
+    pub(crate) persistent_created: AtomicUsize,
+    pub(crate) persistent_released: AtomicUsize,
+    pub(crate) narrowed_stack_entries: AtomicUsize,
+    pub(crate) narrowed_stack_restores: AtomicUsize,
+}
+
+#[cfg(feature = "isolate_vm")]
+impl Default for IsolateRootsState {
+    fn default() -> Self {
+        Self {
+            thread_root_slabs: Mutex::new(None),
+            persistent_roots: Mutex::new(None),
+            slab_epoch: AtomicUsize::new(1),
+            vm_lock_owner_thread_key: AtomicUsize::new(0),
+            vm_lock_owner_os_tid: AtomicU64::new(0),
+            gc_context_active: AtomicBool::new(false),
+            retired_rooted_pushed: AtomicUsize::new(0),
+            retired_rooted_popped: AtomicUsize::new(0),
+            retired_raw_spans_pushed: AtomicUsize::new(0),
+            retired_raw_spans_popped: AtomicUsize::new(0),
+            persistent_created: AtomicUsize::new(0),
+            persistent_released: AtomicUsize::new(0),
+            narrowed_stack_entries: AtomicUsize::new(0),
+            narrowed_stack_restores: AtomicUsize::new(0),
+        }
+    }
+}
+
+#[inline(always)]
+fn current_isolate_usize() -> usize {
+    #[cfg(feature = "isolate_vm")]
+    {
+        crate::sys::isolate::current_isolate_ptr() as usize
+    }
+    #[cfg(not(feature = "isolate_vm"))]
+    {
+        0
+    }
+}
+
+#[inline(always)]
+fn rt_thread_root_slabs() -> &'static Mutex<Option<HashMap<usize, Box<ThreadRootSlab>>>> {
+    #[cfg(feature = "isolate_vm")]
+    {
+        let iso = crate::sys::isolate::current_isolate_ptr();
+        if !iso.is_null() {
+            // SAFETY: `iso` is uniquely entered via `IsolateScopeGuard` on the current thread.
+            return unsafe { &(&*iso).roots.thread_root_slabs };
+        }
+    }
+    &THREAD_ROOT_SLABS
+}
+
+#[inline(always)]
+fn rt_persistent_roots() -> &'static Mutex<Option<PersistentRootTable>> {
+    #[cfg(feature = "isolate_vm")]
+    {
+        let iso = crate::sys::isolate::current_isolate_ptr();
+        if !iso.is_null() {
+            // SAFETY: `iso` is uniquely entered via `IsolateScopeGuard` on the current thread.
+            return unsafe { &(&*iso).roots.persistent_roots };
+        }
+    }
+    &PERSISTENT_ROOTS
+}
+
+#[inline(always)]
+fn rt_slab_epoch() -> &'static AtomicUsize {
+    #[cfg(feature = "isolate_vm")]
+    {
+        let iso = crate::sys::isolate::current_isolate_ptr();
+        if !iso.is_null() {
+            // SAFETY: `iso` is uniquely entered via `IsolateScopeGuard` on the current thread.
+            return unsafe { &(&*iso).roots.slab_epoch };
+        }
+    }
+    &SLAB_EPOCH
+}
+
+#[inline(always)]
+fn rt_vm_lock_owner_thread_key() -> &'static AtomicUsize {
+    #[cfg(feature = "isolate_vm")]
+    {
+        let iso = crate::sys::isolate::current_isolate_ptr();
+        if !iso.is_null() {
+            // SAFETY: `iso` is uniquely entered via `IsolateScopeGuard` on the current thread.
+            return unsafe { &(&*iso).roots.vm_lock_owner_thread_key };
+        }
+    }
+    &VM_LOCK_OWNER_THREAD_KEY
+}
+
+#[inline(always)]
+fn rt_vm_lock_owner_os_tid() -> &'static AtomicU64 {
+    #[cfg(feature = "isolate_vm")]
+    {
+        let iso = crate::sys::isolate::current_isolate_ptr();
+        if !iso.is_null() {
+            // SAFETY: `iso` is uniquely entered via `IsolateScopeGuard` on the current thread.
+            return unsafe { &(&*iso).roots.vm_lock_owner_os_tid };
+        }
+    }
+    &VM_LOCK_OWNER_OS_TID
+}
+
+#[inline(always)]
+fn rt_gc_context_active() -> &'static AtomicBool {
+    #[cfg(feature = "isolate_vm")]
+    {
+        let iso = crate::sys::isolate::current_isolate_ptr();
+        if !iso.is_null() {
+            // SAFETY: `iso` is uniquely entered via `IsolateScopeGuard` on the current thread.
+            return unsafe { &(&*iso).roots.gc_context_active };
+        }
+    }
+    &GC_CONTEXT_ACTIVE
+}
+
+#[inline(always)]
+fn rt_retired_rooted_pushed() -> &'static AtomicUsize {
+    #[cfg(feature = "isolate_vm")]
+    {
+        let iso = crate::sys::isolate::current_isolate_ptr();
+        if !iso.is_null() {
+            // SAFETY: `iso` is uniquely entered via `IsolateScopeGuard` on the current thread.
+            return unsafe { &(&*iso).roots.retired_rooted_pushed };
+        }
+    }
+    &RETIRED_ROOTED_PUSHED
+}
+
+#[inline(always)]
+fn rt_retired_rooted_popped() -> &'static AtomicUsize {
+    #[cfg(feature = "isolate_vm")]
+    {
+        let iso = crate::sys::isolate::current_isolate_ptr();
+        if !iso.is_null() {
+            // SAFETY: `iso` is uniquely entered via `IsolateScopeGuard` on the current thread.
+            return unsafe { &(&*iso).roots.retired_rooted_popped };
+        }
+    }
+    &RETIRED_ROOTED_POPPED
+}
+
+#[inline(always)]
+fn rt_retired_raw_spans_pushed() -> &'static AtomicUsize {
+    #[cfg(feature = "isolate_vm")]
+    {
+        let iso = crate::sys::isolate::current_isolate_ptr();
+        if !iso.is_null() {
+            // SAFETY: `iso` is uniquely entered via `IsolateScopeGuard` on the current thread.
+            return unsafe { &(&*iso).roots.retired_raw_spans_pushed };
+        }
+    }
+    &RETIRED_RAW_SPANS_PUSHED
+}
+
+#[inline(always)]
+fn rt_retired_raw_spans_popped() -> &'static AtomicUsize {
+    #[cfg(feature = "isolate_vm")]
+    {
+        let iso = crate::sys::isolate::current_isolate_ptr();
+        if !iso.is_null() {
+            // SAFETY: `iso` is uniquely entered via `IsolateScopeGuard` on the current thread.
+            return unsafe { &(&*iso).roots.retired_raw_spans_popped };
+        }
+    }
+    &RETIRED_RAW_SPANS_POPPED
+}
+
+#[inline(always)]
+fn rt_persistent_created() -> &'static AtomicUsize {
+    #[cfg(feature = "isolate_vm")]
+    {
+        let iso = crate::sys::isolate::current_isolate_ptr();
+        if !iso.is_null() {
+            // SAFETY: `iso` is uniquely entered via `IsolateScopeGuard` on the current thread.
+            return unsafe { &(&*iso).roots.persistent_created };
+        }
+    }
+    &PERSISTENT_CREATED
+}
+
+#[inline(always)]
+fn rt_persistent_released() -> &'static AtomicUsize {
+    #[cfg(feature = "isolate_vm")]
+    {
+        let iso = crate::sys::isolate::current_isolate_ptr();
+        if !iso.is_null() {
+            // SAFETY: `iso` is uniquely entered via `IsolateScopeGuard` on the current thread.
+            return unsafe { &(&*iso).roots.persistent_released };
+        }
+    }
+    &PERSISTENT_RELEASED
+}
+
+#[inline(always)]
+fn rt_narrowed_stack_entries() -> &'static AtomicUsize {
+    #[cfg(feature = "isolate_vm")]
+    {
+        let iso = crate::sys::isolate::current_isolate_ptr();
+        if !iso.is_null() {
+            // SAFETY: `iso` is uniquely entered via `IsolateScopeGuard` on the current thread.
+            return unsafe { &(&*iso).roots.narrowed_stack_entries };
+        }
+    }
+    &NARROWED_STACK_ENTRIES
+}
+
+#[inline(always)]
+fn rt_narrowed_stack_restores() -> &'static AtomicUsize {
+    #[cfg(feature = "isolate_vm")]
+    {
+        let iso = crate::sys::isolate::current_isolate_ptr();
+        if !iso.is_null() {
+            // SAFETY: `iso` is uniquely entered via `IsolateScopeGuard` on the current thread.
+            return unsafe { &(&*iso).roots.narrowed_stack_restores };
+        }
+    }
+    &NARROWED_STACK_RESTORES
+}
+
+/// Restores thread-local VM root/nonlocal lock keys and active isolate `os_tid` on drop,
+/// enabling an isolated `HeadlessVm` (`NoGil`) to move safely across OS threads.
+#[cfg(feature = "isolate_vm")]
+pub(crate) struct IsolateThreadTlsGuard {
+    prev_slab: TlsSlabState,
+    prev_nl: crate::nonlocal::TlsNonLocalState,
+    prev_owner_os_tid: u64,
+    iso_ptr: *mut crate::sys::isolate::IsolateContext,
+}
+
+#[cfg(feature = "isolate_vm")]
+impl Drop for IsolateThreadTlsGuard {
+    fn drop(&mut self) {
+        crate::nonlocal::restore_tls_state_after_isolate(self.prev_nl);
+        TLS_SLAB.with(|cell| {
+            let mut s = self.prev_slab;
+            s.os_tid = current_os_tid_raw(cell.get().os_tid);
+            cell.set(s);
+        });
+        if !self.iso_ptr.is_null() {
+            // SAFETY: `iso_ptr` remains alive until `Drop` of `IsolateThreadTlsGuard` finishes.
+            unsafe {
+                (*self.iso_ptr)
+                    .roots
+                    .vm_lock_owner_os_tid
+                    .store(self.prev_owner_os_tid, Ordering::Release);
+            }
+        }
+    }
+}
+
+#[cfg(feature = "isolate_vm")]
+#[inline]
+fn current_os_tid_raw(existing: u64) -> u64 {
+    if existing != 0 {
+        existing
+    } else {
+        NEXT_OS_TID.fetch_add(1, Ordering::Relaxed)
+    }
+}
+
+#[cfg(feature = "isolate_vm")]
+pub(crate) fn enter_isolate_os_thread() -> Option<IsolateThreadTlsGuard> {
+    let iso_ptr = crate::sys::isolate::current_isolate_ptr();
+    if iso_ptr.is_null() {
+        return None;
+    }
+    let tid = current_os_tid();
+    // SAFETY: `iso_ptr` is uniquely entered via `IsolateScopeGuard` on this thread.
+    let (owner_key, prev_owner_os_tid) = unsafe {
+        let roots = &(*iso_ptr).roots;
+        let owner_key = roots.vm_lock_owner_thread_key.load(Ordering::Acquire);
+        let prev_tid = roots.vm_lock_owner_os_tid.swap(tid, Ordering::AcqRel);
+        (owner_key, prev_tid)
+    };
+    let iso_usize = iso_ptr as usize;
+    let prev_slab = TLS_SLAB.with(|cell| {
+        let prev = cell.get();
+        cell.set(TlsSlabState {
+            os_tid: tid,
+            vm_lock_key: owner_key,
+            borrowed: false,
+            cache_isolate: iso_usize,
+            cache_epoch: 0,
+            cache_key: 0,
+            cache_ptr: core::ptr::null_mut(),
+        });
+        prev
+    });
+    let prev_nl = crate::nonlocal::swap_tls_state_for_isolate(owner_key, iso_usize);
+    Some(IsolateThreadTlsGuard {
+        prev_slab,
+        prev_nl,
+        prev_owner_os_tid,
+        iso_ptr,
+    })
+}
 
 #[inline]
 fn current_os_tid() -> u64 {
@@ -452,7 +766,7 @@ pub(crate) fn current_thread_key() -> usize {
 pub(crate) unsafe fn bind_vm_lock_owner(thread_key: usize) {
     assert_ne!(thread_key, 0, "bind_vm_lock_owner requires non-null thread");
     let tid = current_os_tid();
-    let prev_tid = VM_LOCK_OWNER_OS_TID.load(Ordering::Acquire);
+    let prev_tid = rt_vm_lock_owner_os_tid().load(Ordering::Acquire);
     assert!(
         prev_tid == 0 || prev_tid == tid,
         "bind_vm_lock_owner called by OS thread {tid} while OS thread {prev_tid} still owns VM lock"
@@ -463,8 +777,8 @@ pub(crate) unsafe fn bind_vm_lock_owner(thread_key: usize) {
         cell.set(s);
     });
     crate::nonlocal::set_tls_vm_lock_key(thread_key);
-    VM_LOCK_OWNER_OS_TID.store(tid, Ordering::Release);
-    VM_LOCK_OWNER_THREAD_KEY.store(thread_key, Ordering::Release);
+    rt_vm_lock_owner_os_tid().store(tid, Ordering::Release);
+    rt_vm_lock_owner_thread_key().store(thread_key, Ordering::Release);
 }
 
 /// Clear VM global lock ownership immediately before releasing `global_lock`.
@@ -475,13 +789,13 @@ pub(crate) unsafe fn bind_vm_lock_owner(thread_key: usize) {
 #[inline]
 pub(crate) unsafe fn unbind_vm_lock_owner() {
     let tid = current_os_tid();
-    let prev_tid = VM_LOCK_OWNER_OS_TID.load(Ordering::Acquire);
+    let prev_tid = rt_vm_lock_owner_os_tid().load(Ordering::Acquire);
     assert!(
         prev_tid == 0 || prev_tid == tid,
         "unbind_vm_lock_owner called by OS thread {tid} while OS thread {prev_tid} owns VM lock"
     );
     assert!(
-        !GC_CONTEXT_ACTIVE.load(Ordering::Acquire),
+        !rt_gc_context_active().load(Ordering::Acquire),
         "cannot release VM lock while an active GcContext lease exists"
     );
     assert!(
@@ -495,14 +809,15 @@ pub(crate) unsafe fn unbind_vm_lock_owner() {
     TLS_SLAB.with(|cell| {
         let mut s = cell.get();
         s.vm_lock_key = 0;
+        s.cache_isolate = 0;
         s.cache_epoch = 0;
         s.cache_key = 0;
         s.cache_ptr = core::ptr::null_mut();
         cell.set(s);
     });
     crate::nonlocal::clear_tls_state_cache();
-    VM_LOCK_OWNER_THREAD_KEY.store(0, Ordering::Release);
-    VM_LOCK_OWNER_OS_TID.store(0, Ordering::Release);
+    rt_vm_lock_owner_thread_key().store(0, Ordering::Release);
+    rt_vm_lock_owner_os_tid().store(0, Ordering::Release);
 }
 
 #[inline]
@@ -512,9 +827,9 @@ pub(crate) fn tls_vm_lock_matches(thread_key: usize) -> bool {
 
 #[inline]
 pub(crate) fn is_current_os_thread_vm_lock_owner() -> bool {
-    let owner_key = VM_LOCK_OWNER_THREAD_KEY.load(Ordering::Acquire);
+    let owner_key = rt_vm_lock_owner_thread_key().load(Ordering::Acquire);
     owner_key != 0
-        && VM_LOCK_OWNER_OS_TID.load(Ordering::Acquire) == current_os_tid()
+        && rt_vm_lock_owner_os_tid().load(Ordering::Acquire) == current_os_tid()
         && TLS_SLAB.with(|cell| cell.get().vm_lock_key) == owner_key
 }
 
@@ -522,8 +837,8 @@ pub(crate) fn is_current_os_thread_vm_lock_owner() -> bool {
 pub(crate) fn is_vm_lock_owner(thread_key: usize) -> bool {
     thread_key != 0
         && current_thread_key() == thread_key
-        && VM_LOCK_OWNER_THREAD_KEY.load(Ordering::Acquire) == thread_key
-        && VM_LOCK_OWNER_OS_TID.load(Ordering::Acquire) == current_os_tid()
+        && rt_vm_lock_owner_thread_key().load(Ordering::Acquire) == thread_key
+        && rt_vm_lock_owner_os_tid().load(Ordering::Acquire) == current_os_tid()
         && TLS_SLAB.with(|cell| cell.get().vm_lock_key) == thread_key
 }
 
@@ -553,8 +868,9 @@ fn with_thread_slab<R>(thread_key: usize, f: impl FnOnce(&mut ThreadRootSlab) ->
         s
     });
     let _borrow_guard = SlabBorrowGuard { prev: state.borrowed };
-    if thread_key != 0 && state.vm_lock_key == thread_key {
-        let epoch = SLAB_EPOCH.load(Ordering::Acquire);
+    let cur_iso = current_isolate_usize();
+    if thread_key != 0 && state.vm_lock_key == thread_key && state.cache_isolate == cur_iso {
+        let epoch = rt_slab_epoch().load(Ordering::Acquire);
         if state.cache_epoch == epoch && state.cache_key == thread_key && !state.cache_ptr.is_null() {
             // SAFETY: `state.cache_ptr` points to a heap-pinned `Box<ThreadRootSlab>` in
             // `THREAD_ROOT_SLABS`; `pub(crate) unsafe fn bind_vm_lock_owner` restricts `vm_lock_key`
@@ -573,10 +889,11 @@ fn with_thread_slab_slow<R>(thread_key: usize, f: impl FnOnce(&mut ThreadRootSla
         is_vm_lock_owner(thread_key),
         "ThreadRootSlab access requires active VM lock ownership on current OS thread"
     );
-    let mut guard = THREAD_ROOT_SLABS
+    let mut guard = rt_thread_root_slabs()
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());
-    let epoch = SLAB_EPOCH.load(Ordering::Acquire);
+    let epoch = rt_slab_epoch().load(Ordering::Acquire);
+    let cur_iso = current_isolate_usize();
     let map = guard.get_or_insert_with(HashMap::new);
     let slab = map
         .entry(thread_key)
@@ -584,6 +901,7 @@ fn with_thread_slab_slow<R>(thread_key: usize, f: impl FnOnce(&mut ThreadRootSla
     let ptr: *mut ThreadRootSlab = &mut **slab;
     TLS_SLAB.with(|cell| {
         let mut s = cell.get();
+        s.cache_isolate = cur_iso;
         s.cache_epoch = epoch;
         s.cache_key = thread_key;
         s.cache_ptr = ptr;
@@ -593,7 +911,7 @@ fn with_thread_slab_slow<R>(thread_key: usize, f: impl FnOnce(&mut ThreadRootSla
 }
 
 fn with_persistent_table<R>(f: impl FnOnce(&mut PersistentRootTable) -> R) -> R {
-    let mut guard = PERSISTENT_ROOTS
+    let mut guard = rt_persistent_roots()
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());
     let table = guard.get_or_insert_with(PersistentRootTable::default);
@@ -1153,7 +1471,7 @@ impl PersistentRoot {
                 (idx, r#gen)
             }
         });
-        PERSISTENT_CREATED.fetch_add(1, Ordering::Relaxed);
+        rt_persistent_created().fetch_add(1, Ordering::Relaxed);
         Self {
             index,
             generation,
@@ -1302,7 +1620,7 @@ pub(crate) fn release_persistent_raw(index: usize, generation: u64) -> bool {
         }
     });
     if did_release {
-        PERSISTENT_RELEASED.fetch_add(1, Ordering::Relaxed);
+        rt_persistent_released().fetch_add(1, Ordering::Relaxed);
     }
     did_release
 }
@@ -1329,7 +1647,7 @@ pub(crate) unsafe fn mark_thread_u4_slab_roots(
         "cannot mark ThreadRootSlab while slab is borrowed"
     );
     let snapshot: Vec<Lisp_Object> = {
-        let guard = THREAD_ROOT_SLABS
+        let guard = rt_thread_root_slabs()
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         let Some(map) = guard.as_ref() else {
@@ -1385,12 +1703,13 @@ pub(crate) unsafe fn cleanup_thread_u4_slab(thread: *mut c_void) {
         !TLS_SLAB.with(|cell| cell.get().borrowed),
         "cannot cleanup ThreadRootSlab while slab is borrowed"
     );
-    let mut guard = THREAD_ROOT_SLABS
+    let mut guard = rt_thread_root_slabs()
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());
-    SLAB_EPOCH.fetch_add(1, Ordering::SeqCst);
+    rt_slab_epoch().fetch_add(1, Ordering::SeqCst);
     TLS_SLAB.with(|cell| {
         let mut s = cell.get();
+        s.cache_isolate = 0;
         s.cache_epoch = 0;
         s.cache_key = 0;
         s.cache_ptr = core::ptr::null_mut();
@@ -1399,10 +1718,10 @@ pub(crate) unsafe fn cleanup_thread_u4_slab(thread: *mut c_void) {
     if let Some(map) = guard.as_mut()
         && let Some(removed) = map.remove(&key)
     {
-        RETIRED_ROOTED_PUSHED.fetch_add(removed.rooted_pushed, Ordering::Relaxed);
-        RETIRED_ROOTED_POPPED.fetch_add(removed.rooted_popped, Ordering::Relaxed);
-        RETIRED_RAW_SPANS_PUSHED.fetch_add(removed.raw_spans_pushed, Ordering::Relaxed);
-        RETIRED_RAW_SPANS_POPPED.fetch_add(removed.raw_spans_popped, Ordering::Relaxed);
+        rt_retired_rooted_pushed().fetch_add(removed.rooted_pushed, Ordering::Relaxed);
+        rt_retired_rooted_popped().fetch_add(removed.rooted_popped, Ordering::Relaxed);
+        rt_retired_raw_spans_pushed().fetch_add(removed.raw_spans_pushed, Ordering::Relaxed);
+        rt_retired_raw_spans_popped().fetch_add(removed.raw_spans_popped, Ordering::Relaxed);
     }
 }
 
@@ -1416,7 +1735,7 @@ pub(crate) unsafe fn mark_persistent_roots(mut mark_fn: impl FnMut(Lisp_Object))
         "mark_persistent_roots requires active VM lock ownership on current OS thread"
     );
     let snapshot: Vec<Lisp_Object> = {
-        let guard = PERSISTENT_ROOTS
+        let guard = rt_persistent_roots()
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         let Some(table) = guard.as_ref() else {
@@ -1455,12 +1774,12 @@ pub(crate) fn rooting_counters() -> RootingCounters {
         !TLS_SLAB.with(|cell| cell.get().borrowed),
         "cannot read rooting_counters while ThreadRootSlab is borrowed"
     );
-    let mut rooted_pushed = RETIRED_ROOTED_PUSHED.load(Ordering::Relaxed);
-    let mut rooted_popped = RETIRED_ROOTED_POPPED.load(Ordering::Relaxed);
-    let mut raw_spans_pushed = RETIRED_RAW_SPANS_PUSHED.load(Ordering::Relaxed);
-    let mut raw_spans_popped = RETIRED_RAW_SPANS_POPPED.load(Ordering::Relaxed);
+    let mut rooted_pushed = rt_retired_rooted_pushed().load(Ordering::Relaxed);
+    let mut rooted_popped = rt_retired_rooted_popped().load(Ordering::Relaxed);
+    let mut raw_spans_pushed = rt_retired_raw_spans_pushed().load(Ordering::Relaxed);
+    let mut raw_spans_popped = rt_retired_raw_spans_popped().load(Ordering::Relaxed);
     {
-        let guard = THREAD_ROOT_SLABS
+        let guard = rt_thread_root_slabs()
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         if let Some(map) = guard.as_ref() {
@@ -1478,8 +1797,8 @@ pub(crate) fn rooting_counters() -> RootingCounters {
         rooted_popped,
         raw_spans_pushed,
         raw_spans_popped,
-        persistent_created: PERSISTENT_CREATED.load(Ordering::Relaxed),
-        persistent_released: PERSISTENT_RELEASED.load(Ordering::Relaxed),
+        persistent_created: rt_persistent_created().load(Ordering::Relaxed),
+        persistent_released: rt_persistent_released().load(Ordering::Relaxed),
         persistent_live,
     }
 }
@@ -1559,14 +1878,14 @@ impl Drop for NarrowedStackScanGuard {
             unsafe {
                 (*self.thread_ptr).m_stack_bottom = self.saved_bottom;
             }
-            NARROWED_STACK_RESTORES.fetch_add(1, Ordering::Relaxed);
+            rt_narrowed_stack_restores().fetch_add(1, Ordering::Relaxed);
         }
     }
 }
 
 pub fn narrowed_stack_counts() -> (usize, usize) {
     (
-        NARROWED_STACK_ENTRIES.load(Ordering::Relaxed),
-        NARROWED_STACK_RESTORES.load(Ordering::Relaxed),
+        rt_narrowed_stack_entries().load(Ordering::Relaxed),
+        rt_narrowed_stack_restores().load(Ordering::Relaxed),
     )
 }

@@ -25,7 +25,7 @@ required-features = ["vm"]
 
 [features]
 default = ["vm", "repl-tty"]
-vm = ["dep:lisp-vm"]
+vm = ["dep:lisp-vm", "lisp-vm/isolate_vm"]
 repl-tty = ["vm", "dep:rustyline"]
 
 [dependencies]

@@ -3638,3 +3638,10 @@ unsafe extern "C-unwind" fn syms_of_search_for_pdumper ()         // C 3500-3515
 
   }
 }
+
+#[cfg (feature = "isolate_vm")]
+pub(crate) fn pre_register_search_globals ()
+{
+  crate::sys::isolate::pre_register_global (&searchbufs);
+  crate::sys::isolate::pre_register_global (&searchbuf_head);
+}

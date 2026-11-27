@@ -23,6 +23,82 @@ static LAST_GC_SA_FREE_SCRUBBED_BLOCKS: AtomicUsize = AtomicUsize::new(0);
 static PDUMPER_LOADED_FLAG: AtomicBool = AtomicBool::new(false);
 static PDUMPER_HOOK_INVOCATIONS: AtomicUsize = AtomicUsize::new(0);
 
+#[cfg(feature = "isolate_vm")]
+#[derive(Default)]
+pub(crate) struct IsolateVmState {
+    pub(crate) gc_cycles_completed: AtomicUsize,
+    pub(crate) last_gc_persistent_marked: AtomicUsize,
+    pub(crate) last_gc_thread_slab_marked: AtomicUsize,
+    pub(crate) last_gc_conservative_stack_bytes: AtomicUsize,
+    pub(crate) last_gc_sa_active_blocks: AtomicUsize,
+    pub(crate) last_gc_sa_free_scrubbed_blocks: AtomicUsize,
+    pub(crate) pdumper_loaded_flag: AtomicBool,
+    pub(crate) pdumper_hook_invocations: AtomicUsize,
+}
+
+#[cfg(feature = "isolate_vm")]
+#[inline(always)]
+fn vm_atomic_usize(
+    static_slot: &'static AtomicUsize,
+    select: impl FnOnce(&crate::sys::isolate::IsolateContext) -> &AtomicUsize,
+) -> &AtomicUsize {
+    let iso = crate::sys::isolate::current_isolate_ptr();
+    if !iso.is_null() {
+        // SAFETY: `iso` is uniquely entered on the current thread via `IsolateScopeGuard`.
+        return unsafe { select(&*iso) };
+    }
+    static_slot
+}
+
+#[cfg(not(feature = "isolate_vm"))]
+#[inline(always)]
+fn vm_atomic_usize<T>(static_slot: &'static AtomicUsize, _select: T) -> &'static AtomicUsize {
+    static_slot
+}
+
+#[cfg(not(feature = "isolate_vm"))]
+mod isolate_shim {
+    pub(crate) struct DummyIso {
+        pub(crate) vm_state: DummyVmState,
+    }
+    pub(crate) struct DummyVmState {
+        pub(crate) gc_cycles_completed: super::AtomicUsize,
+        pub(crate) last_gc_persistent_marked: super::AtomicUsize,
+        pub(crate) last_gc_thread_slab_marked: super::AtomicUsize,
+        pub(crate) last_gc_conservative_stack_bytes: super::AtomicUsize,
+        pub(crate) last_gc_sa_active_blocks: super::AtomicUsize,
+        pub(crate) last_gc_sa_free_scrubbed_blocks: super::AtomicUsize,
+        pub(crate) pdumper_hook_invocations: super::AtomicUsize,
+    }
+}
+
+#[cfg(not(feature = "isolate_vm"))]
+macro_rules! vm_usize {
+    ($static_slot:ident, $field:ident) => {
+        &$static_slot
+    };
+}
+
+#[cfg(feature = "isolate_vm")]
+macro_rules! vm_usize {
+    ($static_slot:ident, $field:ident) => {
+        vm_atomic_usize(&$static_slot, |i| &i.vm_state.$field)
+    };
+}
+
+#[inline(always)]
+fn vm_pdumper_loaded_flag() -> &'static AtomicBool {
+    #[cfg(feature = "isolate_vm")]
+    {
+        let iso = crate::sys::isolate::current_isolate_ptr();
+        if !iso.is_null() {
+            // SAFETY: `iso` outlives any returned reference during the active isolate scope.
+            return unsafe { &(&*iso).vm_state.pdumper_loaded_flag };
+        }
+    }
+    &PDUMPER_LOADED_FLAG
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ThreadStateSnapshot {
     pub active_thread_count: usize,
@@ -112,50 +188,61 @@ pub fn current_thread_addr() -> usize {
 
 #[inline]
 pub(crate) fn note_pdumper_loaded() {
-    PDUMPER_LOADED_FLAG.store(true, Ordering::Relaxed);
+    vm_pdumper_loaded_flag().store(true, Ordering::Relaxed);
 }
 
 #[inline]
 pub(crate) fn note_pdumper_hook_run() {
-    PDUMPER_HOOK_INVOCATIONS.fetch_add(1, Ordering::Relaxed);
+    vm_usize!(PDUMPER_HOOK_INVOCATIONS, pdumper_hook_invocations)
+        .fetch_add(1, Ordering::Relaxed);
 }
 
 #[inline]
 pub(crate) fn begin_gc_root_cycle() {
-    LAST_GC_PERSISTENT_MARKED.store(0, Ordering::Relaxed);
-    LAST_GC_THREAD_SLAB_MARKED.store(0, Ordering::Relaxed);
-    LAST_GC_CONSERVATIVE_STACK_BYTES.store(0, Ordering::Relaxed);
-    LAST_GC_SA_ACTIVE_BLOCKS.store(0, Ordering::Relaxed);
+    vm_usize!(LAST_GC_PERSISTENT_MARKED, last_gc_persistent_marked)
+        .store(0, Ordering::Relaxed);
+    vm_usize!(LAST_GC_THREAD_SLAB_MARKED, last_gc_thread_slab_marked)
+        .store(0, Ordering::Relaxed);
+    vm_usize!(LAST_GC_CONSERVATIVE_STACK_BYTES, last_gc_conservative_stack_bytes)
+        .store(0, Ordering::Relaxed);
+    vm_usize!(LAST_GC_SA_ACTIVE_BLOCKS, last_gc_sa_active_blocks)
+        .store(0, Ordering::Relaxed);
 }
 
 #[inline]
 pub(crate) fn note_gc_persistent_marked(count: usize) {
-    LAST_GC_PERSISTENT_MARKED.fetch_add(count, Ordering::Relaxed);
+    vm_usize!(LAST_GC_PERSISTENT_MARKED, last_gc_persistent_marked)
+        .fetch_add(count, Ordering::Relaxed);
 }
 
 #[inline]
 pub(crate) fn note_gc_thread_slab_marked(count: usize) {
-    LAST_GC_THREAD_SLAB_MARKED.fetch_add(count, Ordering::Relaxed);
+    vm_usize!(LAST_GC_THREAD_SLAB_MARKED, last_gc_thread_slab_marked)
+        .fetch_add(count, Ordering::Relaxed);
 }
 
 #[inline]
 pub(crate) fn note_gc_conservative_stack_span(bytes: usize) {
-    LAST_GC_CONSERVATIVE_STACK_BYTES.fetch_add(bytes, Ordering::Relaxed);
+    vm_usize!(LAST_GC_CONSERVATIVE_STACK_BYTES, last_gc_conservative_stack_bytes)
+        .fetch_add(bytes, Ordering::Relaxed);
 }
 
 #[inline]
 pub(crate) fn note_gc_sa_active_blocks(blocks: usize) {
-    LAST_GC_SA_ACTIVE_BLOCKS.store(blocks, Ordering::Relaxed);
+    vm_usize!(LAST_GC_SA_ACTIVE_BLOCKS, last_gc_sa_active_blocks)
+        .store(blocks, Ordering::Relaxed);
 }
 
 #[inline]
 pub(crate) fn note_sa_free_scrubbed(blocks: usize) {
-    LAST_GC_SA_FREE_SCRUBBED_BLOCKS.fetch_add(blocks, Ordering::Relaxed);
+    vm_usize!(LAST_GC_SA_FREE_SCRUBBED_BLOCKS, last_gc_sa_free_scrubbed_blocks)
+        .fetch_add(blocks, Ordering::Relaxed);
 }
 
 #[inline]
 pub(crate) fn finish_gc_root_cycle() {
-    GC_CYCLES_COMPLETED.fetch_add(1, Ordering::Relaxed);
+    vm_usize!(GC_CYCLES_COMPLETED, gc_cycles_completed)
+        .fetch_add(1, Ordering::Relaxed);
 }
 
 fn snapshot_current_thread() -> ThreadStateSnapshot {
@@ -233,14 +320,14 @@ pub(crate) fn snapshot_vm_root_inventory() -> VmRootInventory {
         let comp_ok = false;
         (nbufs, comp_ok)
     };
-    let dump_loaded = pd_loaded || PDUMPER_LOADED_FLAG.load(Ordering::Relaxed);
+    let dump_loaded = pd_loaded || vm_pdumper_loaded_flag().load(Ordering::Relaxed);
 
     VmRootInventory {
-        gc_cycles_completed: GC_CYCLES_COMPLETED.load(Ordering::Relaxed),
+        gc_cycles_completed: vm_usize!(GC_CYCLES_COMPLETED, gc_cycles_completed).load(Ordering::Relaxed),
         dump_loaded,
         dump_early_hooks: early_hooks,
         dump_late_hooks: late_hooks,
-        dump_hook_invocations: PDUMPER_HOOK_INVOCATIONS.load(Ordering::Relaxed),
+        dump_hook_invocations: vm_usize!(PDUMPER_HOOK_INVOCATIONS, pdumper_hook_invocations).load(Ordering::Relaxed),
         live_buffers,
         module_global_refs_table_live: mod_live,
         native_comp_units_table_live: comp_live,
@@ -250,11 +337,11 @@ pub(crate) fn snapshot_vm_root_inventory() -> VmRootInventory {
         nonlocal_scoped_dropped: nl_d,
         host_guards_created: hd_c,
         host_guards_dropped: hd_d,
-        last_gc_persistent_marked: LAST_GC_PERSISTENT_MARKED.load(Ordering::Relaxed),
-        last_gc_thread_slab_marked: LAST_GC_THREAD_SLAB_MARKED.load(Ordering::Relaxed),
-        last_gc_conservative_stack_bytes: LAST_GC_CONSERVATIVE_STACK_BYTES.load(Ordering::Relaxed),
-        last_gc_sa_active_blocks: LAST_GC_SA_ACTIVE_BLOCKS.load(Ordering::Relaxed),
-        last_gc_sa_free_scrubbed_blocks: LAST_GC_SA_FREE_SCRUBBED_BLOCKS.load(Ordering::Relaxed),
+        last_gc_persistent_marked: vm_usize!(LAST_GC_PERSISTENT_MARKED, last_gc_persistent_marked).load(Ordering::Relaxed),
+        last_gc_thread_slab_marked: vm_usize!(LAST_GC_THREAD_SLAB_MARKED, last_gc_thread_slab_marked).load(Ordering::Relaxed),
+        last_gc_conservative_stack_bytes: vm_usize!(LAST_GC_CONSERVATIVE_STACK_BYTES, last_gc_conservative_stack_bytes).load(Ordering::Relaxed),
+        last_gc_sa_active_blocks: vm_usize!(LAST_GC_SA_ACTIVE_BLOCKS, last_gc_sa_active_blocks).load(Ordering::Relaxed),
+        last_gc_sa_free_scrubbed_blocks: vm_usize!(LAST_GC_SA_FREE_SCRUBBED_BLOCKS, last_gc_sa_free_scrubbed_blocks).load(Ordering::Relaxed),
     }
 }
 

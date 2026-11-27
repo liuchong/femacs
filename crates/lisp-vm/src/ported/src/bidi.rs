@@ -583,12 +583,12 @@ static bidi_cache_sp: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
    that needs the `unsafe` const block (PORTING.md 0.2's `static_mut_refs` allowance).  */
 const bidi_shelve_header_size: usize
   = const { {
-      femacs_sizeof_ptr (bidi_cache_idx.as_ptr ())
-      + femacs_sizeof_ptr (bidi_cache_start_stack.as_ptr ())
-      + femacs_sizeof_ptr (bidi_cache_sp.as_ptr ())
-      + femacs_sizeof_ptr (bidi_cache_start.as_ptr ())
-      + femacs_sizeof_ptr (bidi_cache_last_idx.as_ptr ())
-      + femacs_sizeof_ptr (bidi_cache_max_elts.as_ptr ())
+      femacs_sizeof_ptr (bidi_cache_idx.as_static_ptr ())
+      + femacs_sizeof_ptr (bidi_cache_start_stack.as_static_ptr ())
+      + femacs_sizeof_ptr (bidi_cache_sp.as_static_ptr ())
+      + femacs_sizeof_ptr (bidi_cache_start.as_static_ptr ())
+      + femacs_sizeof_ptr (bidi_cache_last_idx.as_static_ptr ())
+      + femacs_sizeof_ptr (bidi_cache_max_elts.as_static_ptr ())
     } };
 
 /* Effectively remove the cached states beyond the Nth state from the

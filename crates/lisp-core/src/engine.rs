@@ -3,9 +3,14 @@
 
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
+pub use lisp_vm::ConcurrencyMode;
 use lisp_vm::host_runtime::{HeadlessDiagnostics, HeadlessVm, HostInitConfig, VmValue};
 
+use crate::concurrency::{
+    ConcurrencyHub, ConcurrencyShutdownGuard, register_concurrency_builtins, worker_config_from,
+};
 use crate::error::Error;
 use crate::stdlib_cache::{
     CacheLayout, ensure_unpacked, is_valid_dump_header, resolve_cache_root,
@@ -41,6 +46,7 @@ pub struct EngineConfig {
     pub verbose: bool,
     pub replace_load_path: bool,
     pub defer_delayed_custom_init: bool,
+    pub concurrency: ConcurrencyMode,
 }
 
 impl Default for EngineConfig {
@@ -54,6 +60,7 @@ impl Default for EngineConfig {
             verbose: false,
             replace_load_path: false,
             defer_delayed_custom_init: false,
+            concurrency: ConcurrencyMode::NoGil,
         }
     }
 }
@@ -115,12 +122,20 @@ impl EngineConfig {
         self.defer_delayed_custom_init = defer;
         self
     }
+
+    pub fn with_concurrency(mut self, mode: ConcurrencyMode) -> Self {
+        self.concurrency = mode;
+        self
+    }
 }
 
-/// Safe, single-process owning handle to an initialized general-purpose Lisp VM (`!Send + !Sync`).
+/// Safe owning handle to an initialized general-purpose Lisp VM (`Send` in `NoGil` mode).
 pub struct Engine {
     vm: HeadlessVm,
     cache_layout: Option<CacheLayout>,
+    concurrency: ConcurrencyMode,
+    _hub: Arc<ConcurrencyHub>,
+    _shutdown_guard: Option<ConcurrencyShutdownGuard>,
 }
 
 impl Engine {
@@ -136,6 +151,13 @@ impl Engine {
 
     /// Initialize the runtime with an explicit [`EngineConfig`].
     pub fn init(config: EngineConfig) -> Result<Self, Error> {
+        Self::init_with_hub(config, None)
+    }
+
+    fn init_with_hub(
+        config: EngineConfig,
+        shared_hub: Option<Arc<ConcurrencyHub>>,
+    ) -> Result<Self, Error> {
         let (host_cfg, cache_layout, extra_load_paths) = match &config.bootstrap {
             BootstrapMode::Minimal => {
                 let mut hc = HostInitConfig::cold_minimal()
@@ -242,11 +264,41 @@ impl Engine {
             }
         };
 
+        let host_cfg = host_cfg.with_concurrency(config.concurrency);
         let mut vm = HeadlessVm::init(&host_cfg)?;
         for dir in extra_load_paths.iter().rev() {
             vm.prepend_load_path(dir)?;
         }
-        Ok(Self { vm, cache_layout })
+
+        let (hub, shutdown_guard) = match shared_hub {
+            Some(existing) => (existing, None),
+            None => {
+                let (h, guard) = ConcurrencyHub::new(config.concurrency);
+                if config.concurrency == ConcurrencyMode::NoGil {
+                    let worker_cfg = worker_config_from(&config);
+                    let worker_hub = Arc::clone(&h);
+                    h.set_worker_factory(Arc::new(move || {
+                        Engine::init_with_hub(worker_cfg.clone(), Some(Arc::clone(&worker_hub)))
+                    }));
+                }
+                (h, Some(guard))
+            }
+        };
+
+        let mut engine = Self {
+            vm,
+            cache_layout,
+            concurrency: config.concurrency,
+            _hub: hub.clone(),
+            _shutdown_guard: shutdown_guard,
+        };
+        register_concurrency_builtins(&mut engine, &hub)?;
+        Ok(engine)
+    }
+
+    /// Return the concurrency mode active on this engine (`NoGil` or `Gil`).
+    pub fn concurrency(&self) -> ConcurrencyMode {
+        self.concurrency
     }
 
     /// Return the materialized stdlib cache layout if initialized with bundled stdlib.

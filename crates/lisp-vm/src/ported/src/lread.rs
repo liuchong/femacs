@@ -6617,6 +6617,8 @@ pub unsafe extern "C-unwind" fn defsubr (aname: *mut Aligned_Lisp_Subr)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
+  #[cfg (feature = "isolate_vm")]
+  let aname = crate::sys::isolate::resolve_fwd_ptr (aname);
   let sname: *mut Lisp_Subr = &mut (*aname).s;
   let sym: Lisp_Object;
   let mut tem: Lisp_Object;
@@ -6692,9 +6694,25 @@ pub unsafe extern "C-unwind" fn defvar_lisp (o_fwd: *const Lisp_Fwd, namestring:
   unsafe {
   eassert! ((*o_fwd).r#type == Lisp_Fwd_Obj);
   defvar_lisp_nopro (o_fwd, namestring);
-  staticpro ((*o_fwd).u.objvar);
+  #[cfg (feature = "isolate_vm")]
+  let objvar = crate::sys::isolate::resolve_fwd_ptr ((*o_fwd).u.objvar);
+  #[cfg (not (feature = "isolate_vm"))]
+  let objvar = (*o_fwd).u.objvar;
+  staticpro (objvar);
 
   }
+}
+
+#[cfg (feature = "isolate_vm")]
+pub(crate) fn pre_register_lread_globals ()
+{
+  crate::sys::isolate::pre_register_global (&lispsym_def::lispsym);
+  crate::sys::isolate::pre_register_global (&saved_strings);
+  crate::sys::isolate::pre_register_global (&defsym_name);
+  crate::sys::isolate::pre_register_global (&initial_obarray);
+  crate::sys::isolate::pre_register_global (&rdstack);
+  #[cfg (feature = "no_ieee_floating_point")]
+  crate::sys::isolate::pre_register_global (&not_a_number);
 }
 
 /* Similar but define a variable whose value is the Lisp Object stored

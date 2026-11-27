@@ -2550,6 +2550,24 @@ pub unsafe extern "C-unwind" fn set_initial_environment ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
+  #[cfg (feature = "isolate_vm")]
+  if crate::sys::isolate::is_isolate_active () {
+    static ENV_SNAPSHOT: std::sync::OnceLock<Vec<std::ffi::CString>> = std::sync::OnceLock::new ();
+    let snapshot = ENV_SNAPSHOT.get_or_init (|| {
+      let mut out = Vec::new ();
+      let mut envp: *mut *mut c_char = (*environ.as_static_mut_ptr ());
+      while !envp.is_null () && !(*envp).is_null () {
+        out.push (std::ffi::CStr::from_ptr (*envp).to_owned ());
+        envp = envp.offset (1);
+      }
+      out
+    });
+    for entry in snapshot {
+      (*Vprocess_environment.as_mut_ptr ()) = Fcons (build_string (entry.as_ptr ()), (*Vprocess_environment.as_mut_ptr ()));
+    }
+    (*Vinitial_environment.as_mut_ptr ()) = Fcopy_sequence ((*Vprocess_environment.as_mut_ptr ()));
+    return;
+  }
   /* PORTING.md 1.5: C declares ENVP uninitialized; the loop assigns it first.  */
   let mut envp: *mut *mut c_char = std::ptr::null_mut ();
   envp = (*environ.as_mut_ptr ());

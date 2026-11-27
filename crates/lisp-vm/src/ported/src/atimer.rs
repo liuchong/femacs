@@ -538,6 +538,17 @@ pub unsafe extern "C-unwind" fn init_atimer ()
   (*stopped_atimers.as_mut_ptr ()) = null;
   (*atimers.as_mut_ptr ()) = null;
 
+  #[cfg (feature = "isolate_vm")]
+  if crate::sys::isolate::is_isolate_active () {
+    static ATIMER_SIG_ONCE: std::sync::Once = std::sync::Once::new ();
+    ATIMER_SIG_ONCE.call_once (|| {
+      let mut action: sigaction = std::mem::zeroed ();
+      emacs_sigaction_init (&mut action, Some (handle_alarm_signal));
+      sigaction (SIGALRM, &action, 0 as *mut sigaction);
+    });
+    return;
+  }
+
   /* pending_signals is initialized in init_keyboard.  */
   let mut action: sigaction = std::mem::zeroed ();
   emacs_sigaction_init (&mut action, Some (handle_alarm_signal));

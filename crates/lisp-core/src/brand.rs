@@ -16,3 +16,4 @@ pub const REPL_CONTINUATION_PROMPT: &str = "... > ";
 pub const ENV_CACHE_DIR: &str = "LISP_CORE_CACHE_DIR";
 pub const ENV_VERBOSE: &str = "LISP_CORE_VERBOSE";
 pub const ENV_NO_AUTO_WARM: &str = "LISP_CORE_NO_AUTO_WARM";
+pub const ENV_CONCURRENCY: &str = "LISP_CONCURRENCY";

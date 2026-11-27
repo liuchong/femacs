@@ -1104,14 +1104,15 @@ pub fn XBARE_SYMBOL (a: Lisp_Object) -> *mut Lisp_Symbol {
     eassert! (BARE_SYMBOL_P (a));
     let i = XUNTAG! (a, Lisp_Type::Lisp_Symbol, Lisp_Symbol) as isize;
     /* SAFETY: `lispsym` is the unique builtin symbol array and `i` is a valid byte offset of a bare symbol. */
-    unsafe { (lispsym.as_mut_ptr () as *mut u8).offset (i) as *mut Lisp_Symbol }
+    unsafe { (lispsym.as_mut_ptr () as *mut u8).wrapping_offset (i) as *mut Lisp_Symbol }
 }
 
 #[inline(always)]
 pub fn make_lisp_symbol_internal (sym: *mut Lisp_Symbol) -> Lisp_Object {
     // No eassert here in C either, so that builtin symbols can be constant
     // folded by the C compiler; the port keeps the same body.
-    let symoffset = /* SAFETY: `sym` points within `lispsym` or heap symbol storage; computes byte displacement. */ unsafe { (sym as *const u8).offset_from (lispsym.as_ptr () as *const u8) };
+    let base = /* SAFETY: `lispsym` is the active builtin symbol array base address. */ unsafe { lispsym.as_ptr () as isize };
+    let symoffset = (sym as isize).wrapping_sub (base);
     TAG_PTR_INITIALLY (Lisp_Type::Lisp_Symbol, symoffset as EMACS_INT)
 }
 
@@ -3821,11 +3822,13 @@ macro_rules! DEFVAR_LISP {
             u: Lisp_Fwd_u {
                 objvar: {
                     #[allow(unused_unsafe)]
-                    let ptr = /* SAFETY: single-VM DEFVAR VmGlobal address registration. */ unsafe { $vname.as_mut_ptr () };
+                    let ptr = /* SAFETY: single-VM DEFVAR VmGlobal address registration. */ unsafe { $vname.as_static_mut_ptr () };
                     ptr
                 },
             },
         });
+        #[cfg (feature = "isolate_vm")]
+        $crate::sys::isolate::pre_register_global (&$vname);
         register_defvar_lisp (&O_FWD, $lname);
     }};
 }
@@ -3837,11 +3840,13 @@ macro_rules! DEFVAR_LISP_NOPRO {
             u: Lisp_Fwd_u {
                 objvar: {
                     #[allow(unused_unsafe)]
-                    let ptr = /* SAFETY: single-VM DEFVAR VmGlobal address registration. */ unsafe { $vname.as_mut_ptr () };
+                    let ptr = /* SAFETY: single-VM DEFVAR VmGlobal address registration. */ unsafe { $vname.as_static_mut_ptr () };
                     ptr
                 },
             },
         });
+        #[cfg (feature = "isolate_vm")]
+        $crate::sys::isolate::pre_register_global (&$vname);
         register_defvar_lisp_nopro (&O_FWD, $lname);
     }};
 }
@@ -3853,11 +3858,13 @@ macro_rules! DEFVAR_INT {
             u: Lisp_Fwd_u {
                 intvar: {
                     #[allow(unused_unsafe)]
-                    let ptr = /* SAFETY: single-VM DEFVAR VmGlobal address registration. */ unsafe { $vname.as_mut_ptr () as *mut i64 };
+                    let ptr = /* SAFETY: single-VM DEFVAR VmGlobal address registration. */ unsafe { $vname.as_static_mut_ptr () as *mut i64 };
                     ptr
                 },
             },
         });
+        #[cfg (feature = "isolate_vm")]
+        $crate::sys::isolate::pre_register_global (&$vname);
         register_defvar_int (&I_FWD, $lname);
     }};
 }
@@ -3872,11 +3879,13 @@ macro_rules! DEFVAR_BOOL {
             u: Lisp_Fwd_u {
                 boolvar: {
                     #[allow(unused_unsafe)]
-                    let ptr = /* SAFETY: single-VM DEFVAR VmGlobal address registration. */ unsafe { $vname.as_mut_ptr () };
+                    let ptr = /* SAFETY: single-VM DEFVAR VmGlobal address registration. */ unsafe { $vname.as_static_mut_ptr () };
                     ptr
                 },
             },
         });
+        #[cfg (feature = "isolate_vm")]
+        $crate::sys::isolate::pre_register_global (&$vname);
         register_defvar_bool (&B_FWD, $lname);
     }};
 }

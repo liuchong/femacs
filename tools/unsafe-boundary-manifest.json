@@ -39,6 +39,7 @@
     "crates/lisp-core/build.rs",
     "crates/lisp-core/src/brand.rs",
     "crates/lisp-core/src/cli.rs",
+    "crates/lisp-core/src/concurrency.rs",
     "crates/lisp-core/src/engine.rs",
     "crates/lisp-core/src/error.rs",
     "crates/lisp-core/src/exec.rs",
@@ -2182,6 +2183,13 @@
       "failure_path": "Compile-time size/alignment const assertions; pointer dereference still requires explicit unsafe",
       "invariant": "Transparent UnsafeCell<T> representation; scalar/pointer get/set execute hardware-atomic Relaxed loads/stores",
       "ownership": "Single-instance .data/.bss/__DATA,subrs static storage verified by nm gates"
+    },
+    "crates/lisp-vm/src/sys/isolate.rs": {
+      "boundary_class": "vm_isolate_context_isolation",
+      "caller": "lisp-vm sys::globals_cell, host_runtime, pdumper, and ported globals",
+      "failure_path": "Null pointers pass through safely; undersized/overlapping static-global slots panic immediately; OOM calls handle_alloc_error",
+      "invariant": "IsolateScopeGuard binds an exclusively accessed IsolateContext on the active OS thread and restores the prior pointer on Drop; OwnedAlloc buffers match static VmGlobal<T> Layout and are freed once in IsolateContext::drop",
+      "ownership": "Per-isolate heap-allocated copies of touched VmGlobal<T> storage and bidirectional static <-> isolate translation tables owned by IsolateContext"
     },
     "crates/lisp-vm/src/vm_primitives.rs": {
       "boundary_class": "vm_eval_and_nonlocal_boundary",

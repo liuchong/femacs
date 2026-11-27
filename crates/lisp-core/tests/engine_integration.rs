@@ -11,7 +11,7 @@ use std::thread;
 
 use lisp_core::rpc::{DEFAULT_MAX_FRAME_BYTES, serve_http_rpc};
 use lisp_core::stdlib_cache::{ensure_unpacked, exe_pdmp_path, resolve_cache_root};
-use lisp_core::{BootstrapMode, Engine, EngineConfig, Error, Value};
+use lisp_core::{BootstrapMode, ConcurrencyMode, Engine, EngineConfig, Error, Value};
 
 const TEST_ENV_KEY: &str = "LISP_CORE_TEST_CASE";
 
@@ -77,8 +77,17 @@ fn case_engine_new_roundtrips_and_call() {
         .expect("call +");
     assert_eq!(sum, Value::Int(42));
 
-    let dup = Engine::new();
-    assert!(matches!(dup, Err(Error::AlreadyInitialized)));
+    assert_eq!(engine.concurrency(), ConcurrencyMode::NoGil);
+    engine.eval("(setq it-iso-var 111)").expect("set var on first isolate");
+
+    let mut second = Engine::new().expect("second concurrent NoGil engine succeeds");
+    assert_eq!(
+        second.eval("(boundp 'it-iso-var)").expect("boundp check"),
+        Value::Nil
+    );
+    second.eval("(setq it-iso-var 222)").expect("set var on second isolate");
+    assert_eq!(engine.eval("it-iso-var").expect("read first"), Value::Int(111));
+    assert_eq!(second.eval("it-iso-var").expect("read second"), Value::Int(222));
 }
 
 fn case_engine_register_fn_and_bytes_roundtrip() {
@@ -155,6 +164,7 @@ fn case_engine_corrupt_pdmp_fallback_bad_magic() {
         .with_cache_dir(&cache_root);
     let mut engine = Engine::init(cfg).expect("init falls back cleanly on bad pdmp magic");
     assert_eq!(engine.eval("(+ 20 22)").expect("eval 42"), Value::Int(42));
+    let _ = fs::remove_file(&pdmp);
 }
 
 fn case_engine_corrupt_pdmp_fallback_corrupt_body() {
@@ -170,6 +180,7 @@ fn case_engine_corrupt_pdmp_fallback_corrupt_body() {
         .with_cache_dir(&cache_root);
     let mut engine = Engine::init(cfg).expect("init falls back cleanly on corrupt pdmp body");
     assert_eq!(engine.eval("(+ 20 22)").expect("eval 42"), Value::Int(42));
+    let _ = fs::remove_file(&pdmp);
 }
 
 fn case_engine_rpc_unix_pair() {
@@ -248,6 +259,20 @@ fn run_cli_subcommands(bin: &Path, work_root: &Path, cache_dir: &Path) {
         String::from_utf8_lossy(&verbose_out.stderr)
     );
 
+    let warm_out = run_bin(&["cache", "warm", "--quiet"]);
+    assert!(warm_out.status.success(), "{warm_out:?}");
+
+    let warm_gc_out = run_bin(&[
+        "--no-auto-warm",
+        "eval",
+        "(progn (setq gc-cons-threshold 200000) (require 'bytecomp) (garbage-collect) 'warm-gc-ok)",
+    ]);
+    assert!(warm_gc_out.status.success(), "{warm_gc_out:?}");
+    assert!(
+        String::from_utf8_lossy(&warm_gc_out.stdout).contains("warm-gc-ok"),
+        "{warm_gc_out:?}"
+    );
+
     let script = work_root.join("it_script.el");
     fs::write(
         &script,
@@ -283,7 +308,7 @@ fn run_cli_subcommands(bin: &Path, work_root: &Path, cache_dir: &Path) {
     let ert_ok = work_root.join("ert_ok.el");
     fs::write(
         &ert_ok,
-        ";;; ert_ok.el -*- lexical-binding: t -*-\n(require 'ert)\n(ert-deftest it-pass () (should (= 42 (+ 20 22))))\n",
+        ";;; ert_ok.el -*- lexical-binding: t -*-\n(require 'ert)\n(ert-deftest it-pass () (garbage-collect) (should (= 42 (+ 20 22))))\n",
     )
     .expect("write ert_ok.el");
     let test_ok = run_bin(&["test", ert_ok.to_str().unwrap()]);
@@ -319,6 +344,223 @@ fn run_cli_subcommands(bin: &Path, work_root: &Path, cache_dir: &Path) {
     assert_eq!(mem_json["schema"], "femacs-test-mem-v1");
 }
 
+fn case_engine_nogil_multi_thread_parallel_and_gc_stress() {
+    let mut handles = Vec::new();
+    for tid in 0..4_i64 {
+        handles.push(thread::spawn(move || {
+            let mut eng = Engine::new().expect("init NoGil engine in worker thread");
+            eng.eval(&format!("(setq worker-id {tid})")).expect("set worker-id");
+            for round in 0..8_i64 {
+                let form = format!(
+                    "(let ((acc 0) (i 0))
+                       (while (< i 250)
+                         (let ((s (format \"w%d-r%d-%d\" worker-id {round} i)))
+                           (setq acc (+ acc (length s))))
+                         (setq i (1+ i)))
+                       (garbage-collect)
+                       acc)"
+                );
+                let out = eng.eval(&form).expect("gc stress loop");
+                assert!(out.as_int().unwrap_or(0) > 1000);
+            }
+            assert_eq!(eng.eval("worker-id").expect("read worker-id"), Value::Int(tid));
+            tid
+        }));
+    }
+    let mut results: Vec<i64> = handles.into_iter().map(|h| h.join().expect("join")).collect();
+    results.sort_unstable();
+    assert_eq!(results, vec![0, 1, 2, 3]);
+}
+
+fn case_engine_nogil_send_across_threads() {
+    let mut eng = Engine::new().expect("init engine on creator thread");
+    eng.eval("(defun send-add (x) (+ x 100))").expect("defun send-add");
+
+    let moved_back = thread::spawn(move || {
+        assert_eq!(eng.eval("(send-add 23)").expect("eval moved"), Value::Int(123));
+        eng.gc().expect("gc on worker thread");
+        eng.eval("(setq moved-state \"ok\")").expect("mutate moved");
+        eng
+    })
+    .join()
+    .expect("join moved engine thread");
+
+    let mut eng = moved_back;
+    assert_eq!(
+        eng.eval("(list (send-add 7) moved-state)").expect("eval returned engine"),
+        Value::List(vec![Value::Int(107), Value::String("ok".to_string())])
+    );
+}
+
+fn case_engine_nogil_std_task_chan_sync() {
+    let mut eng = Engine::new().expect("init engine for std concurrency");
+    let chan_val = eng
+        .eval(
+            "(progn
+               (require 'std/chan)
+               (let ((ch (std-chan-make 2)))
+                 (list
+                   (std-chan-try-send ch 'a)
+                   (std-chan-try-send ch 'b)
+                   (std-chan-try-send ch 'c)
+                   (std-chan-len ch)
+                   (cdr (std-chan-recv ch))
+                   (car (std-chan-try-recv ch))
+                   (car (std-chan-try-recv ch))
+                   (car (std-chan-recv-timeout ch 5))
+                   (std-chan-close ch)
+                   (std-chan-closed-p ch)
+                   (cdr (std-chan-recv ch)))))",
+        )
+        .expect("std/chan test");
+    assert_eq!(
+        chan_val,
+        Value::List(vec![
+            Value::Bool(true),
+            Value::Bool(true),
+            Value::Nil,
+            Value::Int(2),
+            Value::Symbol("a".to_string()),
+            Value::Symbol("ok".to_string()),
+            Value::Symbol("empty".to_string()),
+            Value::Symbol("timeout".to_string()),
+            Value::Bool(true),
+            Value::Bool(true),
+            Value::Nil,
+        ])
+    );
+
+    let sync_val = eng
+        .eval(
+            "(progn
+               (require 'std/sync)
+               (let ((a (std-atomic-make 10))
+                     (m (std-mutex-make 5))
+                     (s (std-shared-make)))
+                 (std-atomic-add a 7)
+                 (let ((cas-ok (std-atomic-cas a 17 42))
+                       (cas-bad (std-atomic-cas a 99 0)))
+                   (std-with-mutex m
+                     (std-mutex-set m 99))
+                   (std-shared-set s \"k1\" '(1 2))
+                   (std-shared-set s \"k2\" \"v2\")
+                   (std-shared-del s \"k2\")
+                   (list (std-atomic-load a) cas-ok cas-bad
+                         (std-mutex-get m)
+                         (std-shared-get s \"k1\")
+                         (std-shared-keys s)))))",
+        )
+        .expect("std/sync test");
+    assert_eq!(
+        sync_val,
+        Value::List(vec![
+            Value::Int(42),
+            Value::Bool(true),
+            Value::Nil,
+            Value::Int(99),
+            Value::List(vec![Value::Int(1), Value::Int(2)]),
+            Value::List(vec![Value::String("k1".to_string())]),
+        ])
+    );
+
+    let task_val = eng
+        .eval(
+            "(progn
+               (require 'std/task)
+               (require 'std/chan)
+               (require 'std/sync)
+               (let* ((ch (std-chan-make 8))
+                      (atom (std-atomic-make 0))
+                      (t1 (std-task-spawn
+                            (format \"(progn (std-chan-send %d 'from-t1) (std-atomic-add %d 10) 111)\"
+                                    ch atom)))
+                      (t2 (std-task-spawn
+                            (format \"(progn (std-chan-send %d 'from-t2) (std-atomic-add %d 20) 222)\"
+                                    ch atom)))
+                      (r1 (std-task-await t1))
+                      (r2 (std-task-await t2))
+                      (pool (std-task-pool-create 2))
+                      (pt (std-task-pool-submit pool (lambda (x) (* x 3)) 14))
+                      (pt-lex (std-task-pool-submit pool (eval '(lambda (x) (* x 4)) t) 5)))
+                 (defun it-rec-sq (n)
+                   (if (<= n 0) 0 (* n n)))
+                 (let ((mapped (std-task-parallel-map #'it-rec-sq '(1 2 3 4 5 6) 2))
+                       (pr (std-task-await pt))
+                       (pr-lex (std-task-await pt-lex)))
+                   (std-task-pool-shutdown pool)
+                   (list r1 r2 (std-atomic-load atom) (std-chan-len ch) mapped pr pr-lex))))",
+        )
+        .expect("std/task test");
+    assert_eq!(
+        task_val,
+        Value::List(vec![
+            Value::Int(111),
+            Value::Int(222),
+            Value::Int(30),
+            Value::Int(2),
+            Value::List(vec![
+                Value::Int(1),
+                Value::Int(4),
+                Value::Int(9),
+                Value::Int(16),
+                Value::Int(25),
+                Value::Int(36),
+            ]),
+            Value::Int(42),
+            Value::Int(20),
+        ])
+    );
+}
+
+fn count_open_fds() -> usize {
+    #[cfg(any(target_os = "macos", target_os = "freebsd"))]
+    let dir = "/dev/fd";
+    #[cfg(target_os = "linux")]
+    let dir = "/proc/self/fd";
+    fs::read_dir(dir).map(|rd| rd.count()).unwrap_or(0)
+}
+
+fn case_engine_nogil_lifecycle_no_fd_leak() {
+    {
+        let mut warm = Engine::new().expect("warmup engine");
+        assert_eq!(warm.eval("(+ 1 1)").unwrap(), Value::Int(2));
+    }
+    let baseline = count_open_fds();
+    for i in 0..12 {
+        let mut eng = Engine::new().expect("lifecycle engine");
+        assert_eq!(
+            eng.eval(&format!("(+ {i} 10)")).unwrap(),
+            Value::Int(i + 10)
+        );
+    }
+    let after = count_open_fds();
+    assert!(
+        after <= baseline + 2,
+        "FD leak detected across NoGil engine lifecycles: baseline={baseline} after={after}"
+    );
+}
+
+fn case_engine_gil_mode_preserves_single_init() {
+    let cfg = EngineConfig::default().with_concurrency(ConcurrencyMode::Gil);
+    let mut eng = Engine::init(cfg.clone()).expect("first Gil engine init");
+    assert_eq!(eng.concurrency(), ConcurrencyMode::Gil);
+    assert_eq!(eng.eval("(+ 20 22)").expect("eval in Gil"), Value::Int(42));
+
+    match Engine::init(cfg) {
+        Err(Error::AlreadyInitialized) => {}
+        Ok(_) => panic!("second Gil engine init unexpectedly succeeded"),
+        Err(other) => {
+            panic!("second Gil engine init must fail with AlreadyInitialized, got {other:?}")
+        }
+    }
+
+    let spawn_err = eng.eval("(progn (require 'std/task) (std-task-spawn \"(+ 1 2)\"))");
+    assert!(
+        matches!(spawn_err, Err(Error::Runtime { .. })),
+        "std-task-spawn in Gil mode must fail explicitly, got {spawn_err:?}"
+    );
+}
+
 fn main() {
     if let Ok(case) = env::var(TEST_ENV_KEY) {
         match case.as_str() {
@@ -335,6 +577,13 @@ fn main() {
                 case_engine_corrupt_pdmp_fallback_corrupt_body()
             }
             "engine_rpc_unix_pair" => case_engine_rpc_unix_pair(),
+            "engine_nogil_multi_thread_parallel_and_gc_stress" => {
+                case_engine_nogil_multi_thread_parallel_and_gc_stress()
+            }
+            "engine_nogil_send_across_threads" => case_engine_nogil_send_across_threads(),
+            "engine_nogil_std_task_chan_sync" => case_engine_nogil_std_task_chan_sync(),
+            "engine_nogil_lifecycle_no_fd_leak" => case_engine_nogil_lifecycle_no_fd_leak(),
+            "engine_gil_mode_preserves_single_init" => case_engine_gil_mode_preserves_single_init(),
             other => panic!("unknown integration test case: {other}"),
         }
         return;
@@ -355,6 +604,11 @@ fn main() {
         "engine_corrupt_pdmp_fallback_bad_magic",
         "engine_corrupt_pdmp_fallback_corrupt_body",
         "engine_rpc_unix_pair",
+        "engine_nogil_multi_thread_parallel_and_gc_stress",
+        "engine_nogil_send_across_threads",
+        "engine_nogil_std_task_chan_sync",
+        "engine_nogil_lifecycle_no_fd_leak",
+        "engine_gil_mode_preserves_single_init",
     ] {
         println!("running integration subprocess case: {case}");
         spawn_child_case(case, &cache_dir);
@@ -365,5 +619,5 @@ fn main() {
     run_cli_subcommands(&bin, &work_dir, &cache_dir);
 
     let _ = fs::remove_dir_all(&tmp_root);
-    println!("engine_integration: all 8 integration cases passed");
+    println!("engine_integration: all 13 integration cases passed");
 }

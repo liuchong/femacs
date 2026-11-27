@@ -6973,3 +6973,9 @@ pub unsafe extern "C-unwind" fn init_font ()
 
 #[cfg(feature = "have_ns")]
 unsafe extern "C-unwind" { fn get_frame_param(f: *mut frame, prop: Lisp_Object) -> Lisp_Object; }
+
+#[cfg (feature = "isolate_vm")]
+pub(crate) fn pre_register_font_globals ()
+{
+  crate::sys::isolate::pre_register_global (&sort_shift_bits);
+}

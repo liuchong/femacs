@@ -51,6 +51,28 @@ use crate::pdumper::Fdump_emacs_portable;
 use crate::roots::{GcContext, RootingCounters, current_thread_key, unbind_vm_lock_owner};
 use crate::terminal::{Fterminal_list, Fterminal_live_p};
 
+/// Concurrency model used by [`HeadlessVm`] / [`HostInitConfig`].
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ConcurrencyMode {
+    /// Per-isolate true multi-core execution (`isolate_vm` feature, no global GIL).
+    NoGil,
+    /// Legacy single-process VM with global single-init guard (`Error::AlreadyInitialized` on 2nd init).
+    Gil,
+}
+
+impl Default for ConcurrencyMode {
+    fn default() -> Self {
+        #[cfg(feature = "isolate_vm")]
+        {
+            Self::NoGil
+        }
+        #[cfg(not(feature = "isolate_vm"))]
+        {
+            Self::Gil
+        }
+    }
+}
+
 /// Host VM lifecycle state: `0` = uninitialized, `1` = active, `2` = shut down / failed.
 static HOST_INIT_STATE: AtomicU8 = AtomicU8::new(0);
 static HOST_ANCHOR_DEPTH: AtomicUsize = AtomicUsize::new(0);
@@ -58,6 +80,82 @@ static HEADLESS_INTERCEPT_KILL_EMACS: AtomicBool = AtomicBool::new(false);
 static HOST_EXIT_UNWINDING: AtomicBool = AtomicBool::new(false);
 static HOST_KILL_HOOK_RUNNING: AtomicBool = AtomicBool::new(false);
 static PENDING_HOST_EXIT: AtomicU64 = AtomicU64::new(0);
+
+#[cfg(feature = "isolate_vm")]
+#[derive(Default)]
+pub(crate) struct IsolateHostFlags {
+    pub(crate) host_anchor_depth: AtomicUsize,
+    pub(crate) headless_intercept_kill_emacs: AtomicBool,
+    pub(crate) host_exit_unwinding: AtomicBool,
+    pub(crate) host_kill_hook_running: AtomicBool,
+    pub(crate) pending_host_exit: AtomicU64,
+    pub(crate) host_ext_registry: RwLock<HashMap<String, HostExtFn>>,
+}
+
+#[inline(always)]
+fn hr_host_anchor_depth() -> &'static AtomicUsize {
+    #[cfg(feature = "isolate_vm")]
+    {
+        let iso = crate::sys::isolate::current_isolate_ptr();
+        if !iso.is_null() {
+            // SAFETY: `iso` is uniquely entered via `IsolateScopeGuard` on the current thread.
+            return unsafe { &(&*iso).host_flags.host_anchor_depth };
+        }
+    }
+    &HOST_ANCHOR_DEPTH
+}
+
+#[inline(always)]
+fn hr_intercept_kill_emacs() -> &'static AtomicBool {
+    #[cfg(feature = "isolate_vm")]
+    {
+        let iso = crate::sys::isolate::current_isolate_ptr();
+        if !iso.is_null() {
+            // SAFETY: `iso` is uniquely entered via `IsolateScopeGuard` on the current thread.
+            return unsafe { &(&*iso).host_flags.headless_intercept_kill_emacs };
+        }
+    }
+    &HEADLESS_INTERCEPT_KILL_EMACS
+}
+
+#[inline(always)]
+fn hr_host_exit_unwinding() -> &'static AtomicBool {
+    #[cfg(feature = "isolate_vm")]
+    {
+        let iso = crate::sys::isolate::current_isolate_ptr();
+        if !iso.is_null() {
+            // SAFETY: `iso` is uniquely entered via `IsolateScopeGuard` on the current thread.
+            return unsafe { &(&*iso).host_flags.host_exit_unwinding };
+        }
+    }
+    &HOST_EXIT_UNWINDING
+}
+
+#[inline(always)]
+fn hr_host_kill_hook_running() -> &'static AtomicBool {
+    #[cfg(feature = "isolate_vm")]
+    {
+        let iso = crate::sys::isolate::current_isolate_ptr();
+        if !iso.is_null() {
+            // SAFETY: `iso` is uniquely entered via `IsolateScopeGuard` on the current thread.
+            return unsafe { &(&*iso).host_flags.host_kill_hook_running };
+        }
+    }
+    &HOST_KILL_HOOK_RUNNING
+}
+
+#[inline(always)]
+fn hr_pending_host_exit() -> &'static AtomicU64 {
+    #[cfg(feature = "isolate_vm")]
+    {
+        let iso = crate::sys::isolate::current_isolate_ptr();
+        if !iso.is_null() {
+            // SAFETY: `iso` is uniquely entered via `IsolateScopeGuard` on the current thread.
+            return unsafe { &(&*iso).host_flags.pending_host_exit };
+        }
+    }
+    &PENDING_HOST_EXIT
+}
 
 #[cfg(target_os = "macos")]
 const SYS_SOL_SOCKET: c_int = 0xffff;
@@ -113,27 +211,27 @@ unsafe extern "C" {
 /// Return whether the single-process headless host currently intercepts `(kill-emacs)`.
 #[inline]
 pub(crate) fn is_headless_host_active() -> bool {
-    HEADLESS_INTERCEPT_KILL_EMACS.load(Ordering::Acquire)
+    hr_intercept_kill_emacs().load(Ordering::Acquire)
 }
 
 /// Return whether a headless `(kill-emacs)` unwind is currently skipping Lisp cleanup handlers.
 #[inline]
 pub(crate) fn is_host_exit_unwinding() -> bool {
-    HOST_EXIT_UNWINDING.load(Ordering::Acquire)
+    hr_host_exit_unwinding().load(Ordering::Acquire)
 }
 
 /// Clear the headless host-exit unwind flag after an ABI/thread boundary intercepts `HostExit`
 /// for clean local teardown before resuming propagation on the VM unwind stack.
 #[inline]
 pub(crate) fn clear_host_exit_unwinding() {
-    HOST_EXIT_UNWINDING.store(false, Ordering::Release);
+    hr_host_exit_unwinding().store(false, Ordering::Release);
 }
 
 /// Resume or initiate a headless host-exit unwind (`VmHostExitUnwind(code)`) with
 /// `HOST_EXIT_UNWINDING` armed so enclosing Lisp cleanup handlers cannot swallow or alter `code`.
 #[inline(never)]
 pub(crate) fn resume_host_exit_unwind(code: i32) -> ! {
-    HOST_EXIT_UNWINDING.store(true, Ordering::Release);
+    hr_host_exit_unwinding().store(true, Ordering::Release);
     raise_host_exit(code)
 }
 
@@ -141,7 +239,7 @@ pub(crate) fn resume_host_exit_unwind(code: i32) -> ! {
 /// across `extern "C"` frames. Preserves the first recorded exit code until consumed by main thread.
 pub(crate) fn record_pending_host_exit(code: i32) {
     let encoded = (1u64 << 32) | u64::from(code as u32);
-    let _ = PENDING_HOST_EXIT.compare_exchange(0, encoded, Ordering::AcqRel, Ordering::Acquire);
+    let _ = hr_pending_host_exit().compare_exchange(0, encoded, Ordering::AcqRel, Ordering::Acquire);
     // SAFETY: Caller holds the active VM global lock or is tearing down a Lisp thread; setting
     // `pending_signals` wakes any active Lisp loop via `probably_quit()`, and the non-blocking
     // self-pipe write wakes any blocking main-thread `pselect` via `thread_select`.
@@ -156,13 +254,13 @@ pub(crate) fn record_pending_host_exit(code: i32) {
 /// Return whether a deferred subthread/host exit request is waiting for main-thread propagation.
 #[inline]
 pub(crate) fn has_pending_host_exit() -> bool {
-    PENDING_HOST_EXIT.load(Ordering::Acquire) != 0
+    hr_pending_host_exit().load(Ordering::Acquire) != 0
 }
 
 /// Atomically consume any pending deferred host-exit request, returning its exit code.
 #[inline]
 pub(crate) fn take_pending_host_exit() -> Option<i32> {
-    let raw = PENDING_HOST_EXIT.swap(0, Ordering::AcqRel);
+    let raw = hr_pending_host_exit().swap(0, Ordering::AcqRel);
     if raw == 0 {
         None
     } else {
@@ -202,7 +300,7 @@ struct HostExitUnwindResetGuard;
 impl Drop for HostExitUnwindResetGuard {
     #[inline]
     fn drop(&mut self) {
-        HOST_EXIT_UNWINDING.store(false, Ordering::Release);
+        hr_host_exit_unwinding().store(false, Ordering::Release);
     }
 }
 
@@ -211,7 +309,7 @@ struct HostKillHookGuard;
 impl Drop for HostKillHookGuard {
     #[inline]
     fn drop(&mut self) {
-        HOST_KILL_HOOK_RUNNING.store(false, Ordering::Release);
+        hr_host_kill_hook_running().store(false, Ordering::Release);
     }
 }
 
@@ -239,7 +337,7 @@ pub(crate) unsafe fn intercept_headless_kill_emacs(arg: Lisp_Object) -> ! {
         if !NILP(hook_val)
             && !EQ(hook_val, Qunbound())
             && !is_host_exit_unwinding()
-            && !HOST_KILL_HOOK_RUNNING.swap(true, Ordering::AcqRel)
+            && !hr_host_kill_hook_running().swap(true, Ordering::AcqRel)
         {
             let _hook_guard = HostKillHookGuard;
             safe_run_hooks(hook_sym);
@@ -279,6 +377,14 @@ static HOST_EXT_REGISTRY: OnceLock<RwLock<HashMap<String, HostExtFn>>> = OnceLoc
 
 #[inline]
 fn host_ext_registry() -> &'static RwLock<HashMap<String, HostExtFn>> {
+    #[cfg(feature = "isolate_vm")]
+    {
+        let iso = crate::sys::isolate::current_isolate_ptr();
+        if !iso.is_null() {
+            // SAFETY: `iso` is uniquely entered via `IsolateScopeGuard` on the current thread.
+            return unsafe { &(&*iso).host_flags.host_ext_registry };
+        }
+    }
     HOST_EXT_REGISTRY.get_or_init(|| RwLock::new(HashMap::new()))
 }
 
@@ -406,6 +512,7 @@ pub struct HostInitConfig {
     pub replace_load_path: bool,
     pub quiet_bootstrap: bool,
     pub defer_delayed_custom_init: bool,
+    pub concurrency: ConcurrencyMode,
 }
 
 impl HostInitConfig {
@@ -419,6 +526,7 @@ impl HostInitConfig {
             replace_load_path: false,
             quiet_bootstrap: true,
             defer_delayed_custom_init: false,
+            concurrency: ConcurrencyMode::default(),
         }
     }
 
@@ -432,6 +540,7 @@ impl HostInitConfig {
             replace_load_path: false,
             quiet_bootstrap: true,
             defer_delayed_custom_init: false,
+            concurrency: ConcurrencyMode::default(),
         }
     }
 
@@ -445,6 +554,7 @@ impl HostInitConfig {
             replace_load_path: false,
             quiet_bootstrap: true,
             defer_delayed_custom_init: false,
+            concurrency: ConcurrencyMode::default(),
         }
     }
 
@@ -458,6 +568,7 @@ impl HostInitConfig {
             replace_load_path: false,
             quiet_bootstrap: true,
             defer_delayed_custom_init: false,
+            concurrency: ConcurrencyMode::default(),
         }
     }
 
@@ -478,6 +589,7 @@ impl HostInitConfig {
             replace_load_path: false,
             quiet_bootstrap: true,
             defer_delayed_custom_init: false,
+            concurrency: ConcurrencyMode::default(),
         }
     }
 
@@ -508,6 +620,12 @@ impl HostInitConfig {
     /// Keep `custom-delayed-init-variables` unevaluated (used before writing a portable dump).
     pub fn with_defer_delayed_custom_init(mut self, defer: bool) -> Self {
         self.defer_delayed_custom_init = defer;
+        self
+    }
+
+    /// Select the concurrency mode (`NoGil` per-isolate multi-core or `Gil` single-init).
+    pub fn with_concurrency(mut self, mode: ConcurrencyMode) -> Self {
+        self.concurrency = mode;
         self
     }
 }
@@ -599,7 +717,7 @@ struct StackAnchorGuard {
 impl Drop for StackAnchorGuard {
     #[inline(always)]
     fn drop(&mut self) {
-        HOST_ANCHOR_DEPTH.fetch_sub(1, Ordering::Relaxed);
+        hr_host_anchor_depth().fetch_sub(1, Ordering::Relaxed);
         // SAFETY: `self.ct` is the VM-locked active `thread_state`; restores prior `m_stack_bottom`
         // unconditionally on normal return or unwind.
         unsafe {
@@ -620,7 +738,7 @@ fn with_host_stack_anchor<R>(ctx: &mut GcContext, body: impl FnOnce(&mut GcConte
     // `m_stack_bottom` to a live aligned frame local and restores it in `StackAnchorGuard::drop`.
     let guard = unsafe {
         let ct = current_thread.get();
-        let depth = HOST_ANCHOR_DEPTH.fetch_add(1, Ordering::Relaxed);
+        let depth = hr_host_anchor_depth().fetch_add(1, Ordering::Relaxed);
         let saved_bottom = if ct.is_null() {
             core::ptr::null()
         } else {
@@ -1052,15 +1170,63 @@ fn resolve_abs_path(path: &Path) -> Result<PathBuf, VmHostError> {
     }
 }
 
-/// Initialize the single-process headless Lisp VM cleanly and return its exclusive `GcContext`.
-fn init_headless_host(config: &HostInitConfig) -> Result<GcContext, VmHostError> {
+/// Initialize headless Lisp VM cleanly and return its exclusive `GcContext` (plus `IsolateContext` when enabled).
+#[cfg(not(feature = "isolate_vm"))]
+fn init_headless_host_with_isolate(
+    config: &HostInitConfig,
+) -> Result<(GcContext, ()), VmHostError> {
+    if config.concurrency == ConcurrencyMode::NoGil {
+        return Err(VmHostError::InitFailed(
+            "NoGil concurrency requires the lisp-vm `isolate_vm` feature".to_string(),
+        ));
+    }
+    init_headless_host_gil(config).map(|ctx| (ctx, ()))
+}
+
+#[cfg(feature = "isolate_vm")]
+fn init_headless_host_with_isolate(
+    config: &HostInitConfig,
+) -> Result<(GcContext, Box<crate::sys::isolate::IsolateContext>), VmHostError> {
+    let gil_mode = config.concurrency == ConcurrencyMode::Gil;
+    if gil_mode
+        && HOST_INIT_STATE
+            .compare_exchange(0, 1, Ordering::AcqRel, Ordering::Acquire)
+            .is_err()
+    {
+        return Err(VmHostError::AlreadyInitialized);
+    }
+
+    let mut isolate = crate::sys::isolate::IsolateContext::new();
+    // SAFETY: `isolate` was freshly allocated and is uniquely accessed during initialization.
+    let _scope = unsafe { crate::sys::isolate::IsolateScopeGuard::enter(&raw mut *isolate) };
+    let _tls = crate::roots::enter_isolate_os_thread();
+
+    match init_headless_host_inner(config, gil_mode) {
+        Ok(ctx) => Ok((ctx, isolate)),
+        Err(err) => {
+            if gil_mode {
+                HOST_INIT_STATE.store(2, Ordering::Release);
+            }
+            Err(err)
+        }
+    }
+}
+
+#[cfg(not(feature = "isolate_vm"))]
+fn init_headless_host_gil(config: &HostInitConfig) -> Result<GcContext, VmHostError> {
     if HOST_INIT_STATE
         .compare_exchange(0, 1, Ordering::AcqRel, Ordering::Acquire)
         .is_err()
     {
         return Err(VmHostError::AlreadyInitialized);
     }
+    init_headless_host_inner(config, true)
+}
 
+fn init_headless_host_inner(
+    config: &HostInitConfig,
+    mark_gil_state_on_fail: bool,
+) -> Result<GcContext, VmHostError> {
     let exe_str = std::env::current_exe()
         .ok()
         .filter(|p| !p.as_os_str().is_empty())
@@ -1087,7 +1253,9 @@ fn init_headless_host(config: &HostInitConfig) -> Result<GcContext, VmHostError>
                 Err(_) => {
                     // SAFETY: Reclaims leaked `argv0_raw` allocated above before returning early.
                     unsafe { drop(CString::from_raw(argv0_raw)) };
-                    HOST_INIT_STATE.store(2, Ordering::Release);
+                    if mark_gil_state_on_fail {
+                        HOST_INIT_STATE.store(2, Ordering::Release);
+                    }
                     return Err(VmHostError::InitFailed(format!(
                         "dump path contains interior NUL byte: {}",
                         path.display()
@@ -1107,7 +1275,9 @@ fn init_headless_host(config: &HostInitConfig) -> Result<GcContext, VmHostError>
                 Err(_) => {
                     // SAFETY: Reclaims leaked `argv0_raw` allocated above before returning early.
                     unsafe { drop(CString::from_raw(argv0_raw)) };
-                    HOST_INIT_STATE.store(2, Ordering::Release);
+                    if mark_gil_state_on_fail {
+                        HOST_INIT_STATE.store(2, Ordering::Release);
+                    }
                     return Err(VmHostError::InitFailed(format!(
                         "data_dir contains interior NUL byte: {}",
                         dir.display()
@@ -1119,30 +1289,48 @@ fn init_headless_host(config: &HostInitConfig) -> Result<GcContext, VmHostError>
     };
     let data_ptr = data_c.as_ref().map_or(core::ptr::null(), |c| c.as_ptr());
 
-    HEADLESS_INTERCEPT_KILL_EMACS.store(true, Ordering::Release);
-    // SAFETY: Single-init enforced by `HOST_INIT_STATE` CAS (`0 -> 1`); `argv0_raw` intentionally
-    // stays live for process lifetime because `copy_args` stores `argv[0]` in `initial_argv0`.
+    hr_intercept_kill_emacs().store(true, Ordering::Release);
+    // SAFETY: Single-init enforced by `HOST_INIT_STATE` CAS in `Gil` mode or isolated per
+    // `IsolateContext` in `NoGil` mode; `argv0_raw` intentionally stays live for `initial_argv0`.
     let mut init_res = unsafe { crate::emacs::init_headless_vm_body(argv0_raw, dump_ptr, data_ptr) };
     if init_res.is_err() && allow_dump_fallback && !dump_ptr.is_null() {
         // SAFETY: `init_headless_vm_body` only errors on `pdumper_load` before initializing VM
-        // threads, globals, or FDs; retrying with `NULL` dump initializes the process cleanly.
+        // threads, globals, or FDs; retrying with `NULL` dump initializes the isolate cleanly.
         init_res = unsafe {
             crate::emacs::init_headless_vm_body(argv0_raw, core::ptr::null(), data_ptr)
         };
     }
     if let Err(msg) = init_res {
-        HEADLESS_INTERCEPT_KILL_EMACS.store(false, Ordering::Release);
+        hr_intercept_kill_emacs().store(false, Ordering::Release);
+        #[cfg(feature = "isolate_vm")]
+        // SAFETY: Releases isolate-owned FDs, heap blocks, and pdump mappings while inside `IsolateScopeGuard`.
+        unsafe {
+            crate::u_lib_getrandom::close_isolate_random_fds();
+            crate::alloc::teardown_isolate_heap();
+            crate::pdumper::pdumper_release_isolate_mapping();
+        }
         if current_thread_key() != 0 {
             // SAFETY: Best-effort lock unbind on early bootstrap error while on owner thread.
             unsafe { unbind_vm_lock_owner() };
         }
-        HOST_INIT_STATE.store(2, Ordering::Release);
+        if mark_gil_state_on_fail {
+            HOST_INIT_STATE.store(2, Ordering::Release);
+        }
         return Err(VmHostError::InitFailed(msg));
     }
 
     let Some(mut ctx) = GcContext::current() else {
-        HEADLESS_INTERCEPT_KILL_EMACS.store(false, Ordering::Release);
-        HOST_INIT_STATE.store(2, Ordering::Release);
+        hr_intercept_kill_emacs().store(false, Ordering::Release);
+        #[cfg(feature = "isolate_vm")]
+        // SAFETY: Releases isolate-owned FDs, heap blocks, and pdump mappings while inside `IsolateScopeGuard`.
+        unsafe {
+            crate::u_lib_getrandom::close_isolate_random_fds();
+            crate::alloc::teardown_isolate_heap();
+            crate::pdumper::pdumper_release_isolate_mapping();
+        }
+        if mark_gil_state_on_fail {
+            HOST_INIT_STATE.store(2, Ordering::Release);
+        }
         return Err(VmHostError::InitFailed(
             "VM initialized without active GcContext lease".to_string(),
         ));
@@ -1153,7 +1341,7 @@ fn init_headless_host(config: &HostInitConfig) -> Result<GcContext, VmHostError>
             apply_configured_paths_raw(config);
         });
         if let Err(err) = lp_res {
-            shutdown_headless_host(ctx);
+            shutdown_headless_host(ctx, mark_gil_state_on_fail);
             return Err(err);
         }
     }
@@ -1165,7 +1353,7 @@ fn init_headless_host(config: &HostInitConfig) -> Result<GcContext, VmHostError>
         unsafe { ensure_host_call_subr_registered() };
     });
     if let Err(err) = host_subr_res {
-        shutdown_headless_host(ctx);
+        shutdown_headless_host(ctx, mark_gil_state_on_fail);
         return Err(err);
     }
 
@@ -1210,7 +1398,7 @@ fn init_headless_host(config: &HostInitConfig) -> Result<GcContext, VmHostError>
             apply_configured_paths_raw(config);
         });
         if let Err(err) = loadup_res {
-            shutdown_headless_host(ctx);
+            shutdown_headless_host(ctx, mark_gil_state_on_fail);
             return Err(err);
         }
     }
@@ -1275,7 +1463,7 @@ fn init_headless_host(config: &HostInitConfig) -> Result<GcContext, VmHostError>
             }
         });
         if let Err(err) = init_res {
-            shutdown_headless_host(ctx);
+            shutdown_headless_host(ctx, mark_gil_state_on_fail);
             return Err(err);
         }
     }
@@ -1283,27 +1471,35 @@ fn init_headless_host(config: &HostInitConfig) -> Result<GcContext, VmHostError>
     Ok(ctx)
 }
 
-/// Shut down the headless host, flushing output streams and marking the process-wide VM state spent.
-fn shutdown_headless_host(ctx: GcContext) {
-    HOST_KILL_HOOK_RUNNING.store(false, Ordering::Release);
-    HOST_EXIT_UNWINDING.store(false, Ordering::Release);
-    PENDING_HOST_EXIT.store(0, Ordering::Release);
-    HEADLESS_INTERCEPT_KILL_EMACS.store(false, Ordering::Release);
+/// Shut down the headless host, flushing output streams and releasing isolate heap & pdump maps.
+fn shutdown_headless_host(ctx: GcContext, mark_gil_state: bool) {
+    hr_host_kill_hook_running().store(false, Ordering::Release);
+    hr_host_exit_unwinding().store(false, Ordering::Release);
+    hr_pending_host_exit().store(0, Ordering::Release);
+    hr_intercept_kill_emacs().store(false, Ordering::Release);
     drop(ctx);
     // SAFETY: Ownership of the sole `GcContext` was released by `drop(ctx)` above, so zero active
     // VM/root borrows remain on this OS thread; drains the self-pipe, clears `Vquit_flag`, flushes
-    // stdio, and unbinds VM lock ownership before marking `HOST_INIT_STATE` spent.
+    // stdio, releases per-isolate heap/pdump memory, and unbinds VM lock ownership.
     unsafe {
         if current_thread_key() != 0 {
             crate::process::drain_host_exit_io_wakeup();
             *Vquit_flag.as_mut_ptr() = lisp_h_Qnil();
         }
         flush_c_stdio_raw();
+        #[cfg(feature = "isolate_vm")]
+        {
+            crate::u_lib_getrandom::close_isolate_random_fds();
+            crate::alloc::teardown_isolate_heap();
+            crate::pdumper::pdumper_release_isolate_mapping();
+        }
         if current_thread_key() != 0 {
             unbind_vm_lock_owner();
         }
     }
-    HOST_INIT_STATE.store(2, Ordering::Release);
+    if mark_gil_state {
+        HOST_INIT_STATE.store(2, Ordering::Release);
+    }
 }
 
 #[inline]
@@ -1550,25 +1746,76 @@ impl Drop for UnbindGuard {
     }
 }
 
-/// Opaque, non-`Copy`, `!Send + !Sync` owner of the single headless `femacs-vm` instance (`C1`).
+#[cfg(feature = "isolate_vm")]
+struct HeadlessIsolateGuard {
+    _tls: Option<crate::roots::IsolateThreadTlsGuard>,
+    _scope: Option<crate::sys::isolate::IsolateScopeGuard>,
+}
+
+/// Opaque, non-`Copy` owner of a headless `femacs-vm` instance (`C1`).
 ///
-/// Confines the raw `GcContext` lease inside the VM runtime boundary so external crates cannot
-/// bypass condition protection or leak unowned `Rooted` handles past VM shutdown. Every entry
-/// runs under stack anchoring + `CONDITION_CASE(t)` protection and returns host-owned values.
+/// With `isolate_vm`, each `HeadlessVm` owns a heap-backed `IsolateContext` (`Send` across
+/// OS threads in `NoGil` mode, `!Sync`); without `isolate_vm`, it enforces single-init `!Send`.
 pub struct HeadlessVm {
     ctx: Option<GcContext>,
+    #[cfg(feature = "isolate_vm")]
+    isolate: Option<Box<crate::sys::isolate::IsolateContext>>,
+    concurrency: ConcurrencyMode,
     _not_send_sync: PhantomData<*mut ()>,
 }
 
+#[cfg(feature = "isolate_vm")]
+// SAFETY: Each `HeadlessVm` uniquely owns its `IsolateContext`, heap blocks, and `GcContext`.
+// Mutable `&mut self` methods and `Drop` bind `CURRENT_ISOLATE` + OS-thread TLS exclusively
+// for the duration of the call and restore thread TLS before returning or sending across threads.
+unsafe impl Send for HeadlessVm {}
+
 impl HeadlessVm {
-    /// Initialize the process-wide headless VM once and return an owning `HeadlessVm` handle.
+    /// Initialize a headless VM instance and return an owning `HeadlessVm` handle.
     pub fn init(config: &HostInitConfig) -> Result<Self, VmHostError> {
-        let ctx = init_headless_host(config)?;
-        Ok(Self {
-            ctx: Some(ctx),
-            _not_send_sync: PhantomData,
-        })
+        #[cfg(feature = "isolate_vm")]
+        {
+            let (ctx, isolate) = init_headless_host_with_isolate(config)?;
+            Ok(Self {
+                ctx: Some(ctx),
+                isolate: Some(isolate),
+                concurrency: config.concurrency,
+                _not_send_sync: PhantomData,
+            })
+        }
+        #[cfg(not(feature = "isolate_vm"))]
+        {
+            let (ctx, ()) = init_headless_host_with_isolate(config)?;
+            Ok(Self {
+                ctx: Some(ctx),
+                concurrency: config.concurrency,
+                _not_send_sync: PhantomData,
+            })
+        }
     }
+
+    #[cfg(feature = "isolate_vm")]
+    #[inline]
+    fn enter_isolate(&mut self) -> HeadlessIsolateGuard {
+        if let Some(ref mut iso) = self.isolate {
+            // SAFETY: `&mut self` grants exclusive access to this `IsolateContext` on this thread.
+            let scope = unsafe { crate::sys::isolate::IsolateScopeGuard::enter(&raw mut **iso) };
+            let tls = crate::roots::enter_isolate_os_thread();
+            HeadlessIsolateGuard {
+                _tls: tls,
+                _scope: Some(scope),
+            }
+        } else {
+            HeadlessIsolateGuard {
+                _tls: None,
+                _scope: None,
+            }
+        }
+    }
+
+    #[cfg(not(feature = "isolate_vm"))]
+    #[inline(always)]
+    fn enter_isolate(&mut self) {}
 
     #[inline]
     fn ctx_mut(&mut self) -> &mut GcContext {
@@ -1577,9 +1824,15 @@ impl HeadlessVm {
             .expect("HeadlessVm context present until Drop")
     }
 
+    /// Return the concurrency mode configured for this VM instance.
+    pub fn concurrency(&self) -> ConcurrencyMode {
+        self.concurrency
+    }
+
     /// Read and sequentially evaluate every top-level Lisp form in `source`, returning the last
     /// value converted into a host-owned `VmValue`.
     pub fn read_eval_value(&mut self, source: &str) -> Result<VmValue, VmHostError> {
+        let _iso = self.enter_isolate();
         with_host_condition_catch(self.ctx_mut(), || {
             // SAFETY: Runs inside `with_host_condition_catch` on the VM-locked active thread;
             // `eval_forms_raw` and `raw_to_vm_value` keep all temporary values rooted.
@@ -1592,6 +1845,7 @@ impl HeadlessVm {
 
     /// Call Lisp function `func_name` with typed host `args`, returning its result as `VmValue`.
     pub fn call_value(&mut self, func_name: &str, args: &[VmValue]) -> Result<VmValue, VmHostError> {
+        let _iso = self.enter_isolate();
         let func_name = func_name.to_string();
         with_host_condition_catch(self.ctx_mut(), || {
             // SAFETY: Runs inside `with_host_condition_catch`; `RootedVec` keeps function symbol
@@ -1615,6 +1869,7 @@ impl HeadlessVm {
     /// Read and sequentially evaluate every top-level Lisp form in `source`, returning the last
     /// result printed with `prin1-to-string`.
     pub fn read_eval_to_string(&mut self, source: &str) -> Result<String, VmHostError> {
+        let _iso = self.enter_isolate();
         with_host_condition_catch(self.ctx_mut(), || {
             // SAFETY: Runs inside `with_host_condition_catch` on the VM-locked active thread;
             // `eval_forms_raw` keeps source and intermediate forms rooted, and `raw_prin1_to_owned`
@@ -1628,6 +1883,7 @@ impl HeadlessVm {
 
     /// Read and sequentially evaluate all top-level Lisp forms in `source` without printing the value.
     pub fn eval_silent(&mut self, source: &str) -> Result<(), VmHostError> {
+        let _iso = self.enter_isolate();
         with_host_condition_catch(self.ctx_mut(), || {
             // SAFETY: Runs inside `with_host_condition_catch` with all forms rooted in `eval_forms_raw`.
             unsafe {
@@ -1644,6 +1900,7 @@ impl HeadlessVm {
         print_result: bool,
         args_left: &[OsString],
     ) -> Result<(Option<String>, Vec<OsString>), VmHostError> {
+        let _iso = self.enter_isolate();
         let argv_strs: Vec<String> = args_left
             .iter()
             .map(|arg| arg.to_string_lossy().into_owned())
@@ -1671,6 +1928,7 @@ impl HeadlessVm {
 
     /// Prepend a directory (and its `subdirs.el` if present) to Lisp `load-path`.
     pub fn prepend_load_path(&mut self, dir: &Path) -> Result<(), VmHostError> {
+        let _iso = self.enter_isolate();
         let dir = dir.to_path_buf();
         with_host_condition_catch(self.ctx_mut(), || {
             add_load_path_and_subdirs_raw(&dir);
@@ -1706,6 +1964,7 @@ impl HeadlessVm {
 
     /// Load a Lisp library or file using standard `-l` lookup semantics (`nosuffix = nil`).
     pub fn load_library(&mut self, file: &str) -> Result<(), VmHostError> {
+        let _iso = self.enter_isolate();
         let file = file.to_string();
         with_host_condition_catch(self.ctx_mut(), || {
             // SAFETY: Runs inside `with_host_condition_catch`; roots `file_lisp` and resolved
@@ -1733,6 +1992,7 @@ impl HeadlessVm {
         file: &str,
         args_left: &[OsString],
     ) -> Result<Vec<OsString>, VmHostError> {
+        let _iso = self.enter_isolate();
         let file = file.to_string();
         let argv_strs: Vec<String> = args_left
             .iter()
@@ -1778,6 +2038,7 @@ impl HeadlessVm {
         func_name: &str,
         args_left: &[OsString],
     ) -> Result<Vec<OsString>, VmHostError> {
+        let _iso = self.enter_isolate();
         let func_c = CString::new(func_name).map_err(|_| VmHostError::LispCondition {
             symbol: "invalid-function".to_string(),
             message: format!("function name contains NUL byte: {func_name}"),
@@ -1811,6 +2072,7 @@ impl HeadlessVm {
         arg1: &str,
         arg2: &str,
     ) -> Result<String, VmHostError> {
+        let _iso = self.enter_isolate();
         let func_c = CString::new(fn_name).map_err(|_| VmHostError::LispCondition {
             symbol: "invalid-function".to_string(),
             message: format!("function name contains NUL byte: {fn_name}"),
@@ -1839,6 +2101,7 @@ impl HeadlessVm {
 
     /// Load a Lisp script file with `command-line-args-left` (`argv`) dynamically bound to `argv`.
     pub fn load_script_file(&mut self, path: &Path, argv: &[OsString]) -> Result<(), VmHostError> {
+        let _iso = self.enter_isolate();
         let abs_path = resolve_abs_path(path)?;
         if abs_path.is_dir() {
             return Err(VmHostError::Io {
@@ -1877,6 +2140,7 @@ impl HeadlessVm {
 
     /// Write a relocatable portable dump bound to the current executable's fingerprint at `out_path`.
     pub fn dump_portable(&mut self, out_path: &Path) -> Result<(), VmHostError> {
+        let _iso = self.enter_isolate();
         let abs_path = resolve_abs_path(out_path)?;
         let abs_s = abs_path.to_string_lossy().into_owned();
         with_host_condition_catch(self.ctx_mut(), || {
@@ -1894,6 +2158,7 @@ impl HeadlessVm {
 
     /// Trigger VM garbage collection under host stack anchoring and condition protection.
     pub fn garbage_collect(&mut self) -> Result<(), VmHostError> {
+        let _iso = self.enter_isolate();
         with_host_condition_catch(self.ctx_mut(), || {
             Fgarbage_collect();
         })
@@ -1904,6 +2169,7 @@ impl HeadlessVm {
     /// `Err(VmHostError::ExitRequest(code))` with thread pending state cleared afterward.
     #[doc(hidden)]
     pub fn verify_comp_native_host_exit_state(&mut self, code: i32) -> Result<(), VmHostError> {
+        let _iso = self.enter_isolate();
         let res = with_host_condition_catch(self.ctx_mut(), || {
             // SAFETY: Runs inside `with_host_condition_catch` on the active VM-lock-owning thread.
             unsafe {
@@ -1940,6 +2206,7 @@ impl HeadlessVm {
 
     /// Inspect observable headless frame/terminal/GC/pdumper invariants inside the active VM.
     pub fn inspect_environment(&mut self) -> Result<HeadlessDiagnostics, VmHostError> {
+        let _iso = self.enter_isolate();
         let ctx = self.ctx_mut();
         let rooting_counters = ctx.rooting_counters();
         with_host_condition_catch(ctx, || {
@@ -2003,6 +2270,7 @@ impl HeadlessVm {
     /// Run all `crate::safe_domain` checks under anchored stack bounds and condition protection,
     /// extracting an owned summary string before the `Rooted` result leaves scope.
     pub fn exercise_safe_domains(&mut self, temp_file_path: &Path) -> Result<String, VmHostError> {
+        let _iso = self.enter_isolate();
         let path_s = temp_file_path.to_string_lossy().into_owned();
         with_host_condition_catch_ctx(self.ctx_mut(), |ctx| {
             let res = crate::safe_domain::exercise_all_safe_domains(ctx, &path_s)?;
@@ -2013,6 +2281,7 @@ impl HeadlessVm {
     /// Evaluate `source` through `crate::safe_domain::read_eval_and_format_utf8` under anchored
     /// stack bounds and condition protection, returning only host-owned output or `VmHostError`.
     pub fn safe_domain_read_eval(&mut self, source: &str) -> Result<String, VmHostError> {
+        let _iso = self.enter_isolate();
         with_host_condition_catch_ctx(self.ctx_mut(), |ctx| {
             crate::safe_domain::read_eval_and_format_utf8(ctx, source)
         })
@@ -2020,6 +2289,7 @@ impl HeadlessVm {
 
     /// Register a host Rust callback reachable in Lisp under `name`.
     pub fn register_host_fn(&mut self, name: &str, f: HostExtFn) -> Result<(), VmHostError> {
+        let _iso = self.enter_isolate();
         {
             let mut guard = host_ext_registry()
                 .write()
@@ -2088,6 +2358,7 @@ impl HeadlessVm {
 
     /// Return sorted unique bound/fbound symbol names currently interned in the VM obarray.
     pub fn list_interned_symbols(&mut self) -> Result<Vec<String>, VmHostError> {
+        let _iso = self.enter_isolate();
         with_host_condition_catch(self.ctx_mut(), || {
             // SAFETY: Runs under active VM lock inside `with_host_condition_catch`.
             unsafe {
@@ -2119,7 +2390,14 @@ impl HeadlessVm {
 impl Drop for HeadlessVm {
     fn drop(&mut self) {
         if let Some(ctx) = self.ctx.take() {
-            shutdown_headless_host(ctx);
+            let mark_gil_state = self.concurrency == ConcurrencyMode::Gil;
+            let _iso = self.enter_isolate();
+            shutdown_headless_host(ctx, mark_gil_state);
+            drop(_iso);
+            #[cfg(feature = "isolate_vm")]
+            {
+                drop(self.isolate.take());
+            }
         }
     }
 }

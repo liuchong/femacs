@@ -2796,3 +2796,12 @@ pub unsafe extern "C-unwind" fn syms_of_charset ()
 
   }
 }
+
+#[cfg (feature = "isolate_vm")]
+pub(crate) fn pre_register_charset_globals ()
+{
+  crate::sys::isolate::pre_register_global (&charset_table);
+  crate::sys::isolate::pre_register_global (&emacs_mule_charset);
+  crate::sys::isolate::pre_register_global (&iso_charset_table);
+  crate::sys::isolate::pre_register_global (&Vcharset_non_preferred_head);
+}

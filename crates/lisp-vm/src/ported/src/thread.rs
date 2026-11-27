@@ -180,12 +180,32 @@ static main_thread: VmGlobal<aligned_thread_state> = VmGlobal::<aligned_thread_s
 // thread.c 60-62: C writes `&main_thread.s`, the address of the union's first (only) member,
 // which is the union's address; `addr_of_mut!` on the field is the same pointer.
 #[unsafe(no_mangle)]
-pub(crate) static current_thread: VmGlobal<*mut thread_state> = VmGlobal::<*mut thread_state>::new (/* SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership. */ unsafe { std::ptr::addr_of_mut! ((*main_thread.as_mut_ptr ()).s) });
+pub(crate) static current_thread: VmGlobal<*mut thread_state> = VmGlobal::<*mut thread_state>::new (/* SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership. */ unsafe { std::ptr::addr_of_mut! ((*main_thread.as_static_mut_ptr ()).s) });
 
 #[unsafe(no_mangle)]
-pub(crate) static all_threads: VmGlobal<*mut thread_state> = VmGlobal::<*mut thread_state>::new (unsafe { std::ptr::addr_of_mut! ((*main_thread.as_mut_ptr ()).s) });
+pub(crate) static all_threads: VmGlobal<*mut thread_state> = VmGlobal::<*mut thread_state>::new (unsafe { std::ptr::addr_of_mut! ((*main_thread.as_static_mut_ptr ()).s) });
 
 static global_lock: VmGlobal<sys_mutex_t> = VmGlobal::<sys_mutex_t>::new (/* SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership. */ unsafe { core::mem::zeroed () });
+
+#[cfg (feature = "isolate_vm")]
+pub(crate) fn pre_register_thread_globals ()
+{
+  crate::sys::isolate::pre_register_global (&main_thread);
+  crate::sys::isolate::pre_register_global (&current_thread);
+  crate::sys::isolate::pre_register_global (&all_threads);
+  crate::sys::isolate::pre_register_global (&global_lock);
+  // SAFETY: Updates this isolate's `current_thread` and `all_threads` pointers from the
+  // static `main_thread` template address to this isolate's cloned `main_thread`.
+  unsafe {
+    let mt = std::ptr::addr_of_mut! ((*main_thread.as_mut_ptr ()).s);
+    if *current_thread.as_ptr () == std::ptr::addr_of_mut! ((*main_thread.as_static_mut_ptr ()).s) {
+      *current_thread.as_mut_ptr () = mt;
+    }
+    if *all_threads.as_ptr () == std::ptr::addr_of_mut! ((*main_thread.as_static_mut_ptr ()).s) {
+      *all_threads.as_mut_ptr () = mt;
+    }
+  }
+}
 
 /* thread.c 70's declaration is the one above (interrupt_input_blocked).  */
 

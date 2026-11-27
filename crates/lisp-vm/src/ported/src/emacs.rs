@@ -2194,6 +2194,17 @@ unsafe fn grow_regex_stack_limit (try_to_grow_stack: bool)
 	      && pagesize as rlim_t <= newlim - lim
 	    {
 	      rlim.rlim_cur = newlim;
+	      #[cfg (feature = "isolate_vm")]
+	      if crate::sys::isolate::is_isolate_active () {
+	        static STACK_RLIM_ONCE: std::sync::Once = std::sync::Once::new ();
+	        STACK_RLIM_ONCE.call_once (|| {
+	          let _ = setrlimit (RLIMIT_STACK, &raw const rlim);
+	        });
+	        lim = newlim;
+	      } else if setrlimit (RLIMIT_STACK, &raw const rlim) == 0 {
+	        lim = newlim;
+	      }
+	      #[cfg (not (feature = "isolate_vm"))]
 	      if setrlimit (RLIMIT_STACK, &raw const rlim) == 0
 		{ lim = newlim; }
 	    }
@@ -2484,6 +2495,23 @@ unsafe fn init_vm_display_subsystems (sockfd: c_int)
   }
 }
 
+#[cfg (feature = "isolate_vm")]
+fn pre_register_all_isolate_globals ()
+{
+  crate::alloc::pre_register_alloc_globals ();
+  crate::buffer::pre_register_buffer_globals ();
+  crate::charset::pre_register_charset_globals ();
+  crate::coding::pre_register_coding_globals ();
+  crate::font::pre_register_font_globals ();
+  crate::lread::pre_register_lread_globals ();
+  crate::pdumper::pre_register_pdumper_globals ();
+  crate::search::pre_register_search_globals ();
+  crate::syntax::pre_register_syntax_globals ();
+  crate::thread::pre_register_thread_globals ();
+  crate::xdisp::pre_register_xdisp_globals ();
+  crate::eval::pre_register_eval_globals ();
+}
+
 /// Initialize the single-process headless Lisp VM without starting a GUI toolkit,
 /// opening a controlling TTY, or entering the interactive command loop (`C1`).
 ///
@@ -2499,6 +2527,10 @@ pub(crate) unsafe fn init_headless_vm_body (
 {
   // SAFETY: single-process headless VM initialization under VM lock ownership (`C1`).
   unsafe {
+  #[cfg (feature = "isolate_vm")]
+  if crate::sys::isolate::is_isolate_active () {
+    pre_register_all_isolate_globals ();
+  }
   let mut stack_bottom_variable: *mut c_void = std::ptr::null_mut ();
   stack_bottom! () = (&raw mut stack_bottom_variable) as *const c_char;
   crate::roots::bind_vm_lock_owner ((*current_thread.as_mut_ptr ()) as usize);
@@ -2545,8 +2577,22 @@ pub(crate) unsafe fn init_headless_vm_body (
   let lc_all: *mut c_char = getenv (c"LC_ALL".as_ptr ());
   if !(!lc_all.is_null () && strcmp (lc_all, c"C".as_ptr ()) == 0)
     {
-      setlocale (LC_ALL, c"".as_ptr ());
-      fixup_locale ();
+      #[cfg (feature = "isolate_vm")]
+      if crate::sys::isolate::is_isolate_active () {
+        static LOCALE_ONCE: std::sync::Once = std::sync::Once::new ();
+        LOCALE_ONCE.call_once (|| {
+          setlocale (LC_ALL, c"".as_ptr ());
+          fixup_locale ();
+        });
+      } else {
+        setlocale (LC_ALL, c"".as_ptr ());
+        fixup_locale ();
+      }
+      #[cfg (not (feature = "isolate_vm"))]
+      {
+        setlocale (LC_ALL, c"".as_ptr ());
+        fixup_locale ();
+      }
     }
   (*text_quoting_flag.as_mut_ptr ()) = using_utf8 ();
 

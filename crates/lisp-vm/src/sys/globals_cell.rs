@@ -30,13 +30,53 @@ impl<T> VmGlobal<T> {
     }
 
     #[inline(always)]
-    pub const fn as_mut_ptr(&self) -> *mut T {
+    pub const fn as_static_mut_ptr(&self) -> *mut T {
         self.0.get()
     }
 
     #[inline(always)]
+    pub const fn as_static_ptr(&self) -> *const T {
+        self.0.get() as *const T
+    }
+
+    #[cfg(not(feature = "isolate_vm"))]
+    #[inline(always)]
+    pub const fn as_mut_ptr(&self) -> *mut T {
+        self.0.get()
+    }
+
+    #[cfg(not(feature = "isolate_vm"))]
+    #[inline(always)]
     pub const fn as_ptr(&self) -> *const T {
         self.0.get() as *const T
+    }
+
+    #[cfg(feature = "isolate_vm")]
+    #[inline(always)]
+    pub fn as_mut_ptr(&self) -> *mut T {
+        crate::sys::isolate::get_or_alloc_for_current_isolate(
+            self.0.get() as *const u8,
+            core::mem::size_of::<T>(),
+            core::mem::align_of::<T>(),
+        ) as *mut T
+    }
+
+    #[cfg(feature = "isolate_vm")]
+    #[inline(always)]
+    pub fn as_ptr(&self) -> *const T {
+        self.as_mut_ptr() as *const T
+    }
+
+    #[inline(always)]
+    fn slot_ptr(&self) -> *mut T {
+        #[cfg(not(feature = "isolate_vm"))]
+        {
+            self.0.get()
+        }
+        #[cfg(feature = "isolate_vm")]
+        {
+            self.as_mut_ptr()
+        }
     }
 }
 
@@ -47,9 +87,9 @@ impl VmGlobal<bool> {
             assert!(core::mem::size_of::<bool>() == core::mem::size_of::<AtomicBool>());
             assert!(core::mem::align_of::<bool>() == core::mem::align_of::<AtomicBool>());
         }
-        // SAFETY: `self.0.get()` is non-null, properly aligned for `AtomicBool`, and points to
-        // live static `bool` storage initialized to `0` or `1`.
-        unsafe { AtomicBool::from_ptr(self.0.get()).load(Ordering::Relaxed) }
+        // SAFETY: `self.slot_ptr()` is non-null, properly aligned for `AtomicBool`, and points to
+        // live static or per-isolate `bool` storage initialized to `0` or `1`.
+        unsafe { AtomicBool::from_ptr(self.slot_ptr()).load(Ordering::Relaxed) }
     }
 
     #[inline(always)]
@@ -58,9 +98,9 @@ impl VmGlobal<bool> {
             assert!(core::mem::size_of::<bool>() == core::mem::size_of::<AtomicBool>());
             assert!(core::mem::align_of::<bool>() == core::mem::align_of::<AtomicBool>());
         }
-        // SAFETY: `self.0.get()` is non-null, properly aligned for `AtomicBool`, and points to
-        // live mutable static storage.
-        unsafe { AtomicBool::from_ptr(self.0.get()).store(val, Ordering::Relaxed) }
+        // SAFETY: `self.slot_ptr()` is non-null, properly aligned for `AtomicBool`, and points to
+        // live mutable storage.
+        unsafe { AtomicBool::from_ptr(self.slot_ptr()).store(val, Ordering::Relaxed) }
     }
 }
 
@@ -74,9 +114,9 @@ macro_rules! impl_vm_global_int {
                         assert!(core::mem::size_of::<$ty>() == core::mem::size_of::<$atomic>());
                         assert!(core::mem::align_of::<$ty>() >= core::mem::align_of::<$atomic>());
                     }
-                    // SAFETY: `self.0.get()` is non-null, aligned to `$atomic`, and backed by
-                    // live static storage in `.data`/`.bss`.
-                    unsafe { <$atomic>::from_ptr(self.0.get()).load(Ordering::Relaxed) }
+                    // SAFETY: `self.slot_ptr()` is non-null, aligned to `$atomic`, and backed by
+                    // live static or per-isolate storage.
+                    unsafe { <$atomic>::from_ptr(self.slot_ptr()).load(Ordering::Relaxed) }
                 }
 
                 #[inline(always)]
@@ -85,9 +125,9 @@ macro_rules! impl_vm_global_int {
                         assert!(core::mem::size_of::<$ty>() == core::mem::size_of::<$atomic>());
                         assert!(core::mem::align_of::<$ty>() >= core::mem::align_of::<$atomic>());
                     }
-                    // SAFETY: `self.0.get()` is non-null, aligned to `$atomic`, and backed by
-                    // live mutable static storage in `.data`/`.bss`.
-                    unsafe { <$atomic>::from_ptr(self.0.get()).store(val, Ordering::Relaxed) }
+                    // SAFETY: `self.slot_ptr()` is non-null, aligned to `$atomic`, and backed by
+                    // live mutable static or per-isolate storage.
+                    unsafe { <$atomic>::from_ptr(self.slot_ptr()).store(val, Ordering::Relaxed) }
                 }
 
                 #[inline(always)]
@@ -96,9 +136,9 @@ macro_rules! impl_vm_global_int {
                         assert!(core::mem::size_of::<$ty>() == core::mem::size_of::<$atomic>());
                         assert!(core::mem::align_of::<$ty>() >= core::mem::align_of::<$atomic>());
                     }
-                    // SAFETY: `self.0.get()` is non-null, aligned to `$atomic`, and backed by
-                    // live mutable static storage in `.data`/`.bss`.
-                    unsafe { <$atomic>::from_ptr(self.0.get()).fetch_add(delta, Ordering::Relaxed).wrapping_add(delta) }
+                    // SAFETY: `self.slot_ptr()` is non-null, aligned to `$atomic`, and backed by
+                    // live mutable static or per-isolate storage.
+                    unsafe { <$atomic>::from_ptr(self.slot_ptr()).fetch_add(delta, Ordering::Relaxed).wrapping_add(delta) }
                 }
             }
         )*
@@ -126,7 +166,7 @@ impl VmGlobal<f64> {
             assert!(core::mem::align_of::<f64>() >= core::mem::align_of::<AtomicU64>());
         }
         // SAFETY: `f64` and `AtomicU64` have identical 8-byte size and alignment on 64-bit targets.
-        let bits = unsafe { AtomicU64::from_ptr(self.0.get() as *mut u64).load(Ordering::Relaxed) };
+        let bits = unsafe { AtomicU64::from_ptr(self.slot_ptr() as *mut u64).load(Ordering::Relaxed) };
         f64::from_bits(bits)
     }
 
@@ -137,7 +177,7 @@ impl VmGlobal<f64> {
             assert!(core::mem::align_of::<f64>() >= core::mem::align_of::<AtomicU64>());
         }
         // SAFETY: `f64` and `AtomicU64` have identical 8-byte size and alignment on 64-bit targets.
-        unsafe { AtomicU64::from_ptr(self.0.get() as *mut u64).store(val.to_bits(), Ordering::Relaxed) }
+        unsafe { AtomicU64::from_ptr(self.slot_ptr() as *mut u64).store(val.to_bits(), Ordering::Relaxed) }
     }
 }
 
@@ -150,7 +190,7 @@ impl<P> VmGlobal<*mut P> {
         }
         // SAFETY: `AtomicPtr::from_ptr` preserves pointer provenance (including tagged `Lisp_Object`
         // words) and performs an atomic word load without dereferencing the pointee `P`.
-        unsafe { AtomicPtr::from_ptr(self.0.get()).load(Ordering::Relaxed) }
+        unsafe { AtomicPtr::from_ptr(self.slot_ptr()).load(Ordering::Relaxed) }
     }
 
     #[inline(always)]
@@ -161,7 +201,7 @@ impl<P> VmGlobal<*mut P> {
         }
         // SAFETY: `AtomicPtr::from_ptr` preserves pointer provenance (including tagged `Lisp_Object`
         // words) and performs an atomic word store without dereferencing the pointee `P`.
-        unsafe { AtomicPtr::from_ptr(self.0.get()).store(val, Ordering::Relaxed) }
+        unsafe { AtomicPtr::from_ptr(self.slot_ptr()).store(val, Ordering::Relaxed) }
     }
 }
 
@@ -173,7 +213,7 @@ impl<P> VmGlobal<*const P> {
             assert!(core::mem::align_of::<*const P>() == core::mem::align_of::<AtomicPtr<P>>());
         }
         // SAFETY: `*const P` and `*mut P` have identical representation; atomic load preserves provenance.
-        unsafe { AtomicPtr::from_ptr(self.0.get() as *mut *mut P).load(Ordering::Relaxed) as *const P }
+        unsafe { AtomicPtr::from_ptr(self.slot_ptr() as *mut *mut P).load(Ordering::Relaxed) as *const P }
     }
 
     #[inline(always)]
@@ -183,7 +223,7 @@ impl<P> VmGlobal<*const P> {
             assert!(core::mem::align_of::<*const P>() == core::mem::align_of::<AtomicPtr<P>>());
         }
         // SAFETY: `*const P` and `*mut P` have identical representation; atomic store preserves provenance.
-        unsafe { AtomicPtr::from_ptr(self.0.get() as *mut *mut P).store(val as *mut P, Ordering::Relaxed) }
+        unsafe { AtomicPtr::from_ptr(self.slot_ptr() as *mut *mut P).store(val as *mut P, Ordering::Relaxed) }
     }
 }
 

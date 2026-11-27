@@ -186,7 +186,7 @@ pub fn pdumper_cold_object_p (obj: *const c_void) -> bool {
   { /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { pdumper_cold_object_p_impl (obj) } }
   #[cfg(not(enable_checking))]
   {
-    unsafe extern "C-unwind" { static dump_private: [u8; 152]; }
+    unsafe extern "C-unwind" { static dump_private: VmGlobal<[u8; 152]>; }
     unsafe {
       let offset = (obj as uintptr_t).wrapping_sub ((*dump_public.as_mut_ptr ()).start) as i32;
       let cold_start = *(dump_private.as_ptr () as *const u8).add (92).cast::<i32> ();
@@ -228,7 +228,7 @@ pub fn pdumper_marked_p (obj: *const c_void) -> bool {
   { /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { pdumper_marked_p_impl (obj) } }
   #[cfg(not(enable_checking))]
   {
-    unsafe extern "C-unwind" { static dump_private: [u8; 152]; }
+    unsafe extern "C-unwind" { static dump_private: VmGlobal<[u8; 152]>; }
     unsafe {
       let bitno: usize = (obj as uintptr_t).wrapping_sub ((*dump_public.as_mut_ptr ()).start) >> 3;
       let bits = *(dump_private.as_ptr () as *const u8).add (104).cast::<*const u32> ();

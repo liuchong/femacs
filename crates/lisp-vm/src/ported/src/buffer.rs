@@ -5520,3 +5520,15 @@ pub unsafe extern "C-unwind" fn syms_of_buffer ()
 
   }
 }
+
+#[cfg (feature = "isolate_vm")]
+pub(crate) fn pre_register_buffer_globals ()
+{
+  crate::sys::isolate::pre_register_global (&buffer_defaults);
+  crate::sys::isolate::pre_register_global (&buffer_local_flags);
+  crate::sys::isolate::pre_register_global (&buffer_local_symbols);
+  crate::sys::isolate::pre_register_global (&buffer_permanent_local_flags);
+  crate::sys::isolate::pre_register_global (&last_per_buffer_idx);
+  crate::sys::isolate::pre_register_global (&overlay_heads);
+  crate::sys::isolate::pre_register_global (&overlay_tails);
+}

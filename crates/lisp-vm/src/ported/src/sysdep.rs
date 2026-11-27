@@ -1279,13 +1279,18 @@ static buferr: VmGlobal<*mut FILE> = VmGlobal::<*mut FILE>::new (std::ptr::null_
 pub unsafe extern "C-unwind" fn init_standard_fds () {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  /* Open stdin for *writing*, and stdout and stderr for *reading*.
-     That way, any attempt to do normal I/O will result in an error,
-     just as if the files were closed, and the file descriptors will
-     not be reused by later opens.  */
-  force_open (STDIN_FILENO, O_WRONLY);
-  force_open (STDOUT_FILENO, O_RDONLY);
-  force_open (STDERR_FILENO, O_RDONLY);
+  let do_force_open = || {
+    force_open (STDIN_FILENO, O_WRONLY);
+    force_open (STDOUT_FILENO, O_RDONLY);
+    force_open (STDERR_FILENO, O_RDONLY);
+  };
+  #[cfg (feature = "isolate_vm")]
+  if crate::sys::isolate::is_isolate_active () {
+    static FORCE_OPEN_ONCE: std::sync::Once = std::sync::Once::new ();
+    FORCE_OPEN_ONCE.call_once (do_force_open);
+    return;
+  }
+  do_force_open ();
 
   /* Set buferr if possible on platforms defining _PC_PIPE_BUF, as
      they support the notion of atomic writes to pipes.  */
@@ -3417,6 +3422,19 @@ unsafe extern "C-unwind" fn maybe_fatal_sig (sig: c_int) {
 pub unsafe extern "C-unwind" fn init_signals () {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
+  #[cfg (feature = "isolate_vm")]
+  if crate::sys::isolate::is_isolate_active () {
+    sigemptyset (empty_mask.as_mut_ptr ());
+    (*main_thread_id.as_mut_ptr ()) = pthread_self ();
+    sigfillset (&raw mut (*process_fatal_action.as_mut_ptr ()).sa_mask);
+    (*process_fatal_action.as_mut_ptr ()).__sigaction_u.__sa_handler = Some (deliver_fatal_signal);
+    (*process_fatal_action.as_mut_ptr ()).sa_flags = emacs_sigaction_flags ();
+    static SIGNALS_ONCE: std::sync::Once = std::sync::Once::new ();
+    SIGNALS_ONCE.call_once (|| {
+      signal (SIGPIPE, SIG_IGN);
+    });
+    return;
+  }
   let mut thread_fatal_action: sigaction = std::mem::zeroed ();
   let mut action: sigaction = std::mem::zeroed ();
 
