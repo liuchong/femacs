@@ -87,4 +87,27 @@ The repository extracts the pure-Rust Lisp VM (`crates/lisp-vm`) and public gene
 - **Phase 3 (Complete)**: Pure-Rust `crates/lisp-std` standard library (`ureq`+`rustls`+`rustls-rustcrypto`, `redb`+SQL, archives, serialization, crypto, FS/CLI/log/proc), `std/*` wrappers, and `init`/`pkg` project workflow.
 - **Phase 4 (Complete)**: Linux (`aarch64` real-VM verified on Debian 12 `6.1.190-1`, `x86_64-unknown-linux-gnu` cross-checked) pure-Rust/glibc OS & ABI layer across `lisp-vm`/`lisp-core` (`procfs` memory/process-tree accounting, `util-linux` `script` PTY wrapper, glibc struct layouts & `__sigsetjmp` / `posix_spawn_file_actions_addchdir_np` / `renameat2`, ZST `IsolateContext` ELF `.bss` slot guard, glibc `rpl_realloc`, native `getrandom`/`copy_file_range` resolution, Linux signal/wait/fcntl ABI constants, and multi-isolate `SIGCHLD`/`pthread_kill(0)` safety).
 - **Phase 5 (Complete — cross-compile verified only, no physical Windows host)**: Pure-Rust Windows OS backend across `crates/lisp-core` (`windows-sys` Job Objects + `CreateToolhelp32Snapshot` process-tree inspection + `K32GetProcessMemoryInfo`/`GetProcessTimes` + `SetConsoleCtrlHandler`, cross-platform `RpcTransport` with `--rpc-addr` TCP loopback, `LOCALAPPDATA`/`USERPROFILE` cache root) and `crates/lisp-vm` (LLP64 struct layouts, UCRT `_errno` & constants, `mini-gmp`/`bignum` limb widths, `jmp_buf`/`sys_jmp_buf`, `struct face` padding, gnulib shim gating), cross-checked cleanly with `cargo check` on `x86_64-pc-windows-msvc` and `x86_64-pc-windows-gnu` (default, `--no-default-features --features vm`, and `--tests`; **cross-compile architecture verified ONLY — no physical Windows host runtime verification performed**).
-- **Phase 6**: 0-warning polish, multi-crate `cargo package` verification, documentation, and pre-publish rename checklist.
+- **Phase 6 (Complete)**: 0-warning polish across all feature matrices and rustdoc (`cargo check --no-default-features --all-targets` / `vm` / `repl-tty` / `std-batteries`, optional `flate2`), `crates/lisp-std/LICENSE`, standalone user/embedder `README.md`s, multi-crate `cargo package` + isolated extraction rebuild verification, and pre-publish crate rename checklist.
+
+## 6. Pre-Publish Crate Rename & Release Checklist
+
+### Publish Order (Topological)
+1. `lisp-vm` (`crates/lisp-vm`) — zero workspace crate dependencies; can pass full `cargo package` / `cargo publish --dry-run` immediately.
+2. `lisp-std` (`crates/lisp-std`) — zero workspace crate dependencies (`#![forbid(unsafe_code)]`, pure crates.io deps); passes full `cargo package` / `cargo publish --dry-run` immediately.
+3. `lisp-core` (`crates/lisp-core`) — depends on `lisp-vm` and `lisp-std` (`optional = true`); requires `lisp-vm` and `lisp-std` published first (or local `[patch.crates-io]` verification before publish).
+
+### Pre-Publish One-Step Rename Touchpoints
+- Runtime CLI/cache/env branding (single module): `crates/lisp-core/src/brand.rs` (`CLI_NAME`, `CACHE_APP_DIR`, `CACHE_FALLBACK_TEMP_DIR`, `REPL_PROMPT`, `ENV_*`).
+- Package manifests & versions: `crates/lisp-vm/Cargo.toml`, `crates/lisp-std/Cargo.toml`, `crates/lisp-core/Cargo.toml` (`[package].name`, `[[bin]].name`, `[dependencies]`).
+- Editor workspace consumers (`default-features = false` isolation preserved): `crates/femacs-host/Cargo.toml`, `crates/femacs-tools/Cargo.toml`, `xtask/Cargo.toml`, root `Cargo.toml` (`[profile.*.package.*]`).
+- Gates & docs: `tools/check-crate-boundaries.py`, `tools/unsafe-boundary-manifest.json`, `crates/{lisp-vm,lisp-std,lisp-core}/README.md`, and `docs/design/lisp-core.md`.
+
+### Pre-Publish Verification Commands
+- `cargo package -p lisp-vm && cargo package -p lisp-std && cargo package -p lisp-vm -p lisp-core -p lisp-std --no-verify` (check archive size `< 10 MiB`, `LICENSE`/`README.md` included, `0` path escapes, isolated extraction rebuild passing `--version`, `eval`, and `std/*`).
+- `cargo check -p lisp-core --no-default-features --all-targets` and `python3 tools/check-crate-boundaries.py` + `python3 tools/check-own-voice.py`.
+- `cargo publish --dry-run -p <vm-crate>` and `-p <std-crate>`, then live publish in topological order (`lisp-vm` -> `lisp-std` -> `lisp-core`).
+
+### Platform Support Disclosure
+- **macOS (`aarch64-apple-darwin`)**: Full real-host verified (`cargo test`, `isolate_vm`, release `otool -L` OS-libs-only, `cargo package` isolated rebuild, and `fe-test`).
+- **Linux (`aarch64-unknown-linux-gnu` / `x86_64-unknown-linux-gnu`)**: `aarch64` verified inside ephemeral Debian 12 Lima VM (`ldd` glibc-only, warm `.pdmp`, PTY REPL, `NoGil` 4-worker speedup, `init`/`pkg`); `x86_64` cross-compile verified.
+- **Windows (`x86_64-pc-windows-msvc` / `x86_64-pc-windows-gnu`)**: **Cross-compile architecture verified ONLY** (`cargo check` green across default, minimal `vm`, and `--tests`); **no physical Windows host runtime verification has been performed**.

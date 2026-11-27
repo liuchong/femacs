@@ -37,7 +37,7 @@ fn is_blank_or_comment_only(src: &str) -> bool {
     true
 }
 
-#[cfg(feature = "repl-tty")]
+#[cfg(any(feature = "repl-tty", test))]
 fn is_symbol_char(ch: char) -> bool {
     ch.is_ascii_alphanumeric()
         || matches!(
@@ -46,7 +46,7 @@ fn is_symbol_char(ch: char) -> bool {
         )
 }
 
-#[cfg(feature = "repl-tty")]
+#[cfg(any(feature = "repl-tty", test))]
 fn symbol_prefix_at(line: &str, pos: usize) -> (usize, &str) {
     let bounded = pos.min(line.len());
     let prefix_slice = &line[..bounded];
