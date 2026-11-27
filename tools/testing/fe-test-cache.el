@@ -16,9 +16,13 @@
   "Return the cache directory path under STATE-DIR."
   (expand-file-name "result-cache" state-dir))
 
+(defun fe-test--normalize-digest-path (path)
+  "Normalize PATH relative to repository root without a trailing slash."
+  (directory-file-name (expand-file-name path (fe-test-repo-root))))
+
 (defun fe-test--digest-path (xtask-bin path memo)
   "Return cached SHA-256 hex digest for PATH using MEMO and XTASK-BIN."
-  (let ((abs (expand-file-name path (fe-test-repo-root))))
+  (let ((abs (fe-test--normalize-digest-path path)))
     (or (gethash abs memo)
         (if (not (file-exists-p abs))
             (puthash abs "missing" memo)
@@ -30,22 +34,23 @@
   "Batch-compute digests for all unique targets and inputs in CASES into MEMO."
   (let ((needed nil)
         (seen (make-hash-table :test #'equal)))
-    (dolist (p (cons (fe-test-path "tools/testing")
-                     (cl-loop for tc in cases
-                              when (fe-test-case-cacheable tc)
-                              append (cons (car (fe-test-case-command tc))
-                                           (fe-test-case-cache-inputs tc)))))
-      (when (and (stringp p) (> (length p) 0))
-        (let ((abs (if (file-name-absolute-p p) p (fe-test-path p))))
-          (when (and (file-exists-p abs)
-                     (not (gethash abs memo))
-                     (not (gethash abs seen))
-                     ;; Do not hash generic system shells as directory trees; only files or repo dirs.
-                     (or (file-regular-p abs)
-                         (string-prefix-p (file-name-as-directory (fe-test-repo-root))
-                                          (expand-file-name abs))))
-            (puthash abs t seen)
-            (push abs needed)))))
+    (cl-flet ((enqueue (p allow-dir)
+                (when (and (stringp p) (> (length p) 0))
+                  (let ((abs (fe-test--normalize-digest-path p)))
+                    (when (and (file-exists-p abs)
+                               (not (gethash abs memo))
+                               (not (gethash abs seen))
+                               (or (file-regular-p abs)
+                                   (and allow-dir (file-directory-p abs))))
+                      (puthash abs t seen)
+                      (push abs needed))))))
+      (enqueue (fe-test-path "tools/testing") t)
+      (dolist (tc cases)
+        (when (fe-test-case-cacheable tc)
+          (let ((prog (car (fe-test-case-command tc))))
+            (enqueue prog nil))
+          (dolist (inp (fe-test-case-cache-inputs tc))
+            (enqueue inp t)))))
     (when needed
       (let* ((batch (nreverse needed))
              (res (fe-test-call-json xtask-bin (append (list "test-exec" "digest") batch)))
@@ -54,7 +59,7 @@
           (let ((path (alist-get 'path entry))
                 (sha (alist-get 'sha256 entry)))
             (when (and path sha)
-              (puthash path sha memo))))))))
+              (puthash (fe-test--normalize-digest-path path) sha memo))))))))
 
 (defun fe-test-cache-key (tc xtask-bin memo)
   "Compute content-addressed cache key for TC using MEMO digests."

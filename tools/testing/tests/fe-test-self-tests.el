@@ -178,5 +178,189 @@
                (byte-compile-dest-file-function (lambda (_) dest)))
           (should (eq (byte-compile-file f) t)))))))
 
+(defun fe-test-self--write-exec-script (path body)
+  "Write executable shell script BODY to PATH."
+  (let ((coding-system-for-write 'utf-8-unix))
+    (with-temp-file path
+      (insert "#!/bin/sh\n" body "\n")))
+  (set-file-modes path #o755)
+  path)
+
+(ert-deftest fe-test-self-rejects-unreaped-and-supervisor-errors ()
+  (let ((dummy (fe-test-make-case :id "self/eval-unit" :suite "self" :command '("/bin/true"))))
+    (let ((unreaped (fe-test--evaluate-supervise-output
+                     dummy
+                     "{\"schema\":\"femacs-test-exec-v1\",\"exit_code\":0,\"timed_out\":false,\"memory_exceeded\":false,\"elapsed_ms\":12,\"peak_rss_bytes\":100,\"peak_footprint_bytes\":100,\"output_drained\":true,\"children_reaped\":false,\"stdout\":\"\",\"stderr\":\"\"}"
+                     12 'exit 0)))
+      (should (equal (alist-get 'status unreaped) "failed"))
+      (should (null (alist-get 'childrenReaped unreaped))))
+    (let ((bad-sup (fe-test--evaluate-supervise-output
+                    dummy
+                    "{\"schema\":\"femacs-test-exec-v1\",\"exit_code\":0,\"timed_out\":false,\"memory_exceeded\":false,\"elapsed_ms\":12,\"peak_rss_bytes\":100,\"peak_footprint_bytes\":100,\"output_drained\":true,\"children_reaped\":true,\"stdout\":\"\",\"stderr\":\"\"}"
+                    12 'exit 2)))
+      (should (equal (alist-get 'status bad-sup) "failed"))
+      (should (null (alist-get 'supervisorOk bad-sup)))))
+  (fe-test-self--with-tmp-dir tmp
+    (let* ((real-xtask (fe-test-find-xtask))
+           (mock-xtask (expand-file-name "mock-xtask.sh" tmp))
+           (state-dir (expand-file-name "state" tmp))
+           (inp (expand-file-name "inp.txt" tmp)))
+      (with-temp-file inp (insert "stable\n"))
+      (fe-test-self--write-exec-script
+       mock-xtask
+       (format
+        "sub=\"$2\"
+if [ \"$sub\" = \"supervise\" ]; then
+  case \"$*\" in
+    *MOCK_UNREAPED*)
+      printf '{\"schema\":\"femacs-test-exec-v1\",\"exit_code\":0,\"signal\":null,\"timed_out\":false,\"memory_exceeded\":false,\"elapsed_ms\":5,\"peak_rss_bytes\":1024,\"peak_footprint_bytes\":1024,\"peak_accounted_bytes\":1024,\"max_tree_pids\":1,\"output_drained\":false,\"children_reaped\":false,\"stdout\":\"\",\"stderr\":\"\",\"stdout_truncated\":false,\"stderr_truncated\":false}\\n'
+      exit 0 ;;
+    *MOCK_SUPERVISOR_FAIL*)
+      printf '{\"schema\":\"femacs-test-exec-v1\",\"exit_code\":0,\"signal\":null,\"timed_out\":false,\"memory_exceeded\":false,\"elapsed_ms\":5,\"peak_rss_bytes\":1024,\"peak_footprint_bytes\":1024,\"peak_accounted_bytes\":1024,\"max_tree_pids\":1,\"output_drained\":true,\"children_reaped\":true,\"stdout\":\"\",\"stderr\":\"\",\"stdout_truncated\":false,\"stderr_truncated\":false}\\n'
+      exit 2 ;;
+  esac
+fi
+exec %S \"$@\""
+        real-xtask))
+      (let* ((c1 (fe-test-make-case :id "self/unreaped" :suite "self" :cacheable t
+                                    :cache-inputs (list inp)
+                                    :command (list "/bin/echo" "MOCK_UNREAPED")))
+             (c2 (fe-test-make-case :id "self/sup-fail" :suite "self" :cacheable t
+                                    :cache-inputs (list inp)
+                                    :command (list "/bin/echo" "MOCK_SUPERVISOR_FAIL")))
+             (opts (list :suite "self" :cache t :keep-going t :workers 2
+                         :heavy-workers 2 :budget-mib 1024 :state-dir state-dir
+                         :xtask-bin mock-xtask
+                         :report-out (expand-file-name "rep.json" state-dir)))
+             (run1 (fe-test-execute-cases (list c1 c2) opts))
+             (cache-dir (fe-test-cache-dir state-dir))
+             (cached-files (when (file-directory-p cache-dir)
+                             (directory-files cache-dir nil "\\.json\\'"))))
+        (should (= (car run1) 1))
+        (should (= (alist-get 'passed (cdr run1)) 0))
+        (should (= (alist-get 'failed (cdr run1)) 2))
+        (should (null cached-files))
+        (let ((run2 (fe-test-execute-cases (list c1 c2) opts)))
+          (should (= (alist-get 'cached (cdr run2)) 0))
+          (should (= (alist-get 'failed (cdr run2)) 2)))))))
+
+(ert-deftest fe-test-self-admission-gap-and-full-concurrency-sampling ()
+  ;; Pure projection checks: unsampled reservations + sampled retention.
+  (let* ((mb (* 1024 1024))
+         (w-unsampled (fe-test--make-worker :started-ms 1000 :est-mem (* 200 mb) :sampled nil :observed-mem 0))
+         (w-grace (fe-test--make-worker :started-ms 1000 :est-mem (* 200 mb) :sampled t :observed-mem (* 80 mb)))
+         (w-mature (fe-test--make-worker :started-ms 1000 :est-mem (* 200 mb) :sampled t :observed-mem (* 60 mb))))
+    (should (= (fe-test--compute-projected-bytes (list w-unsampled) 1100) (* 200 mb)))
+    (should (= (fe-test--compute-projected-bytes (list w-unsampled w-grace) 1100) (* 400 mb)))
+    (should (= (fe-test--compute-projected-bytes (list w-mature) 6000) (* 60 mb))))
+  (fe-test-self--with-tmp-dir tmp
+    (let* ((real-xtask (fe-test-find-xtask))
+           (mock-xtask (expand-file-name "mem-wrapper.sh" tmp))
+           (mem-log (expand-file-name "mem-tree.log" tmp))
+           (stamp-a (expand-file-name "stamp-a.txt" tmp))
+           (stamp-b (expand-file-name "stamp-b.txt" tmp)))
+      (fe-test-self--write-exec-script
+       mock-xtask
+       (format
+        "if [ \"$2\" = \"mem-tree\" ]; then
+  printf 'call\\n' >> %S
+  shift 2
+  entries=\"\"
+  sep=\"\"
+  for p in \"$@\"; do
+    entries=\"${entries}${sep}\\\"${p}\\\":{\\\"rss_bytes\\\":5242880,\\\"footprint_bytes\\\":5242880,\\\"accounted_bytes\\\":5242880,\\\"tree_pids\\\":[${p}]}\"
+    sep=\",\"
+  done
+  printf '{\"schema\":\"femacs-test-mem-v1\",\"total_rss_bytes\":5242880,\"total_footprint_bytes\":5242880,\"total_accounted_bytes\":5242880,\"per_pid\":{%%s}}\\n' \"$entries\"
+  exit 0
+fi
+exec %S \"$@\""
+        mem-log real-xtask))
+      ;; 1. Sampling gap protection: 500ms interval cannot allow 2nd heavy worker inside gap.
+      (let* ((fe-test-mem-sample-interval-ms 500)
+             (s1 (expand-file-name "s-gap" tmp))
+             (cmd-body (lambda (out)
+                         (format "perl -MTime::HiRes=time -e '$|=1; printf \"%%d\\n\", int(time()*1000); select(undef,undef,undef,0.35); printf \"%%d\\n\", int(time()*1000);' > %s" out)))
+             (ca (fe-test-make-case :id "self/gap-a" :suite "self" :heavy t :cacheable nil
+                                    :command (list "/bin/sh" "-c" (funcall cmd-body stamp-a))))
+             (cb (fe-test-make-case :id "self/gap-b" :suite "self" :heavy t :cacheable nil
+                                    :command (list "/bin/sh" "-c" (funcall cmd-body stamp-b))))
+             (res (fe-test-execute-cases
+                   (list ca cb)
+                   (list :suite "self" :cache nil :keep-going t :workers 2
+                         :heavy-workers 2 :budget-mib 256 :state-dir s1
+                         :xtask-bin mock-xtask
+                         :report-out (expand-file-name "r-gap.json" s1)))))
+        (should (= (car res) 0))
+        (should (>= (alist-get 'admissionPauses (cdr res)) 1))
+        (cl-labels ((read-pair (path)
+                      (with-temp-buffer
+                        (insert-file-contents path)
+                        (mapcar #'string-to-number (split-string (buffer-string) "\n" t)))))
+          (let* ((pa (read-pair stamp-a))
+                 (pb (read-pair stamp-b))
+                 (a0 (nth 0 pa)) (a1 (nth 1 pa))
+                 (b0 (nth 0 pb)) (b1 (nth 1 pb)))
+            (should (or (>= b0 a1) (>= a0 b1))))))
+      ;; 2. Full concurrency + empty pending still polls mem-tree periodically.
+      (when (file-exists-p mem-log) (delete-file mem-log))
+      (let* ((fe-test-mem-sample-interval-ms 120)
+             (s2 (expand-file-name "s-full" tmp))
+             (c-solo (fe-test-make-case :id "self/full-conc" :suite "self" :cacheable nil
+                                        :command '("/bin/sh" "-c" "sleep 0.55")))
+             (res (fe-test-execute-cases
+                   (list c-solo)
+                   (list :suite "self" :cache nil :keep-going t :workers 1
+                         :heavy-workers 1 :budget-mib 512 :state-dir s2
+                         :xtask-bin mock-xtask
+                         :report-out (expand-file-name "r-full.json" s2))))
+             (calls (with-temp-buffer
+                      (insert-file-contents mem-log)
+                      (length (split-string (buffer-string) "\n" t)))))
+        (should (= (car res) 0))
+        (should (>= calls 3))
+        (should (>= (alist-get 'peakAggregateRssBytes (cdr res)) 5242880))))))
+
+(ert-deftest fe-test-self-runtime-closure-invalidation ()
+  (should (null (fe-test-product-runtime-inputs "/usr/bin/true")))
+  (fe-test-self--with-tmp-dir tmp
+    (let* ((app-root (expand-file-name "Mock.app/Contents" tmp))
+           (bin-path (expand-file-name "MacOS/Femacs" app-root))
+           (pdmp-path (expand-file-name "Resources/libexec/Femacs.pdmp" app-root))
+           (lisp-file (expand-file-name "Resources/lisp/core.el" app-root))
+           (etc-file (expand-file-name "Resources/etc/DOC" app-root))
+           (state-dir (expand-file-name "state" tmp)))
+      (make-directory (file-name-directory bin-path) t)
+      (make-directory (file-name-directory pdmp-path) t)
+      (make-directory (file-name-directory lisp-file) t)
+      (make-directory (file-name-directory etc-file) t)
+      (fe-test-self--write-exec-script bin-path "printf 'mock-app-ok\\n'")
+      (with-temp-file pdmp-path (insert "pdmp-v1\n"))
+      (with-temp-file lisp-file (insert "(provide 'core)\n"))
+      (with-temp-file etc-file (insert "doc-v1\n"))
+      (let* ((inputs (fe-test-product-runtime-inputs bin-path))
+             (tc (fe-test-make-case :id "self/runtime-closure" :suite "self"
+                                    :command (list bin-path)
+                                    :cacheable (not (null inputs))
+                                    :cache-inputs inputs))
+             (opts (list :suite "self" :cache t :workers 1 :heavy-workers 1
+                         :budget-mib 1024 :state-dir state-dir
+                         :report-out (expand-file-name "r-clos.json" state-dir))))
+        (should (member pdmp-path inputs))
+        (should (member (expand-file-name "Resources/lisp" app-root) inputs))
+        (should (member (expand-file-name "Resources/etc" app-root) inputs))
+        ;; Run 1 (miss) -> Run 2 (hit)
+        (should (= (alist-get 'cached (cdr (fe-test-execute-cases (list tc) opts))) 0))
+        (should (= (alist-get 'cached (cdr (fe-test-execute-cases (list tc) opts))) 1))
+        ;; Mutate only .pdmp -> cache must miss
+        (with-temp-file pdmp-path (insert "pdmp-v2\n"))
+        (should (= (alist-get 'cached (cdr (fe-test-execute-cases (list tc) opts))) 0))
+        ;; Mutate only Resources/lisp -> cache must miss
+        (with-temp-file lisp-file (insert "(provide 'core) ;; v2\n"))
+        (should (= (alist-get 'cached (cdr (fe-test-execute-cases (list tc) opts))) 0))
+        ;; Mutate only Resources/etc -> cache must miss
+        (with-temp-file etc-file (insert "doc-v2\n"))
+        (should (= (alist-get 'cached (cdr (fe-test-execute-cases (list tc) opts))) 0))))))
+
 (provide 'fe-test-self-tests)
 ;;; fe-test-self-tests.el ends here

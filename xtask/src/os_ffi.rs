@@ -76,6 +76,34 @@ pub(crate) fn remove_process_env(key: &str) {
     }
 }
 
+/// Return the current process group ID.
+pub(crate) fn current_pgid() -> u32 {
+    unsafe extern "C" {
+        fn getpgrp() -> i32;
+    }
+    // SAFETY: `getpgrp()` takes no arguments and queries the calling process's group ID.
+    let pg = unsafe { getpgrp() };
+    u32::try_from(pg).unwrap_or(0)
+}
+
+/// Send `sig` to a single process `pid` (`pid > 1` and never `self`).
+pub(crate) fn signal_process(pid: i32, sig: i32) -> Result<(), i32> {
+    let self_pid = i32::try_from(std::process::id()).unwrap_or(0);
+    if pid <= 1 || pid == self_pid {
+        return Err(22);
+    }
+    unsafe extern "C" {
+        fn kill(pid: i32, sig: i32) -> i32;
+    }
+    // SAFETY: `pid > 1` and `pid != self_pid`, so `kill(pid, sig)` targets only that tracked descendant PID.
+    let rc = unsafe { kill(pid, sig) };
+    if rc == 0 {
+        Ok(())
+    } else {
+        Err(std::io::Error::last_os_error().raw_os_error().unwrap_or(1))
+    }
+}
+
 /// Send `sig` to every process in Unix process group `pgid` (`pgid > 1`).
 pub(crate) fn signal_process_group(pgid: i32, sig: i32) -> Result<(), i32> {
     if pgid <= 1 {
@@ -93,9 +121,9 @@ pub(crate) fn signal_process_group(pgid: i32, sig: i32) -> Result<(), i32> {
     }
 }
 
-/// Query `(resident_bytes, phys_footprint_bytes)` for `pid` on macOS via `proc_pid_rusage`.
+/// Query `(resident_bytes, phys_footprint_bytes, proc_start_abstime)` for `pid` on macOS.
 #[cfg(target_os = "macos")]
-pub(crate) fn pid_rusage_memory(pid: i32) -> Option<(u64, u64)> {
+pub(crate) fn pid_rusage_info(pid: i32) -> Option<(u64, u64, u64)> {
     if pid <= 0 {
         return None;
     }
@@ -151,13 +179,22 @@ pub(crate) fn pid_rusage_memory(pid: i32) -> Option<(u64, u64)> {
     // SAFETY: `buf_ptr` points to valid writable `RusageInfoV2` storage matching `RUSAGE_INFO_V2`.
     let rc = unsafe { proc_pid_rusage(pid, RUSAGE_INFO_V2, buf_ptr) };
     if rc == 0 {
-        Some((info.ri_resident_size, info.ri_phys_footprint))
+        Some((
+            info.ri_resident_size,
+            info.ri_phys_footprint,
+            info.ri_proc_start_abstime,
+        ))
     } else {
         None
     }
 }
 
 #[cfg(not(target_os = "macos"))]
-pub(crate) fn pid_rusage_memory(_pid: i32) -> Option<(u64, u64)> {
+pub(crate) fn pid_rusage_info(_pid: i32) -> Option<(u64, u64, u64)> {
     None
+}
+
+/// Query `(resident_bytes, phys_footprint_bytes)` for `pid` on macOS via `proc_pid_rusage`.
+pub(crate) fn pid_rusage_memory(pid: i32) -> Option<(u64, u64)> {
+    pid_rusage_info(pid).map(|(rss, fp, _)| (rss, fp))
 }

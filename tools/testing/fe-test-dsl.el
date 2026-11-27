@@ -135,6 +135,57 @@
           :http-host (and (file-executable-p http-host) http-host)
           :editor editor)))
 
+(defun fe-test-product-runtime-inputs (binary)
+  "Return the full runtime input closure for product BINARY, or nil if unknown.
+Includes the executable, its dumped `.pdmp' image, `lisp/', `etc/', and bundled
+runtime shared-library directories when verified present on disk."
+  (when (and (stringp binary) (file-executable-p binary))
+    (let* ((abs (expand-file-name binary (fe-test-repo-root)))
+           (dir (directory-file-name (file-name-directory abs))))
+      (cond
+       ;; macOS .app bundle: .../Contents/MacOS/<exe>
+       ((string= (file-name-nondirectory dir) "MacOS")
+        (let* ((contents (directory-file-name (file-name-directory dir)))
+               (res (expand-file-name "Resources" contents))
+               (pdmp (expand-file-name "libexec/Femacs.pdmp" res))
+               (lisp-dir (expand-file-name "lisp" res))
+               (etc-dir (expand-file-name "etc" res))
+               (fw-dir (expand-file-name "Frameworks" contents)))
+          (when (and (file-regular-p pdmp)
+                     (file-directory-p lisp-dir)
+                     (file-directory-p etc-dir))
+            (cl-remove-if-not
+             #'file-exists-p
+             (list abs pdmp lisp-dir etc-dir fw-dir)))))
+       ;; Standalone dist/lisp host: .../bin/femacs-lisp
+       ((and (string= (file-name-nondirectory abs) "femacs-lisp")
+             (string= (file-name-nondirectory dir) "bin"))
+        (let* ((root (directory-file-name (file-name-directory dir)))
+               (pdmp (expand-file-name "femacs-lisp.pdmp" dir))
+               (lisp-dir (expand-file-name "lisp" root))
+               (etc-dir (expand-file-name "etc" root)))
+          (when (and (file-regular-p pdmp)
+                     (file-directory-p lisp-dir)
+                     (file-directory-p etc-dir))
+            (cl-remove-if-not
+             #'file-exists-p
+             (list abs pdmp lisp-dir etc-dir
+                   (expand-file-name "runtime-image" root)
+                   (expand-file-name "runtime-lcms" root)
+                   (expand-file-name "runtime-tls" root)
+                   (expand-file-name "runtime-treesit" root))))))
+       ;; Repo terminal build: .../port/src/emacs
+       ((and (string= (file-name-nondirectory abs) "emacs")
+             (string= (file-name-nondirectory dir) "src"))
+        (let* ((pdmp (expand-file-name "emacs.pdmp" dir))
+               (repo-lisp (fe-test-path "lisp"))
+               (repo-etc (fe-test-path "etc")))
+          (when (and (file-regular-p pdmp)
+                     (file-directory-p repo-lisp)
+                     (file-directory-p repo-etc))
+            (list abs pdmp repo-lisp repo-etc))))
+       (t nil)))))
+
 (defun fe-test-json-read-file (path)
   "Read JSON object from PATH as an alist, or nil if PATH does not exist."
   (when (file-regular-p path)

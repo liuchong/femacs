@@ -21,6 +21,9 @@
 (defconst fe-test-poll-interval-sec 0.05
   "Event-loop poll interval in seconds while active workers run.")
 
+(defvar fe-test-mem-sample-interval-ms 150
+  "Minimum interval in milliseconds between live `mem-tree' polls.")
+
 (cl-defstruct (fe-test--worker
                (:constructor fe-test--make-worker))
   (case nil)
@@ -28,8 +31,12 @@
   (buffer nil)
   (started-ms 0 :type integer)
   (est-mem 0 :type integer)
+  (sampled nil :type boolean)
+  (observed-mem 0 :type integer)
   (cache-key nil)
   (os-pid nil)
+  (proc-status nil)
+  (proc-exit nil)
   (cancelled nil :type boolean)
   (done nil :type boolean)
   (result nil))
@@ -52,29 +59,39 @@
       (setq args (append args (list "--pty"))))
     (append args (list "--") (fe-test-case-command tc))))
 
-(defun fe-test--evaluate-supervise-output (tc raw-stdout elapsed-fallback-ms)
-  "Parse `femacs-test-exec-v1' JSON from RAW-STDOUT and run check-fn for TC."
+(defun fe-test--evaluate-supervise-output (tc raw-stdout elapsed-fallback-ms proc-status proc-exit)
+  "Parse `femacs-test-exec-v1' JSON from RAW-STDOUT and validate receipt for TC."
   (condition-case err
-      (let* ((trimmed (string-trim (or raw-stdout "")))
+      (let* ((supervisor-ok (and (eq proc-status 'exit) (eql proc-exit 0)))
+             (trimmed (string-trim (or raw-stdout "")))
              (lines (split-string trimmed "\n" t))
              (last-line (car (last lines)))
-             (exec (and last-line
+             (exec (and supervisor-ok
+                        last-line
                         (json-parse-string last-line
                                            :object-type 'alist
                                            :array-type 'list
                                            :null-object nil
                                            :false-object nil)))
+             (schema (and exec (alist-get 'schema exec)))
              (exit-code (and exec (alist-get 'exit_code exec)))
              (timed-out (and exec (alist-get 'timed_out exec)))
              (mem-exceeded (and exec (alist-get 'memory_exceeded exec)))
+             (children-reaped (and exec (eq (alist-get 'children_reaped exec) t)))
              (elapsed (or (and exec (alist-get 'elapsed_ms exec)) elapsed-fallback-ms))
              (rss (or (and exec (alist-get 'peak_rss_bytes exec)) 0))
              (fp (or (and exec (alist-get 'peak_footprint_bytes exec)) 0))
              (check-fn (fe-test-case-check-fn tc))
              (verdict (cond
+                       ((not supervisor-ok)
+                        (list nil (format "supervisor failed (status=%s exit=%s)" proc-status proc-exit)))
                        ((null exec) (list nil "missing femacs-test-exec-v1 output"))
+                       ((not (equal schema "femacs-test-exec-v1"))
+                        (list nil (format "unexpected supervisor schema: %S" schema)))
                        (timed-out (list nil (format "timed out after %dms" elapsed)))
                        (mem-exceeded (list nil (format "memory limit exceeded (%dB)" (max rss fp))))
+                       ((not children-reaped)
+                        (list nil "child process tree or output pipes not cleanly reaped (children_reaped=false)"))
                        (check-fn (funcall check-fn exec))
                        ((eql exit-code 0) (list t "ok"))
                        (t (list nil (format "exit_code=%s" exit-code)))))
@@ -89,6 +106,8 @@
               (cons 'exitCode exit-code)
               (cons 'timedOut timed-out)
               (cons 'memoryExceeded mem-exceeded)
+              (cons 'childrenReaped children-reaped)
+              (cons 'supervisorOk supervisor-ok)
               (cons 'peakRssBytes rss)
               (cons 'peakFootprintBytes fp)
               (cons 'detail detail)
@@ -104,6 +123,8 @@
            (cons 'exitCode nil)
            (cons 'timedOut nil)
            (cons 'memoryExceeded nil)
+           (cons 'childrenReaped nil)
+           (cons 'supervisorOk nil)
            (cons 'peakRssBytes 0)
            (cons 'peakFootprintBytes 0)
            (cons 'detail (format "malformed supervisor receipt: %s (%s)"
@@ -122,31 +143,48 @@
                 (> ta tb)
               (string< (fe-test-case-id a) (fe-test-case-id b)))))))
 
-(defun fe-test--sample-active-bytes (xtask-bin workers now-ms)
-  "Return `(observed-live . projected-with-reservations)' across WORKERS."
-  (let ((pids nil)
-        (reservations 0))
+(defun fe-test--compute-projected-bytes (workers now-ms)
+  "Compute conservative memory projection across WORKERS at NOW-MS.
+Retains prior sampled observations and full estimated reservations for
+workers that have not yet been sampled or remain inside cold-start grace."
+  (let ((total 0))
+    (dolist (w workers)
+      (let* ((age (max 0 (- now-ms (fe-test--worker-started-ms w))))
+             (est (fe-test--worker-est-mem w))
+             (obs (fe-test--worker-observed-mem w)))
+        (setq total
+              (+ total
+                 (cond
+                  ((not (fe-test--worker-sampled w)) est)
+                  ((< age fe-test-cold-start-grace-ms) (max obs est))
+                  (t obs))))))
+    total))
+
+(defun fe-test--refresh-active-memory! (xtask-bin workers)
+  "Sample live process-tree memory via `xtask test-exec mem-tree' into WORKERS.
+Updates `:sampled' and `:observed-mem' on each active worker when `mem-tree'
+succeeds; preserves prior samples/reservations on transient failure."
+  (let ((pids nil))
     (dolist (w workers)
       (when (and (fe-test--worker-os-pid w)
                  (process-live-p (fe-test--worker-proc w)))
         (push (number-to-string (fe-test--worker-os-pid w)) pids)))
-    (if (null pids)
-        '(0 . 0)
-      (let* ((mem (condition-case nil
-                      (fe-test-call-json xtask-bin (cons "test-exec" (cons "mem-tree" (nreverse pids))))
-                    (error nil)))
-             (live-total (or (and mem (alist-get 'total_accounted_bytes mem)) 0))
-             (per-pid (and mem (alist-get 'per_pid mem))))
-        (dolist (w workers)
-          (when (and (fe-test--worker-os-pid w)
-                     (process-live-p (fe-test--worker-proc w)))
-            (let* ((age (- now-ms (fe-test--worker-started-ms w)))
-                   (pid-sym (intern (number-to-string (fe-test--worker-os-pid w))))
-                   (row (and per-pid (alist-get pid-sym per-pid)))
-                   (obs (or (and row (alist-get 'accounted_bytes row)) 0)))
-              (when (< age fe-test-cold-start-grace-ms)
-                (setq reservations (+ reservations (max 0 (- (fe-test--worker-est-mem w) obs))))))))
-        (cons live-total (+ live-total reservations))))))
+    (when pids
+      (let ((mem (condition-case nil
+                     (fe-test-call-json xtask-bin (cons "test-exec" (cons "mem-tree" (nreverse pids))))
+                   (error nil))))
+        (when mem
+          (let ((live-total (or (alist-get 'total_accounted_bytes mem) 0))
+                (per-pid (alist-get 'per_pid mem)))
+            (dolist (w workers)
+              (when (and (fe-test--worker-os-pid w)
+                         (process-live-p (fe-test--worker-proc w)))
+                (let* ((pid-sym (intern (number-to-string (fe-test--worker-os-pid w))))
+                       (row (and per-pid (alist-get pid-sym per-pid)))
+                       (obs (or (and row (alist-get 'accounted_bytes row)) 0)))
+                  (setf (fe-test--worker-sampled w) t)
+                  (setf (fe-test--worker-observed-mem w) obs))))
+            live-total))))))
 
 (defun fe-test--pick-admissible (pending active heavy-workers profile-table
                                           live-bytes ceiling max-workers)
@@ -206,6 +244,8 @@
                           (cons 'exitCode 0)
                           (cons 'timedOut nil)
                           (cons 'memoryExceeded nil)
+                          (cons 'childrenReaped t)
+                          (cons 'supervisorOk t)
                           (cons 'peakRssBytes (or (alist-get 'peakRssBytes hit) 0))
                           (cons 'peakFootprintBytes (or (alist-get 'peakFootprintBytes hit) 0))
                           (cons 'detail (format "cached (orig %dms)"
@@ -243,6 +283,8 @@
                            :noquery t
                            :sentinel (lambda (p _event)
                                        (unless (process-live-p p)
+                                         (setf (fe-test--worker-proc-status worker) (process-status p))
+                                         (setf (fe-test--worker-proc-exit worker) (process-exit-status p))
                                          (setf (fe-test--worker-done worker) t)))))))
              (setf (fe-test--worker-proc worker) proc)
              (setf (fe-test--worker-os-pid worker) (process-id proc))
@@ -254,7 +296,12 @@
                (let ((proc (fe-test--worker-proc w)))
                  (when (and (not (fe-test--worker-done w))
                             (not (process-live-p proc)))
+                   (setf (fe-test--worker-proc-status w) (process-status proc))
+                   (setf (fe-test--worker-proc-exit w) (process-exit-status proc))
                    (setf (fe-test--worker-done w) t))
+                 (when (and (fe-test--worker-done w) (null (fe-test--worker-proc-status w)))
+                   (setf (fe-test--worker-proc-status w) (process-status proc))
+                   (setf (fe-test--worker-proc-exit w) (process-exit-status proc)))
                  (if (fe-test--worker-done w)
                      (let* ((tc (fe-test--worker-case w))
                             (buf (fe-test--worker-buffer w))
@@ -274,12 +321,17 @@
                                                (cons 'exitCode nil)
                                                (cons 'timedOut nil)
                                                (cons 'memoryExceeded nil)
+                                               (cons 'childrenReaped nil)
+                                               (cons 'supervisorOk nil)
                                                (cons 'peakRssBytes 0)
                                                (cons 'peakFootprintBytes 0)
                                                (cons 'detail "cancelled due to fail-fast abort")
                                                (cons 'stdout "")
                                                (cons 'stderr ""))
-                                       (fe-test--evaluate-supervise-output tc raw fallback-ms))
+                                       (fe-test--evaluate-supervise-output
+                                        tc raw fallback-ms
+                                        (fe-test--worker-proc-status w)
+                                        (fe-test--worker-proc-exit w)))
                                    (when (buffer-live-p buf)
                                      (kill-buffer buf)))))
                        (push res results)
@@ -289,7 +341,9 @@
                            (setq peak-agg single-peak)))
                        (when (and use-cache
                                   (fe-test--worker-cache-key w)
-                                  (equal (alist-get 'status res) "passed"))
+                                  (equal (alist-get 'status res) "passed")
+                                  (eq (alist-get 'supervisorOk res) t)
+                                  (eq (alist-get 'childrenReaped res) t))
                          (fe-test-cache-store state-dir (fe-test--worker-cache-key w) res))
                        (when (and (equal (alist-get 'status res) "failed")
                                   (not keep-going))
@@ -315,36 +369,38 @@
           (accept-process-output nil 0.05)
           (collect-finished))
 
+        (let ((now-ms (fe-test-now-ms)))
+          (when (and active (not aborting)
+                     (or (= last-mem-check-ms 0)
+                         (>= (- now-ms last-mem-check-ms) fe-test-mem-sample-interval-ms)))
+            (setq last-mem-check-ms now-ms)
+            (let ((live-total (fe-test--refresh-active-memory! xtask-bin active)))
+              (when (and (numberp live-total) (> live-total peak-agg))
+                (setq peak-agg live-total)))))
+
         (when (and pending (not aborting) (< (length active) max-workers))
-          (let ((now-ms (fe-test-now-ms))
-                (projected-bytes 0))
-            (when (and active (>= (- now-ms last-mem-check-ms) 150))
-              (let ((mem-pair (fe-test--sample-active-bytes xtask-bin active now-ms)))
-                (setq last-mem-check-ms now-ms)
-                (when (> (car mem-pair) peak-agg)
-                  (setq peak-agg (car mem-pair)))
-                (setq projected-bytes (cdr mem-pair))))
-            (let ((launched-any nil)
-                  (keep-launching t))
-              (while (and keep-launching pending (< (length active) max-workers) (not aborting))
-                (let* ((live-for-pick (if (null active) 0 projected-bytes))
-                       (idx (fe-test--pick-admissible
-                             (mapcar #'car pending)
-                             active heavy-workers profile-table
-                             live-for-pick ceiling max-workers)))
-                  (if idx
-                      (let ((chosen (nth idx pending)))
-                        (setq pending (append (cl-subseq pending 0 idx)
-                                              (cl-subseq pending (1+ idx))))
-                        (launch-item chosen)
-                        (setq projected-bytes (+ projected-bytes (fe-test-profile-predict-mem-bytes
-                                                                  profile-table (car chosen))))
-                        (setq launched-any t)
-                        (setq paused-last-tick nil))
-                    (unless (or launched-any paused-last-tick (null pending) (null active))
-                      (setq admission-pauses (1+ admission-pauses))
-                      (setq paused-last-tick t))
-                    (setq keep-launching nil)))))))
+          (let ((launched-any nil)
+                (keep-launching t))
+            (while (and keep-launching pending (< (length active) max-workers) (not aborting))
+              (let* ((now-ms (fe-test-now-ms))
+                     (live-for-pick (if (null active)
+                                        0
+                                      (fe-test--compute-projected-bytes active now-ms)))
+                     (idx (fe-test--pick-admissible
+                           (mapcar #'car pending)
+                           active heavy-workers profile-table
+                           live-for-pick ceiling max-workers)))
+                (if idx
+                    (let ((chosen (nth idx pending)))
+                      (setq pending (append (cl-subseq pending 0 idx)
+                                            (cl-subseq pending (1+ idx))))
+                      (launch-item chosen)
+                      (setq launched-any t)
+                      (setq paused-last-tick nil))
+                  (unless (or launched-any paused-last-tick (null pending) (null active))
+                    (setq admission-pauses (1+ admission-pauses))
+                    (setq paused-last-tick t))
+                  (setq keep-launching nil))))))
 
         (when (or active (and pending (not aborting)))
           (accept-process-output nil fe-test-poll-interval-sec)))

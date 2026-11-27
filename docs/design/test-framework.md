@@ -62,9 +62,9 @@ Note on path sharing: `crates/femacs-sys/src/lib.rs` declares `extern crate self
 
 1. **`xtask test-exec supervise [OPTIONS] -- <PROGRAM> [ARGS...]`**
    - Options: `--timeout-ms N`, `--memory-limit-bytes N`, `--poll-ms N`, `--cwd DIR`, `--env K=V`, `--unset-env K`, `--pty`, `--max-output-bytes N`.
-   - Places the child in its own process group (`process_group(0)`), optionally allocates a PTY, drains bounded `stdout`/`stderr`, polls live process-tree RSS and macOS `phys_footprint`, enforces hard timeout and memory ceiling by terminating the entire process group, and verifies zero surviving children.
+   - Places the child in its own process group (`process_group(0)`), optionally allocates a PTY, drains bounded `stdout`/`stderr` with a hard drain deadline after exit, tracks live process identities (`ri_proc_start_abstime` + `ps` `lstart` + discovered PGIDs including PTY sub-groups) across ticks, samples process-tree RSS and macOS `phys_footprint`, enforces timeouts and memory ceilings across all tracked PGIDs and descendant PIDs (never treating `ESRCH` on a root PGID as proof descendants exited), and marks `children_reaped: true` only when all tracked descendants exited and both output pipes drained within deadline.
    - Emits `femacs-test-exec-v1`:
-     `{ schema, exit_code, signal, timed_out, memory_exceeded, elapsed_ms, peak_rss_bytes, peak_footprint_bytes, peak_accounted_bytes, max_tree_pids, children_reaped, stdout, stderr, stdout_truncated, stderr_truncated }`.
+     `{ schema, exit_code, signal, timed_out, memory_exceeded, elapsed_ms, peak_rss_bytes, peak_footprint_bytes, peak_accounted_bytes, max_tree_pids, output_drained, children_reaped, stdout, stderr, stdout_truncated, stderr_truncated }`.
 
 2. **`xtask test-exec mem-tree <PID>...`**
    - Samples the transitive process-tree + process-group closure of each active worker PID in one snapshot (deduplicating overlapping PIDs).
@@ -81,19 +81,20 @@ Note on path sharing: `crates/femacs-sys/src/lib.rs` declares `extern crate self
 ### 5.1 Memory-Aware LPT Dynamic Admission (`fe-test-scheduler.el`)
 
 - **LPT Ordering**: Pending cases are sorted in descending order of predicted `elapsedMs` from `profile.json` (defaulting `heavy` cases to `5000 ms`, standard cases to `1000 ms`, deterministic tie-break by case `id`) so long tails start immediately.
-- **Admission Gating**:
-  - Constants: `admission-ratio = 0.78`, `cold-start-grace-ms = 4000`, `poll-interval = 0.05 s`.
-  - When at least 1 worker is active, launches beyond `1` require:
-    `active < max-workers`, heavy limit respected, and `live_tree_bytes + cold_start_reservations + candidate_est_bytes <= 0.78 * budget_bytes`.
+- **Continuous Sampling & Admission Gating**:
+  - Constants: `admission-ratio = 0.78`, `cold-start-grace-ms = 4000`, `poll-interval = 0.05 s`, `mem-sample-interval = 150 ms`.
+  - Every active run polls `mem-tree` at `mem-sample-interval` continuously regardless of whether launch slots remain open or `pending` is empty.
+  - Between samples, each worker preserves its latest valid `observed-mem`, its full predicted reservation while unsampled, and `(max observed-mem est-mem)` during `cold-start-grace-ms` so sampling gaps cannot bypass the `0.78 * budget_bytes` ceiling.
   - Always admits at least `1` worker when idle so a large single test never deadlocks; records `admissionPauses` and `peakAggregateRssBytes`.
+  - Result validation enforces supervisor exit 0, valid `femacs-test-exec-v1` schema, and `children_reaped = true` before passing or writing cache entries.
 - **Fail-Fast & `--keep-going`**: Stops admitting and reaps active workers on first failure by default; runs full suite when `--keep-going` is passed.
 
 ### 5.2 Persistent State & Schemas (`build/test-framework/`)
 
 - **Profile Ledger (`profile.json`, `femacs-test-profile-v1`)**: Per-case `{ runs, status, updatedAt, elapsedMs, peakRssBytes, peakFootprintBytes }` updated via EWMA (`round(0.7 * latest + 0.3 * prev)`).
 - **Failure Ledger (`last-failures.json`, `femacs-test-failures-v1`)**: `{ format, suite, updatedAt, failedTests }` consumed by `--rerun-failed`.
-- **Result Cache (`result-cache/<sha256>.json`, `femacs-test-cache-v1`)**: Stores passed cacheable case verdicts keyed by SHA-256 over case identity, exact command/env, target binary digest, declared input file/tree digests, and framework digest. Any target binary rebuild or test/source edit invalidates only affected keys.
-- **Run Report (`latest-report.json`, `femacs-test-report-v1`)**: `{ format, suite, total, passed, failed, cached, unstarted, cancelled, wallMs, cpuMs, speedup, peakAggregateRssBytes, peakAggregateRssMiB, admissionPauses, slowest, failedTests, cases }`.
+- **Result Cache (`result-cache/<sha256>.json`, `femacs-test-cache-v1`)**: Stores passed cacheable case verdicts keyed by SHA-256 over case identity, exact command/env, complete product runtime closure (`binary`, `.pdmp`, `lisp/`, `etc/`, bundled shared runtimes — disabling cache automatically when the runtime closure cannot be resolved), declared test inputs, and framework digest.
+- **Run Report (`latest-report.json`, `femacs-test-report-v1`)**: `{ format, suite, total, passed, failed, cached, unstarted, cancelled, wallMs, cumulativeCaseMs, observedConcurrency, peakAggregateRssBytes, peakAggregateRssMiB, admissionPauses, slowest, failedTests, cases }`.
 
 ### 5.3 High-Frequency Core Suites (`tools/testing/suites/`)
 

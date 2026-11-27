@@ -11,9 +11,9 @@
 
 (let* ((targets (fe-test-targets))
        (lisp-host (plist-get targets :lisp-host))
-       (lisp-pdmp (plist-get targets :lisp-pdmp))
        (http-host (plist-get targets :http-host))
-       (inputs (cl-remove-if-not #'identity (list lisp-host lisp-pdmp))))
+       (inputs (and lisp-host (fe-test-product-runtime-inputs lisp-host)))
+       (cacheable (not (null inputs))))
   (when lisp-host
     (fe-test-register-case
      :id "host/cli-version-help"
@@ -35,6 +35,7 @@
                      "      (unless (eql rc3 2)"
                      "        (error \"expected exit 2, got %s\" rc3)))))"))
      :timeout-ms 20000
+     :cacheable cacheable
      :cache-inputs inputs
      :tags '("host" "fast"))
 
@@ -61,6 +62,7 @@
                      "    (ignore-errors (delete-file tmp))))"))
      :env (list (cons "TMPDIR" (fe-test-path "build/test-framework/tmp")))
      :timeout-ms 20000
+     :cacheable cacheable
      :cache-inputs inputs
      :tags '("host" "fast"))
 
@@ -88,6 +90,7 @@
                      "      (error nil))"
                      "    (unless cleaned (error \"normal error unwind-protect did not run\"))))"))
      :timeout-ms 25000
+     :cacheable cacheable
      :cache-inputs inputs
      :tags '("host" "fast"))
 
@@ -123,6 +126,7 @@
                      "    (when (process-live-p proc) (ignore-errors (kill-process proc)))"
                      "    (kill-buffer buf)))"))
      :timeout-ms 20000
+     :cacheable cacheable
      :cache-inputs inputs
      :tags '("host" "fast")))
 
@@ -177,7 +181,8 @@
                      "    (when (process-live-p proc) (ignore-errors (kill-process proc)))"
                      "    (kill-buffer buf)))"))
      :timeout-ms 25000
-     :cache-inputs (append (list http-host "examples/lisp-web/http-app.el" "examples/lisp-web/items-core.el") inputs)
+     :cacheable cacheable
+     :cache-inputs (and inputs (append (list http-host "examples/lisp-web/http-app.el" "examples/lisp-web/items-core.el") inputs))
      :tags '("host" "fast"))))
 
 ;;; suite-host.el ends here

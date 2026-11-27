@@ -8642,8 +8642,8 @@
     },
     {
       "path": "tools/unsafe-boundary-manifest.json",
-      "sha256": "e1cc90811c34d3d56b21444f0689b776de3dc572debcb6080f7d0a73b18ca97f",
-      "bytes": 146832,
+      "sha256": "a77299415cce7fe05023af9cbf2dca4ff2e24f5b2b74836fbbf8ef738269e5d1",
+      "bytes": 146999,
       "family": "fixture",
       "decision": "retain",
       "replacement": null,
@@ -8655,7 +8655,9 @@
           "kind": "current explicit dispatch/import/documented invocation"
         }
       ],
-      "uncertainty": null
+      "uncertainty": null,
+      "current_sha256": "a77299415cce7fe05023af9cbf2dca4ff2e24f5b2b74836fbbf8ef738269e5d1",
+      "current_bytes": 146999
     },
     {
       "path": "tools/version_resources.py",
@@ -8708,8 +8710,8 @@
     },
     {
       "path": "tools/testing/fe-test-cache.el",
-      "sha256": "832030bd8167834ab268b7a5e4392827976c585754db02d7946507aeb29478eb",
-      "bytes": 6480,
+      "sha256": "8c87e2b34b4407a82895ea7f474d067783e25765e9cf102ef9c016b91209acef",
+      "bytes": 6594,
       "family": "test",
       "decision": "retain",
       "replacement": null,
@@ -8726,12 +8728,14 @@
           "kind": "framework entrypoint"
         }
       ],
-      "uncertainty": null
+      "uncertainty": null,
+      "current_sha256": "8c87e2b34b4407a82895ea7f474d067783e25765e9cf102ef9c016b91209acef",
+      "current_bytes": 6594
     },
     {
       "path": "tools/testing/fe-test-dsl.el",
-      "sha256": "8309876106321447a6b0dd216c3e765466811b0af326e78b9a077c6ff1a561cd",
-      "bytes": 10263,
+      "sha256": "0b9221ccf2bb9d6fb93407718f9f8d1a4e935f97870f53c4431ec39d7efc0e8f",
+      "bytes": 12931,
       "family": "test",
       "decision": "retain",
       "replacement": null,
@@ -8748,7 +8752,9 @@
           "kind": "framework entrypoint"
         }
       ],
-      "uncertainty": null
+      "uncertainty": null,
+      "current_sha256": "0b9221ccf2bb9d6fb93407718f9f8d1a4e935f97870f53c4431ec39d7efc0e8f",
+      "current_bytes": 12931
     },
     {
       "path": "tools/testing/fe-test-profile.el",
@@ -8774,8 +8780,8 @@
     },
     {
       "path": "tools/testing/fe-test-reporter.el",
-      "sha256": "f68cd5d85c299aecef6a8293ee794553e3ee8fb9c7c743a2c86d81ab71fdc86c",
-      "bytes": 6617,
+      "sha256": "bb4d159ca16e37a1d94044d5b7ad49949a88fdb08611ddd87d41d011c6eca0e0",
+      "bytes": 6809,
       "family": "test",
       "decision": "retain",
       "replacement": null,
@@ -8792,12 +8798,14 @@
           "kind": "framework entrypoint"
         }
       ],
-      "uncertainty": null
+      "uncertainty": null,
+      "current_sha256": "bb4d159ca16e37a1d94044d5b7ad49949a88fdb08611ddd87d41d011c6eca0e0",
+      "current_bytes": 6809
     },
     {
       "path": "tools/testing/fe-test-scheduler.el",
-      "sha256": "b53715d17a89d8dc49f46d6ba78b14e665643419e775b4ef095353ba3085b8bc",
-      "bytes": 18521,
+      "sha256": "50db490398db97aa38c16994ecd18017ee9877114bbe271b5fa547a6b8d0d621",
+      "bytes": 21532,
       "family": "test",
       "decision": "retain",
       "replacement": null,
@@ -8814,7 +8822,9 @@
           "kind": "framework entrypoint"
         }
       ],
-      "uncertainty": null
+      "uncertainty": null,
+      "current_sha256": "50db490398db97aa38c16994ecd18017ee9877114bbe271b5fa547a6b8d0d621",
+      "current_bytes": 21532
     },
     {
       "path": "tools/testing/fe-test.el",
@@ -8840,8 +8850,8 @@
     },
     {
       "path": "tools/testing/suites/suite-ert-core.el",
-      "sha256": "f285fcf2e87881d1c9ef4c75811acb69c399094929bb5da5d5235658126e4941",
-      "bytes": 2175,
+      "sha256": "44c3f9a91ec7597eb67b04a0ae508055f86a967860193bc849668192641ba965",
+      "bytes": 2343,
       "family": "test",
       "decision": "retain",
       "replacement": null,
@@ -8858,12 +8868,14 @@
           "kind": "framework entrypoint"
         }
       ],
-      "uncertainty": null
+      "uncertainty": null,
+      "current_sha256": "44c3f9a91ec7597eb67b04a0ae508055f86a967860193bc849668192641ba965",
+      "current_bytes": 2343
     },
     {
       "path": "tools/testing/suites/suite-host.el",
-      "sha256": "022340a707f11904f988f5df5c5159824adc595d31a516c0c408bd3c3d04a618",
-      "bytes": 11456,
+      "sha256": "d129b2c7dee4b0ff736294881a34e9413faf9cad72e3dde7069c589dfe49ae9a",
+      "bytes": 11590,
       "family": "test",
       "decision": "retain",
       "replacement": null,
@@ -8880,12 +8892,14 @@
           "kind": "framework entrypoint"
         }
       ],
-      "uncertainty": null
+      "uncertainty": null,
+      "current_sha256": "d129b2c7dee4b0ff736294881a34e9413faf9cad72e3dde7069c589dfe49ae9a",
+      "current_bytes": 11590
     },
     {
       "path": "tools/testing/suites/suite-smoke.el",
-      "sha256": "d0556f8baa0eb2047d34ae6d35239949d0df7791179cb9d59c3f14628f8c7ea4",
-      "bytes": 5505,
+      "sha256": "aa631a79365e7652d949f27e1dea197486b68d00aa4b9af49a968ce81283578e",
+      "bytes": 5829,
       "family": "test",
       "decision": "retain",
       "replacement": null,
@@ -8902,7 +8916,9 @@
           "kind": "framework entrypoint"
         }
       ],
-      "uncertainty": null
+      "uncertainty": null,
+      "current_sha256": "aa631a79365e7652d949f27e1dea197486b68d00aa4b9af49a968ce81283578e",
+      "current_bytes": 5829
     },
     {
       "path": "tools/testing/suites/suite-static.el",
@@ -8928,8 +8944,8 @@
     },
     {
       "path": "tools/testing/tests/fe-test-self-tests.el",
-      "sha256": "bbe940f97ba252dce3c831b9741975d52d9f63b8497cb4b26613dcead764a6f2",
-      "bytes": 9591,
+      "sha256": "468271cdf6f34de81a5b364b5321f7c76237d20905e387209a8c65b3bb67dece",
+      "bytes": 20809,
       "family": "test",
       "decision": "retain",
       "replacement": null,
@@ -8946,7 +8962,9 @@
           "kind": "framework entrypoint"
         }
       ],
-      "uncertainty": null
+      "uncertainty": null,
+      "current_sha256": "468271cdf6f34de81a5b364b5321f7c76237d20905e387209a8c65b3bb67dece",
+      "current_bytes": 20809
     }
   ],
   "cleanup_manifests": [

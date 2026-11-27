@@ -16,7 +16,6 @@
        (cocoa-bin (plist-get targets :cocoa-bin))
        (cocoa-client (plist-get targets :cocoa-client))
        (lisp-host (plist-get targets :lisp-host))
-       (lisp-pdmp (plist-get targets :lisp-pdmp))
        (batch-expr
         (concat
          "(prin1 (list (+ 20 22)"
@@ -47,55 +46,61 @@
      :tags '("smoke" "fast")))
 
   (when term-emacs
-    (fe-test-register-case
-     :id "smoke/terminal-batch"
-     :suite "smoke"
-     :title "Terminal binary batch Lisp, treesit & SHA-256 smoke"
-     :command (list term-emacs "--batch" "-Q" "--eval" batch-expr)
-     :timeout-ms 20000
-     :cache-inputs (list term-emacs)
-     :check-fn (lambda (exec)
-                 (let ((out (string-trim (or (alist-get 'stdout exec) ""))))
-                   (if (and (eql (alist-get 'exit_code exec) 0)
-                            (string= out "(42 t t nil t)"))
-                       (list t out)
-                     (list nil (format "unexpected output=%S exit=%s"
-                                       out (alist-get 'exit_code exec))))))
-     :tags '("smoke" "fast")))
+    (let ((term-inputs (fe-test-product-runtime-inputs term-emacs)))
+      (fe-test-register-case
+       :id "smoke/terminal-batch"
+       :suite "smoke"
+       :title "Terminal binary batch Lisp, treesit & SHA-256 smoke"
+       :command (list term-emacs "--batch" "-Q" "--eval" batch-expr)
+       :timeout-ms 20000
+       :cacheable (not (null term-inputs))
+       :cache-inputs term-inputs
+       :check-fn (lambda (exec)
+                   (let ((out (string-trim (or (alist-get 'stdout exec) ""))))
+                     (if (and (eql (alist-get 'exit_code exec) 0)
+                              (string= out "(42 t t nil t)"))
+                         (list t out)
+                       (list nil (format "unexpected output=%S exit=%s"
+                                         out (alist-get 'exit_code exec))))))
+       :tags '("smoke" "fast"))))
 
   (when cocoa-bin
-    (fe-test-register-case
-     :id "smoke/cocoa-batch"
-     :suite "smoke"
-     :title "Cocoa binary batch Lisp, treesit & SHA-256 smoke"
-     :command (list cocoa-bin "--batch" "-Q" "--eval" batch-expr)
-     :timeout-ms 20000
-     :cache-inputs (list cocoa-bin)
-     :check-fn (lambda (exec)
-                 (let ((out (string-trim (or (alist-get 'stdout exec) ""))))
-                   (if (and (eql (alist-get 'exit_code exec) 0)
-                            (string= out "(42 t t nil t)"))
-                       (list t out)
-                     (list nil (format "unexpected output=%S exit=%s"
-                                       out (alist-get 'exit_code exec))))))
-     :tags '("smoke" "fast")))
+    (let ((cocoa-inputs (fe-test-product-runtime-inputs cocoa-bin)))
+      (fe-test-register-case
+       :id "smoke/cocoa-batch"
+       :suite "smoke"
+       :title "Cocoa binary batch Lisp, treesit & SHA-256 smoke"
+       :command (list cocoa-bin "--batch" "-Q" "--eval" batch-expr)
+       :timeout-ms 20000
+       :cacheable (not (null cocoa-inputs))
+       :cache-inputs cocoa-inputs
+       :check-fn (lambda (exec)
+                   (let ((out (string-trim (or (alist-get 'stdout exec) ""))))
+                     (if (and (eql (alist-get 'exit_code exec) 0)
+                              (string= out "(42 t t nil t)"))
+                         (list t out)
+                       (list nil (format "unexpected output=%S exit=%s"
+                                         out (alist-get 'exit_code exec))))))
+       :tags '("smoke" "fast"))))
 
   (when lisp-host
-    (fe-test-register-case
-     :id "smoke/lisp-host-eval"
-     :suite "smoke"
-     :title "Standalone femacs-lisp eval smoke"
-     :command (list lisp-host "--batch" "-Q" "--eval" "(princ (+ 20 22))")
-     :timeout-ms 15000
-     :cache-inputs (cl-remove-if-not #'identity (list lisp-host lisp-pdmp))
-     :check-fn (lambda (exec)
-                 (let ((out (string-trim (or (alist-get 'stdout exec) ""))))
-                   (if (and (eql (alist-get 'exit_code exec) 0)
-                            (string= out "42"))
-                       (list t out)
-                     (list nil (format "unexpected output=%S exit=%s"
-                                       out (alist-get 'exit_code exec))))))
-     :tags '("smoke" "fast"))
+    (let ((lisp-inputs (fe-test-product-runtime-inputs lisp-host)))
+      (fe-test-register-case
+       :id "smoke/lisp-host-eval"
+       :suite "smoke"
+       :title "Standalone femacs-lisp eval smoke"
+       :command (list lisp-host "--batch" "-Q" "--eval" "(princ (+ 20 22))")
+       :timeout-ms 15000
+       :cacheable (not (null lisp-inputs))
+       :cache-inputs lisp-inputs
+       :check-fn (lambda (exec)
+                   (let ((out (string-trim (or (alist-get 'stdout exec) ""))))
+                     (if (and (eql (alist-get 'exit_code exec) 0)
+                              (string= out "42"))
+                         (list t out)
+                       (list nil (format "unexpected output=%S exit=%s"
+                                         out (alist-get 'exit_code exec))))))
+       :tags '("smoke" "fast")))
 
     (fe-test-register-case
      :id "smoke/lisp-manifest"

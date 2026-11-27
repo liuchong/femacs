@@ -8,6 +8,7 @@ use std::io::Read;
 use std::os::unix::process::{CommandExt, ExitStatusExt};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
+use std::sync::{Arc, Mutex, mpsc};
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -23,7 +24,8 @@ mod test_exec_tests;
 const DEFAULT_TIMEOUT_MS: u64 = 60_000;
 const DEFAULT_POLL_MS: u64 = 50;
 const DEFAULT_MAX_OUTPUT_BYTES: usize = 4 * 1024 * 1024;
-const ESRCH: i32 = 3;
+const PIPE_DRAIN_TIMEOUT_MS: u64 = 500;
+const SIGNAL_DRAIN_TIMEOUT_MS: u64 = 300;
 
 #[derive(Serialize)]
 struct SuperviseReceipt {
@@ -37,6 +39,7 @@ struct SuperviseReceipt {
     peak_footprint_bytes: u64,
     peak_accounted_bytes: u64,
     max_tree_pids: usize,
+    output_drained: bool,
     children_reaped: bool,
     stdout: String,
     stderr: String,
@@ -79,18 +82,67 @@ struct DigestReceipt {
     entries: Vec<DigestEntry>,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 struct ProcRow {
     pid: u32,
     ppid: u32,
     pgid: u32,
     rss_bytes: u64,
+    lstart: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct ProcIdentity {
+    start_abstime: Option<u64>,
+    lstart: String,
 }
 
 #[derive(Default)]
 struct BoundedCapture {
     text: String,
     truncated: bool,
+}
+
+struct PipeDrain {
+    done_rx: mpsc::Receiver<()>,
+    snapshot: Arc<Mutex<BoundedCapture>>,
+}
+
+impl PipeDrain {
+    fn drain_with_timeout(self, timeout: Duration) -> (BoundedCapture, bool) {
+        let drained = match self.done_rx.recv_timeout(timeout) {
+            Ok(()) | Err(mpsc::RecvTimeoutError::Disconnected) => true,
+            Err(mpsc::RecvTimeoutError::Timeout) => false,
+        };
+        let guard = self.snapshot.lock().unwrap_or_else(|e| e.into_inner());
+        let cap = BoundedCapture {
+            text: guard.text.clone(),
+            truncated: guard.truncated,
+        };
+        (cap, drained)
+    }
+}
+
+fn proc_identity_for_row(row: &ProcRow) -> ProcIdentity {
+    let pid_i32 = i32::try_from(row.pid).unwrap_or(0);
+    let start_abstime = os_ffi::pid_rusage_info(pid_i32)
+        .map(|(_, _, abstime)| abstime)
+        .filter(|&t| t > 0);
+    ProcIdentity {
+        start_abstime,
+        lstart: row.lstart.clone(),
+    }
+}
+
+fn same_identity(recorded: &ProcIdentity, live: &ProcIdentity) -> bool {
+    match (recorded.start_abstime, live.start_abstime) {
+        (Some(a), Some(b)) => a == b,
+        _ => !recorded.lstart.is_empty() && recorded.lstart == live.lstart,
+    }
+}
+
+fn finalize_children_reaped(reaped: bool, stdout_drained: bool, stderr_drained: bool) -> bool {
+    reaped && stdout_drained && stderr_drained
 }
 
 pub(crate) fn command(args: &[String]) -> i32 {
@@ -214,41 +266,43 @@ fn parse_supervise_args(args: &[String]) -> Result<SuperviseSpec, String> {
     })
 }
 
-fn spawn_pipe_reader<R: Read + Send + 'static>(
+fn spawn_pipe_drain<R: Read + Send + 'static>(
     mut reader: R,
     max_bytes: usize,
-) -> thread::JoinHandle<BoundedCapture> {
+) -> PipeDrain {
+    let snapshot = Arc::new(Mutex::new(BoundedCapture::default()));
+    let snapshot_ref = Arc::clone(&snapshot);
+    let (done_tx, done_rx) = mpsc::channel();
     thread::spawn(move || {
-        let mut kept: Vec<u8> = Vec::new();
+        let mut raw_kept: Vec<u8> = Vec::new();
         let mut buf = [0u8; 8192];
-        let mut truncated = false;
         loop {
             match reader.read(&mut buf) {
                 Ok(0) | Err(_) => break,
                 Ok(n) => {
-                    if kept.len() < max_bytes {
-                        let room = max_bytes - kept.len();
+                    let mut guard = snapshot_ref.lock().unwrap_or_else(|e| e.into_inner());
+                    if raw_kept.len() < max_bytes {
+                        let room = max_bytes - raw_kept.len();
                         let take = n.min(room);
-                        kept.extend_from_slice(&buf[..take]);
+                        raw_kept.extend_from_slice(&buf[..take]);
+                        guard.text = String::from_utf8_lossy(&raw_kept).into_owned();
                         if take < n {
-                            truncated = true;
+                            guard.truncated = true;
                         }
                     } else {
-                        truncated = true;
+                        guard.truncated = true;
                     }
                 }
             }
         }
-        BoundedCapture {
-            text: String::from_utf8_lossy(&kept).into_owned(),
-            truncated,
-        }
-    })
+        let _ = done_tx.send(());
+    });
+    PipeDrain { done_rx, snapshot }
 }
 
 fn snapshot_process_table() -> Vec<ProcRow> {
     let Ok(out) = Command::new("ps")
-        .args(["-o", "pid=,ppid=,pgid=,rss=", "-ax"])
+        .args(["-o", "pid=,ppid=,pgid=,rss=,lstart=", "-ax"])
         .output()
     else {
         return Vec::new();
@@ -273,11 +327,13 @@ fn snapshot_process_table() -> Vec<ProcRow> {
         ) else {
             continue;
         };
+        let lstart = parts.collect::<Vec<_>>().join(" ");
         rows.push(ProcRow {
             pid,
             ppid,
             pgid,
             rss_bytes: rss.saturating_mul(1024),
+            lstart,
         });
     }
     rows
@@ -300,6 +356,153 @@ fn collect_tree_closure(rows: &[ProcRow], root_pid: u32) -> BTreeSet<u32> {
         }
     }
     closure
+}
+
+struct TrackedTree {
+    root_pid: u32,
+    self_pid: u32,
+    self_pgid: u32,
+    launch_start_abstime: Option<u64>,
+    procs: BTreeMap<u32, ProcIdentity>,
+    pgids: BTreeSet<u32>,
+}
+
+impl TrackedTree {
+    fn new(root_pid: u32) -> Self {
+        let self_pid = std::process::id();
+        let self_pgid = os_ffi::current_pgid();
+        let mut pgids = BTreeSet::new();
+        if root_pid > 1 && root_pid != self_pgid {
+            pgids.insert(root_pid);
+        }
+        let rows = snapshot_process_table();
+        let launch_start_abstime = rows
+            .iter()
+            .find(|r| r.pid == root_pid)
+            .and_then(|r| proc_identity_for_row(r).start_abstime);
+        let mut tree = Self {
+            root_pid,
+            self_pid,
+            self_pgid,
+            launch_start_abstime,
+            procs: BTreeMap::new(),
+            pgids,
+        };
+        let _ = tree.refresh(&rows);
+        tree
+    }
+
+    fn record_pgid(&mut self, pgid: u32) {
+        if pgid > 1 && pgid != self.self_pgid && pgid != self.self_pid {
+            self.pgids.insert(pgid);
+        }
+    }
+
+    fn drop_root_after_wait(&mut self) {
+        self.procs.remove(&self.root_pid);
+    }
+
+    fn refresh(&mut self, rows: &[ProcRow]) -> Vec<ProcRow> {
+        let mut by_pid: BTreeMap<u32, &ProcRow> = BTreeMap::new();
+        for row in rows {
+            by_pid.insert(row.pid, row);
+        }
+
+        let mut alive_pids = BTreeSet::new();
+        let mut recycled_pids = Vec::new();
+
+        for (&pid, recorded) in &self.procs {
+            if let Some(&row) = by_pid.get(&pid) {
+                let live_ident = proc_identity_for_row(row);
+                if same_identity(recorded, &live_ident) {
+                    alive_pids.insert(pid);
+                    self.pgids.extend(
+                        [row.pgid]
+                            .into_iter()
+                            .filter(|&pg| pg > 1 && pg != self.self_pgid && pg != self.self_pid),
+                    );
+                } else {
+                    recycled_pids.push(pid);
+                }
+            }
+        }
+        for pid in recycled_pids {
+            self.procs.remove(&pid);
+        }
+
+        if let Some(&root_row) = by_pid.get(&self.root_pid) {
+            if let Some(recorded) = self.procs.get(&self.root_pid) {
+                let live_ident = proc_identity_for_row(root_row);
+                if same_identity(recorded, &live_ident) {
+                    alive_pids.insert(self.root_pid);
+                }
+            } else {
+                let ident = proc_identity_for_row(root_row);
+                if self.launch_start_abstime.is_none() {
+                    self.launch_start_abstime = ident.start_abstime;
+                }
+                let ok_time = match (self.launch_start_abstime, ident.start_abstime) {
+                    (Some(base), Some(cur)) => cur >= base,
+                    _ => true,
+                };
+                if ok_time {
+                    self.procs.insert(self.root_pid, ident);
+                    self.record_pgid(root_row.pgid);
+                    alive_pids.insert(self.root_pid);
+                }
+            }
+        }
+
+        for row in rows {
+            if row.pid <= 1 || row.pid == self.self_pid {
+                continue;
+            }
+            if self.pgids.contains(&row.pgid) && !self.procs.contains_key(&row.pid) {
+                let ident = proc_identity_for_row(row);
+                let ok_time = match (self.launch_start_abstime, ident.start_abstime) {
+                    (Some(base), Some(cur)) => cur >= base,
+                    _ => true,
+                };
+                if ok_time {
+                    self.procs.insert(row.pid, ident);
+                    alive_pids.insert(row.pid);
+                }
+            }
+        }
+
+        let mut queue: VecDeque<u32> = alive_pids.iter().copied().collect();
+        while let Some(cur) = queue.pop_front() {
+            for row in rows {
+                if row.pid <= 1 || row.pid == self.self_pid || row.ppid != cur {
+                    continue;
+                }
+                if alive_pids.insert(row.pid) {
+                    let ident = proc_identity_for_row(row);
+                    self.procs.entry(row.pid).or_insert(ident);
+                    self.record_pgid(row.pgid);
+                    queue.push_back(row.pid);
+                }
+            }
+        }
+
+        alive_pids
+            .into_iter()
+            .filter_map(|pid| by_pid.get(&pid).map(|&r| r.clone()))
+            .collect()
+    }
+}
+
+fn sample_tracked_memory(alive: &[ProcRow]) -> (u64, u64, u64, usize) {
+    let mut total_rss = 0u64;
+    let mut total_fp = 0u64;
+    let mut total_acc = 0u64;
+    for row in alive {
+        let (rss, fp) = pid_memory_or_fallback(row.pid, row.rss_bytes);
+        total_rss = total_rss.saturating_add(rss);
+        total_fp = total_fp.saturating_add(fp);
+        total_acc = total_acc.saturating_add(rss.max(fp));
+    }
+    (total_rss, total_fp, total_acc, alive.len())
 }
 
 fn sample_pid_memories(
@@ -366,63 +569,78 @@ fn pid_memory_or_fallback(pid: u32, ps_rss_bytes: u64) -> (u64, u64) {
     }
 }
 
-fn terminate_process_group(child: &mut Child, pgid: i32) {
-    let _ = os_ffi::signal_process_group(pgid, os_ffi::SIGTERM);
-    let grace_deadline = Instant::now() + Duration::from_millis(200);
-    while Instant::now() < grace_deadline {
-        match child.try_wait() {
-            Ok(Some(_)) => return,
-            Ok(None) => thread::sleep(Duration::from_millis(20)),
-            Err(_) => break,
+fn signal_tree_snapshot(tree: &TrackedTree, survivors: &[ProcRow], sig: i32) {
+    for &pgid_u32 in &tree.pgids {
+        if let Ok(pgid) = i32::try_from(pgid_u32) {
+            if pgid > 1 {
+                let _ = os_ffi::signal_process_group(pgid, sig);
+            }
         }
     }
-    let _ = os_ffi::signal_process_group(pgid, os_ffi::SIGKILL);
+    for row in survivors {
+        if row.pid > 1 && row.pid != tree.self_pid {
+            if let Ok(pid) = i32::try_from(row.pid) {
+                let _ = os_ffi::signal_process(pid, sig);
+            }
+        }
+    }
+}
+
+fn terminate_tracked_tree(child: &mut Child, tree: &mut TrackedTree) {
+    let initial = tree.refresh(&snapshot_process_table());
+    signal_tree_snapshot(tree, &initial, os_ffi::SIGTERM);
+    if let Ok(root_pg) = i32::try_from(tree.root_pid) {
+        if root_pg > 1 {
+            let _ = os_ffi::signal_process_group(root_pg, os_ffi::SIGTERM);
+        }
+    }
+    let grace_deadline = Instant::now() + Duration::from_millis(200);
+    let mut child_done = false;
+    while Instant::now() < grace_deadline {
+        if !child_done {
+            match child.try_wait() {
+                Ok(Some(_)) | Err(_) => child_done = true,
+                Ok(None) => {}
+            }
+        }
+        let rem = tree.refresh(&snapshot_process_table());
+        let non_root_alive = rem.iter().any(|r| r.pid != tree.root_pid);
+        if child_done && !non_root_alive {
+            return;
+        }
+        thread::sleep(Duration::from_millis(20));
+    }
+    let survivors = tree.refresh(&snapshot_process_table());
+    signal_tree_snapshot(tree, &survivors, os_ffi::SIGKILL);
     let _ = child.kill();
 }
 
-fn reap_remaining_group(root_pid: u32) -> bool {
-    let self_pid = std::process::id();
-    if root_pid <= 1 || root_pid == self_pid {
+fn reap_tracked_tree(tree: &mut TrackedTree) -> bool {
+    let mut survivors = tree.refresh(&snapshot_process_table());
+    if survivors.is_empty() {
         return true;
     }
-    let pgid = match i32::try_from(root_pid) {
-        Ok(p) if p > 1 => p,
-        _ => return false,
-    };
 
-    match os_ffi::signal_process_group(pgid, os_ffi::SIGTERM) {
-        Err(ESRCH) => return true,
-        Ok(()) | Err(_) => {}
-    }
-
-    let deadline = Instant::now() + Duration::from_millis(200);
-    while Instant::now() < deadline {
-        let rows = snapshot_process_table();
-        let survivors = collect_tree_closure(&rows, root_pid)
-            .into_iter()
-            .any(|pid| pid != self_pid && pid != root_pid);
-        if !survivors {
+    signal_tree_snapshot(tree, &survivors, os_ffi::SIGTERM);
+    let term_deadline = Instant::now() + Duration::from_millis(200);
+    while Instant::now() < term_deadline {
+        survivors = tree.refresh(&snapshot_process_table());
+        if survivors.is_empty() {
             return true;
         }
         thread::sleep(Duration::from_millis(20));
     }
 
-    match os_ffi::signal_process_group(pgid, os_ffi::SIGKILL) {
-        Err(ESRCH) => return true,
-        Ok(()) | Err(_) => {}
-    }
-    let kill_deadline = Instant::now() + Duration::from_millis(250);
+    signal_tree_snapshot(tree, &survivors, os_ffi::SIGKILL);
+    let kill_deadline = Instant::now() + Duration::from_millis(300);
     while Instant::now() < kill_deadline {
-        let rows = snapshot_process_table();
-        let survivors = collect_tree_closure(&rows, root_pid)
-            .into_iter()
-            .any(|pid| pid != self_pid && pid != root_pid);
-        if !survivors {
+        survivors = tree.refresh(&snapshot_process_table());
+        if survivors.is_empty() {
             return true;
         }
         thread::sleep(Duration::from_millis(20));
     }
-    false
+    tree.refresh(&snapshot_process_table()).is_empty()
 }
 
 fn build_child_command(spec: &SuperviseSpec) -> Command {
@@ -461,13 +679,13 @@ fn run_supervise(args: &[String]) -> Result<SuperviseReceipt, String> {
         .spawn()
         .map_err(|e| format!("failed to spawn {}: {e}", spec.program))?;
     let root_pid = child.id();
-    let pgid = i32::try_from(root_pid).map_err(|_| "pid overflow".to_string())?;
+    let mut tree = TrackedTree::new(root_pid);
 
-    let stdout_handle = spawn_pipe_reader(
+    let stdout_drain = spawn_pipe_drain(
         child.stdout.take().ok_or("missing stdout pipe")?,
         spec.max_output_bytes,
     );
-    let stderr_handle = spawn_pipe_reader(
+    let stderr_drain = spawn_pipe_drain(
         child.stderr.take().ok_or("missing stderr pipe")?,
         spec.max_output_bytes,
     );
@@ -481,23 +699,29 @@ fn run_supervise(args: &[String]) -> Result<SuperviseReceipt, String> {
 
     let status = loop {
         if os_ffi::termination_requested() {
-            terminate_process_group(&mut child, pgid);
+            terminate_tracked_tree(&mut child, &mut tree);
             let _ = child.wait();
-            let _ = reap_remaining_group(root_pid);
-            let _ = stdout_handle.join();
-            let _ = stderr_handle.join();
-            return Err("supervise terminated by signal; child process group reaped".to_string());
+            tree.drop_root_after_wait();
+            let reaped = reap_tracked_tree(&mut tree);
+            let (_, out_ok) = stdout_drain.drain_with_timeout(Duration::from_millis(SIGNAL_DRAIN_TIMEOUT_MS));
+            let (_, err_ok) = stderr_drain.drain_with_timeout(Duration::from_millis(SIGNAL_DRAIN_TIMEOUT_MS));
+            return Err(format!(
+                "supervise terminated by signal; reaped={reaped} drained={}",
+                out_ok && err_ok
+            ));
         }
+
         let rows = snapshot_process_table();
-        let (_, _, _, per_pid) = sample_pid_memories(&rows, &[root_pid]);
-        if let Some(entry) = per_pid.get(&root_pid.to_string()) {
-            peak_rss_bytes = peak_rss_bytes.max(entry.rss_bytes);
-            peak_footprint_bytes = peak_footprint_bytes.max(entry.footprint_bytes);
-            peak_accounted_bytes = peak_accounted_bytes.max(entry.accounted_bytes);
-            max_tree_pids = max_tree_pids.max(entry.tree_pids.len());
-            if spec.memory_limit_bytes > 0 && entry.accounted_bytes > spec.memory_limit_bytes {
+        let alive = tree.refresh(&rows);
+        if !alive.is_empty() {
+            let (rss, fp, acc, count) = sample_tracked_memory(&alive);
+            peak_rss_bytes = peak_rss_bytes.max(rss);
+            peak_footprint_bytes = peak_footprint_bytes.max(fp);
+            peak_accounted_bytes = peak_accounted_bytes.max(acc);
+            max_tree_pids = max_tree_pids.max(count);
+            if spec.memory_limit_bytes > 0 && acc > spec.memory_limit_bytes {
                 memory_exceeded = true;
-                terminate_process_group(&mut child, pgid);
+                terminate_tracked_tree(&mut child, &mut tree);
                 break child.wait().map_err(|e| e.to_string())?;
             }
         }
@@ -509,18 +733,23 @@ fn run_supervise(args: &[String]) -> Result<SuperviseReceipt, String> {
         let elapsed_now = started.elapsed().as_millis() as u64;
         if spec.timeout_ms > 0 && elapsed_now >= spec.timeout_ms {
             timed_out = true;
-            terminate_process_group(&mut child, pgid);
+            terminate_tracked_tree(&mut child, &mut tree);
             break child.wait().map_err(|e| e.to_string())?;
         }
 
         thread::sleep(Duration::from_millis(spec.poll_ms));
     };
 
+    tree.drop_root_after_wait();
     let elapsed_ms = started.elapsed().as_millis() as u64;
-    let children_reaped = reap_remaining_group(root_pid);
+    let reaped = reap_tracked_tree(&mut tree);
 
-    let stdout_cap = stdout_handle.join().unwrap_or_default();
-    let stderr_cap = stderr_handle.join().unwrap_or_default();
+    let (stdout_cap, stdout_drained) =
+        stdout_drain.drain_with_timeout(Duration::from_millis(PIPE_DRAIN_TIMEOUT_MS));
+    let (stderr_cap, stderr_drained) =
+        stderr_drain.drain_with_timeout(Duration::from_millis(PIPE_DRAIN_TIMEOUT_MS));
+    let output_drained = stdout_drained && stderr_drained;
+    let children_reaped = finalize_children_reaped(reaped, stdout_drained, stderr_drained);
 
     Ok(SuperviseReceipt {
         schema: "femacs-test-exec-v1",
@@ -533,6 +762,7 @@ fn run_supervise(args: &[String]) -> Result<SuperviseReceipt, String> {
         peak_footprint_bytes,
         peak_accounted_bytes,
         max_tree_pids,
+        output_drained,
         children_reaped,
         stdout: stdout_cap.text,
         stderr: stderr_cap.text,
