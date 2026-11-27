@@ -1,0 +1,38 @@
+[package]
+name = "lisp-std"
+version = "0.0.1"
+edition.workspace = true
+rust-version = "1.85"
+license.workspace = true
+description = "100% pure-Rust standard library batteries for standalone lisp-core"
+repository = "https://github.com/liuchong/femacs"
+readme = "README.md"
+keywords = ["lisp", "stdlib", "http", "database", "scripting"]
+categories = ["development-tools", "network-programming", "database-implementations"]
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+base64 = "0.22"
+csv = "1"
+flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
+getrandom = "0.2"
+globset = "0.4"
+hmac = "0.12"
+jiff = "0.2"
+redb = "2.6"
+regex = "1"
+rustls = { version = "0.23", default-features = false, features = ["std", "tls12"] }
+rustls-rustcrypto = "0.0.2-alpha"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+tar = { version = "0.4", default-features = false }
+toml = "0.8"
+ureq = { version = "3", default-features = false, features = ["rustls-no-provider", "rustls-webpki-roots", "gzip"] }
+url = "2"
+uuid = { version = "1", features = ["v4", "v7"] }
+walkdir = "2"
+yaml-rust2 = "0.13"
+zip = { version = "2", default-features = false, features = ["deflate"] }

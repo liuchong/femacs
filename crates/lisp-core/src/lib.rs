@@ -12,6 +12,8 @@ pub mod error;
 pub mod exec;
 mod os_ffi;
 #[cfg(feature = "vm")]
+pub mod pkg;
+#[cfg(feature = "vm")]
 pub mod repl;
 pub mod rpc;
 pub mod stdlib_cache;

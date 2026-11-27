@@ -12,8 +12,13 @@ The repository extracts the pure-Rust Lisp VM (`crates/lisp-vm`) and public gene
   └────────────┬─────────────┘       └────────────────┬─────────────────┘
                │ default-features = false             │ default features (vm + repl-tty [+ std-batteries])
                ▼                                      ▼
+  ┌──────────────────────────────────┬───────────────────────────────────┐
+  │ crates/lisp-std (Pure-Rust std/* HTTP/redb+SQL/formats/crypto/fs)    │
+  └──────────────────────────────────┬───────────────────────────────────┘
+                                     │ (std-batteries, standalone only)
+                                     ▼
   ┌──────────────────────────────────────────────────────────────────────┐
-  │ crates/lisp-core (Engine, Value, Error, Brand, StdlibCache, Repl)    │
+  │ crates/lisp-core (Engine, Value, Error, Brand, StdlibCache, Repl,Pkg)│
   └──────────────────────────────────┬───────────────────────────────────┘
                                      │
                                      ▼
@@ -59,11 +64,27 @@ The repository extracts the pure-Rust Lisp VM (`crates/lisp-vm`) and public gene
   - `Gil`: Preserves single-instance process semantics (`Error::AlreadyInitialized` on 2nd init) and disables `std/task` parallel spawning (`--concurrency=gil` or `LISP_CONCURRENCY=gil`).
 - **Stdlib Modules (`stdlib/std/{chan,sync,task}.el`)**: Pure-Rust `#![forbid(unsafe_code)]` MPMC channels (`std-chan-*`), atomics/mutexes/shared maps (`std-atomic-*`, `std-mutex-*`, `std-shared-*`), OS-thread task spawn/await (`std-task-spawn`, `std-task-await`), bounded worker pools (`std-task-pool-*`), and multi-core `std-task-parallel-map`.
 
-## 4. Multi-Phase Evolution
+## 4. Pure-Rust Standard Library (`crates/lisp-std`) & Project Workflow (`Phase 3`)
+
+- **100% Pure-Rust `crates/lisp-std` (`#![forbid(unsafe_code)]`, zero `cc` or C `-sys` crates)**:
+  - Enabled by default inside `lisp-core` via `std-batteries = ["vm", "dep:lisp-std"]`; excluded from `femacs-host`, `femacs-tools`, and `xtask` (`default-features = false`).
+  - Shared `StdRuntime` attached to both root `Engine` and `NoGil` `ConcurrencyHub` worker isolates so parallel tasks can use `std/*` capabilities directly.
+  - Modules (`stdlib/std/*.el`):
+    - `std/http`: HTTPS/HTTP client (`ureq` + `rustls` + `rustls-rustcrypto` + `webpki-roots` + `gzip`) and embedded multi-threaded HTTP/1.1 TCP server (`std-http-server-*`, `std-http-serve`).
+    - `std/kv` & `std/db`: Embedded ACID key-value store (`redb`) and pure-Rust transactional SQL engine (`CREATE/DROP TABLE`, `INSERT`, `SELECT ... WHERE ... ORDER BY ... LIMIT/OFFSET`, `COUNT(*)`, `UPDATE`, `DELETE`, `BEGIN`/`COMMIT`/`ROLLBACK`, `:memory:` & file persistence).
+    - `std/json`, `std/toml`, `std/csv`, `std/yaml`, `std/url`, `std/base64`: Structured codecs, URL parser/builder, and Base64 standard/URL-safe codecs.
+    - `std/archive`: Pure-Rust gzip/zlib (`flate2` `rust_backend`), `tar`/`tar.gz` (`tar`), and `zip` (`zip` `deflate`) with path-traversal and symlink rejection.
+    - `std/crypto` & `std/time`: `getrandom` CSPRNG, SHA-256/512, HMAC-SHA256, UUID v4/v7, hex, constant-time compare, and `jiff` UTC/RFC-3339 timestamps & monotonic clocks.
+    - `std/fs`, `std/path`, `std/regex`, `std/proc`, `std/env`, `std/cli`, `std/log`: Recursive `walkdir`/`globset` traversal, linear-time `regex`, timeout-bounded `std/proc`, `.env` parser/loader, declarative CLI option parser, and structured text/JSON logging.
+- **Project Scaffolding & Package Management (`crates/lisp-core/src/pkg.rs`)**:
+  - `lisp-core init [DIR] [--name NAME] [--force]` creates `lisp.toml`, `src/main.el`, `tests/main-test.el`, and `.gitignore`.
+  - `lisp-core pkg <add|install|list|update|remove>` resolves `--path` and `--url` dependencies into `.lisp-packages/`, records deterministic SHA-256 checksums atomically in `lisp.lock`, and automatically injects project `src/` + `.lisp-packages/*/src` into `load-path` (plus zero-arg `lisp-core run` / `lisp-core test` inside `lisp.toml` projects).
+
+## 5. Multi-Phase Evolution
 
 - **Phase 1 (Complete)**: `HostFnRegistry` + `Value::Bytes`, `brand.rs`, silent cold boot + atomic background `.pdmp` warm cache, pure-Rust TTY REPL, dependency isolation + zero-`cc` static gate (`tools/check-crate-boundaries.py`).
 - **Phase 2 (Complete)**: Configurable No-GIL isolate VM (`isolate_vm` feature, thread-local isolate globals, `Engine: Send`, `--concurrency=no-gil|gil`, `std/task` / `std/chan` / `std/sync`), keeping `femacs-host` single-isolate compatible.
-- **Phase 3**: Pure-Rust `crates/lisp-std` standard library (`ureq`+`rustls`+`rustls-rustcrypto`, `redb`+SQL, archives, serialization, crypto, FS/CLI/log/proc) and `init`/`pkg` project workflow.
+- **Phase 3 (Complete)**: Pure-Rust `crates/lisp-std` standard library (`ureq`+`rustls`+`rustls-rustcrypto`, `redb`+SQL, archives, serialization, crypto, FS/CLI/log/proc), `std/*` wrappers, and `init`/`pkg` project workflow.
 - **Phase 4**: Linux (`aarch64`/`x86_64`) OS layer & real-machine VM verification.
 - **Phase 5**: Pure-Rust Windows OS layer & cross-compile check verification.
 - **Phase 6**: 0-warning polish, multi-crate `cargo package` verification, documentation, and pre-publish rename checklist.

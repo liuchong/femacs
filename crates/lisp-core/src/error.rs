@@ -108,6 +108,16 @@ impl fmt::Display for Error {
 
 impl std::error::Error for Error {}
 
+impl From<std::io::Error> for Error {
+    fn from(err: std::io::Error) -> Self {
+        Self::Io {
+            symbol: "file-error".to_string(),
+            message: err.to_string(),
+            data: String::new(),
+        }
+    }
+}
+
 #[cfg(feature = "vm")]
 impl From<VmHostError> for Error {
     fn from(err: VmHostError) -> Self {

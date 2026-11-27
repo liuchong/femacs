@@ -6,6 +6,7 @@ members = [
     "cli",
     "crates/lisp-vm",
     "crates/lisp-core",
+    "crates/lisp-std",
     "crates/femacs-host",
     "crates/femacs-tools",
     "crates/http-host",

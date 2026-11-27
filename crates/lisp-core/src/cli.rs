@@ -12,6 +12,10 @@ use crate::brand;
 use crate::engine::{BootstrapMode, ConcurrencyMode, Engine, EngineConfig};
 use crate::error::Error;
 use crate::exec;
+use crate::pkg::{
+    self, DependencySpec, discover_project_entry, discover_project_load_paths,
+    discover_project_tests, find_project_root,
+};
 use crate::repl;
 use crate::rpc::{DEFAULT_MAX_FRAME_BYTES, DEFAULT_RPC_ENTRY, serve_http_rpc};
 use crate::stdlib_cache::{
@@ -40,9 +44,33 @@ pub enum CacheAction {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub enum PkgAction {
+    Add {
+        name: String,
+        path: Option<String>,
+        url: Option<String>,
+        version: Option<String>,
+        sha256: Option<String>,
+    },
+    Install,
+    List,
+    Update,
+    Remove { name: String },
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Command {
     FastExit { code: i32, stdout: String },
     Exec(Vec<String>),
+    Init {
+        dir: PathBuf,
+        name: Option<String>,
+        force: bool,
+    },
+    Pkg {
+        manifest_dir: Option<PathBuf>,
+        action: PkgAction,
+    },
     Cache {
         cache_dir: Option<PathBuf>,
         action: CacheAction,
@@ -112,11 +140,13 @@ USAGE:
   lisp-core [BATCH_FLAGS...]
 
 SUBCOMMANDS:
+  init [DIR] [--name NAME]    Scaffold a new Lisp project (lisp.toml, src/, tests/)
+  pkg <add|install|list|update|remove>  Manage project dependencies (.lisp-packages/, lisp.lock)
   eval <EXPR...>              Evaluate expression(s) and print the final value
-  run <FILE> [ARGS...]        Run a Lisp script file (strips leading `#!` shebang)
+  run [FILE] [ARGS...]        Run a Lisp script (or project entry when run inside lisp.toml)
   repl                        Start an interactive read-eval-print loop on stdin
   compile [--strict] <FILES>  Byte-compile files (`--strict` fails on warnings)
-  test <FILES...>             Load ERT test files and run tests in batch mode
+  test [FILES...]             Run ERT test files (or tests/*.el inside a lisp.toml project)
   cache path|warm|clean       Manage the unpacked stdlib and `.pdmp` runtime cache
   exec supervise|mem-tree|digest ...  Run process supervisor, memory accounting, or SHA-256
 
@@ -168,6 +198,8 @@ pub fn parse_args(args: &[OsString]) -> Result<Command, (i32, String)> {
                 .collect();
             return Ok(Command::Exec(rest));
         }
+        "init" => return parse_init_subcommand(&args[1..]),
+        "pkg" => return parse_pkg_subcommand(&args[1..]),
         "cache" => return parse_cache_subcommand(&args[1..]),
         "eval" => return parse_eval_subcommand(&args[1..]),
         "run" => return parse_run_subcommand(&args[1..]),
@@ -368,6 +400,132 @@ fn parse_common_flag(
     }
 }
 
+fn parse_init_subcommand(args: &[OsString]) -> Result<Command, (i32, String)> {
+    let mut dir: Option<PathBuf> = None;
+    let mut name: Option<String> = None;
+    let mut force = false;
+    let mut idx = 0usize;
+    while idx < args.len() {
+        let s = args[idx].to_string_lossy();
+        match s.as_ref() {
+            "--name" => name = Some(take_str(args, &mut idx, "--name")?),
+            "--force" => force = true,
+            "-h" | "--help" => {
+                return Ok(Command::FastExit {
+                    code: 0,
+                    stdout: "usage: lisp-core init [DIR] [--name NAME] [--force]".to_string(),
+                });
+            }
+            arg if arg.starts_with('-') => {
+                return Err((2, format!("unknown init option: {arg}")));
+            }
+            path_arg if dir.is_none() => dir = Some(PathBuf::from(path_arg)),
+            other => return Err((2, format!("unexpected argument to init: {other}"))),
+        }
+        idx += 1;
+    }
+    let resolved_dir = match dir {
+        Some(d) => d,
+        None => std::env::current_dir().map_err(|e| (1, format!("cwd error: {e}")))?,
+    };
+    Ok(Command::Init {
+        dir: resolved_dir,
+        name,
+        force,
+    })
+}
+
+fn parse_pkg_subcommand(args: &[OsString]) -> Result<Command, (i32, String)> {
+    let mut manifest_dir: Option<PathBuf> = None;
+    let mut sub: Option<String> = None;
+    let mut name: Option<String> = None;
+    let mut path: Option<String> = None;
+    let mut url: Option<String> = None;
+    let mut version: Option<String> = None;
+    let mut sha256: Option<String> = None;
+    let mut idx = 0usize;
+    while idx < args.len() {
+        let s = args[idx].to_string_lossy();
+        match s.as_ref() {
+            "--manifest-dir" | "--project" => {
+                manifest_dir = Some(PathBuf::from(take_val(args, &mut idx, &s)?));
+            }
+            "--path" => path = Some(take_str(args, &mut idx, "--path")?),
+            "--url" => url = Some(take_str(args, &mut idx, "--url")?),
+            "--version" => version = Some(take_str(args, &mut idx, "--version")?),
+            "--sha256" => sha256 = Some(take_str(args, &mut idx, "--sha256")?),
+            "-h" | "--help" => {
+                return Ok(Command::FastExit {
+                    code: 0,
+                    stdout: "usage: lisp-core pkg [--project DIR] <add <NAME> (--path DIR | --url URL) [--version VER] [--sha256 HEX] | install | list | update | remove <NAME>>".to_string(),
+                });
+            }
+            arg if arg.starts_with('-') => {
+                return Err((2, format!("unknown pkg option: {arg}")));
+            }
+            word if sub.is_none() => sub = Some(word.to_string()),
+            word if name.is_none() => name = Some(word.to_string()),
+            other => return Err((2, format!("unexpected argument to pkg: {other}"))),
+        }
+        idx += 1;
+    }
+
+    let action = match sub.as_deref() {
+        Some("add") => {
+            let pkg_name = name.ok_or_else(|| (2, "pkg add requires <NAME>".to_string()))?;
+            if path.is_none() && url.is_none() {
+                return Err((2, "pkg add requires --path <DIR> or --url <URL>".to_string()));
+            }
+            PkgAction::Add {
+                name: pkg_name,
+                path,
+                url,
+                version,
+                sha256,
+            }
+        }
+        Some("install") => {
+            if name.is_some() {
+                return Err((2, "pkg install takes no positional arguments".to_string()));
+            }
+            PkgAction::Install
+        }
+        Some("list") => {
+            if name.is_some() {
+                return Err((2, "pkg list takes no positional arguments".to_string()));
+            }
+            PkgAction::List
+        }
+        Some("update") => {
+            if name.is_some() {
+                return Err((2, "pkg update takes no positional arguments".to_string()));
+            }
+            PkgAction::Update
+        }
+        Some("remove") => {
+            let pkg_name = name.ok_or_else(|| (2, "pkg remove requires <NAME>".to_string()))?;
+            PkgAction::Remove { name: pkg_name }
+        }
+        Some(other) => {
+            return Err((
+                2,
+                format!("unknown pkg subcommand '{other}'; expected add, install, list, update, or remove"),
+            ));
+        }
+        None => {
+            return Err((
+                2,
+                "usage: lisp-core pkg <add|install|list|update|remove>".to_string(),
+            ));
+        }
+    };
+
+    Ok(Command::Pkg {
+        manifest_dir,
+        action,
+    })
+}
+
 fn parse_cache_subcommand(args: &[OsString]) -> Result<Command, (i32, String)> {
     let mut sub: Option<String> = None;
     let mut cache_dir: Option<PathBuf> = None;
@@ -460,12 +618,19 @@ fn parse_run_subcommand(args: &[OsString]) -> Result<Command, (i32, String)> {
         }
         break;
     }
-    let Some(file_os) = args.get(idx) else {
-        return Err((2, "run requires a script file path".to_string()));
+    let (file, script_args) = match args.get(idx) {
+        Some(file_os) => (PathBuf::from(file_os), args[idx + 1..].to_vec()),
+        None => {
+            let entry = std::env::current_dir()
+                .ok()
+                .and_then(|cwd| discover_project_entry(&cwd))
+                .ok_or_else(|| (2, "run requires a script file path".to_string()))?;
+            (entry, Vec::new())
+        }
     };
     Ok(Command::Run {
-        file: PathBuf::from(file_os),
-        script_args: args[idx + 1..].to_vec(),
+        file,
+        script_args,
         options,
     })
 }
@@ -566,7 +731,12 @@ fn parse_test_subcommand(args: &[OsString]) -> Result<Command, (i32, String)> {
         idx += 1;
     }
     if files.is_empty() {
-        return Err((2, "test requires at least one ERT test file".to_string()));
+        if let Ok(cwd) = std::env::current_dir() {
+            files = discover_project_tests(&cwd);
+        }
+        if files.is_empty() {
+            return Err((2, "test requires at least one ERT test file".to_string()));
+        }
     }
     Ok(Command::Test { files, options })
 }
@@ -822,6 +992,13 @@ fn build_engine_config(options: &CommonOptions) -> Result<EngineConfig, (i32, St
     for dir in &options.load_paths {
         cfg = cfg.with_load_path(dir);
     }
+    if options.lisp_dir.is_none() {
+        if let Ok(cwd) = std::env::current_dir() {
+            for dir in discover_project_load_paths(&cwd) {
+                cfg = cfg.with_load_path(dir);
+            }
+        }
+    }
     Ok(cfg)
 }
 
@@ -980,6 +1157,95 @@ pub fn run_cli(raw_args: &[OsString]) -> i32 {
             code
         }
         Command::Exec(args) => exec::run_cli(&args),
+        Command::Init { dir, name, force } => {
+            match pkg::init_project(&dir, name.as_deref(), force) {
+                Ok(created) => {
+                    println!("initialized {}", created.display());
+                    0
+                }
+                Err(err) => exit_for_error(&err),
+            }
+        }
+        Command::Pkg {
+            manifest_dir,
+            action,
+        } => {
+            let start = match manifest_dir {
+                Some(d) => d,
+                None => match std::env::current_dir() {
+                    Ok(cwd) => cwd,
+                    Err(e) => {
+                        eprintln!("lisp-core: cwd error: {e}");
+                        return 1;
+                    }
+                },
+            };
+            let Some(root) = find_project_root(&start) else {
+                eprintln!(
+                    "lisp-core: no {} found in {} or ancestors",
+                    pkg::MANIFEST_FILE,
+                    start.display()
+                );
+                return 2;
+            };
+            match action {
+                PkgAction::Add {
+                    name,
+                    path,
+                    url,
+                    version,
+                    sha256,
+                } => {
+                    let spec = DependencySpec {
+                        path,
+                        url,
+                        version,
+                        sha256,
+                    };
+                    match pkg::pkg_add(&root, &name, spec) {
+                        Ok(locked) => {
+                            println!("added {} v{} ({})", locked.name, locked.version, locked.source);
+                            0
+                        }
+                        Err(err) => exit_for_error(&err),
+                    }
+                }
+                PkgAction::Install => match pkg::pkg_install(&root) {
+                    Ok(lock) => {
+                        println!("installed {} package(s)", lock.package.len());
+                        0
+                    }
+                    Err(err) => exit_for_error(&err),
+                },
+                PkgAction::List => match pkg::pkg_list(&root) {
+                    Ok(lines) => {
+                        for line in lines {
+                            println!("{line}");
+                        }
+                        0
+                    }
+                    Err(err) => exit_for_error(&err),
+                },
+                PkgAction::Update => match pkg::pkg_update(&root) {
+                    Ok(lock) => {
+                        println!("updated {} package(s)", lock.package.len());
+                        0
+                    }
+                    Err(err) => exit_for_error(&err),
+                },
+                PkgAction::Remove { name } => match pkg::pkg_remove(&root, &name) {
+                    Ok(true) => {
+                        println!("removed {name}");
+                        0
+                    }
+                    Ok(false) => {
+                        eprintln!("lisp-core: dependency '{name}' was not in {}", pkg::MANIFEST_FILE);
+                        1
+                    }
+                    Err(err) => exit_for_error(&err),
+                },
+            }
+        }
         Command::Cache {
             cache_dir,
             action: CacheAction::Path,
@@ -1407,5 +1673,36 @@ mod tests {
         let bad_conc = parse_args(&os(&["--concurrency=invalid", "eval", "1"]))
             .expect_err("invalid concurrency mode");
         assert_eq!(bad_conc.0, 2);
+
+        let init = parse_args(&os(&["init", "my-proj", "--name", "demo", "--force"]))
+            .expect("parse init");
+        assert!(matches!(
+            init,
+            Command::Init { dir, name: Some(n), force: true }
+            if dir == PathBuf::from("my-proj") && n == "demo"
+        ));
+
+        let pkg_add = parse_args(&os(&[
+            "pkg",
+            "--project",
+            "/tmp/app",
+            "add",
+            "util",
+            "--path",
+            "../util",
+            "--version",
+            "0.2.0",
+        ]))
+        .expect("parse pkg add");
+        assert!(matches!(
+            pkg_add,
+            Command::Pkg {
+                manifest_dir: Some(d),
+                action: PkgAction::Add { name, path: Some(p), version: Some(v), .. },
+            } if d == PathBuf::from("/tmp/app") && name == "util" && p == "../util" && v == "0.2.0"
+        ));
+
+        let pkg_list = parse_args(&os(&["pkg", "list"])).expect("parse pkg list");
+        assert!(matches!(pkg_list, Command::Pkg { action: PkgAction::List, .. }));
     }
 }

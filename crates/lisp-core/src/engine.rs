@@ -136,6 +136,8 @@ pub struct Engine {
     concurrency: ConcurrencyMode,
     _hub: Arc<ConcurrencyHub>,
     _shutdown_guard: Option<ConcurrencyShutdownGuard>,
+    #[cfg(feature = "std-batteries")]
+    _std_runtime: Arc<lisp_std::StdRuntime>,
 }
 
 impl Engine {
@@ -151,12 +153,20 @@ impl Engine {
 
     /// Initialize the runtime with an explicit [`EngineConfig`].
     pub fn init(config: EngineConfig) -> Result<Self, Error> {
-        Self::init_with_hub(config, None)
+        #[cfg(feature = "std-batteries")]
+        {
+            Self::init_with_hub(config, None, None)
+        }
+        #[cfg(not(feature = "std-batteries"))]
+        {
+            Self::init_with_hub(config, None)
+        }
     }
 
     fn init_with_hub(
         config: EngineConfig,
         shared_hub: Option<Arc<ConcurrencyHub>>,
+        #[cfg(feature = "std-batteries")] shared_std: Option<Arc<lisp_std::StdRuntime>>,
     ) -> Result<Self, Error> {
         let (host_cfg, cache_layout, extra_load_paths) = match &config.bootstrap {
             BootstrapMode::Minimal => {
@@ -270,6 +280,9 @@ impl Engine {
             vm.prepend_load_path(dir)?;
         }
 
+        #[cfg(feature = "std-batteries")]
+        let std_runtime = shared_std.unwrap_or_else(lisp_std::StdRuntime::new);
+
         let (hub, shutdown_guard) = match shared_hub {
             Some(existing) => (existing, None),
             None => {
@@ -277,8 +290,24 @@ impl Engine {
                 if config.concurrency == ConcurrencyMode::NoGil {
                     let worker_cfg = worker_config_from(&config);
                     let worker_hub = Arc::clone(&h);
+                    #[cfg(feature = "std-batteries")]
+                    let worker_std = Arc::clone(&std_runtime);
                     h.set_worker_factory(Arc::new(move || {
-                        Engine::init_with_hub(worker_cfg.clone(), Some(Arc::clone(&worker_hub)))
+                        #[cfg(feature = "std-batteries")]
+                        {
+                            Engine::init_with_hub(
+                                worker_cfg.clone(),
+                                Some(Arc::clone(&worker_hub)),
+                                Some(Arc::clone(&worker_std)),
+                            )
+                        }
+                        #[cfg(not(feature = "std-batteries"))]
+                        {
+                            Engine::init_with_hub(
+                                worker_cfg.clone(),
+                                Some(Arc::clone(&worker_hub)),
+                            )
+                        }
                     }));
                 }
                 (h, Some(guard))
@@ -291,8 +320,12 @@ impl Engine {
             concurrency: config.concurrency,
             _hub: hub.clone(),
             _shutdown_guard: shutdown_guard,
+            #[cfg(feature = "std-batteries")]
+            _std_runtime: Arc::clone(&std_runtime),
         };
         register_concurrency_builtins(&mut engine, &hub)?;
+        #[cfg(feature = "std-batteries")]
+        register_std_batteries(&mut engine, &std_runtime)?;
         Ok(engine)
     }
 
@@ -442,5 +475,75 @@ impl Engine {
             f(&args).map(|val| VmValue::from(&val))
         });
         Ok(self.vm.register_host_fn(name, wrapped)?)
+    }
+}
+
+#[cfg(feature = "std-batteries")]
+fn value_to_std(v: &Value) -> lisp_std::StdValue {
+    match v {
+        Value::Nil => lisp_std::StdValue::Nil,
+        Value::Bool(b) => lisp_std::StdValue::Bool(*b),
+        Value::Int(i) => lisp_std::StdValue::Int(*i),
+        Value::Float(f) => lisp_std::StdValue::Float(*f),
+        Value::String(s) => lisp_std::StdValue::String(s.clone()),
+        Value::Bytes(b) => lisp_std::StdValue::Bytes(b.clone()),
+        Value::Symbol(s) => lisp_std::StdValue::Symbol(s.clone()),
+        Value::List(items) => lisp_std::StdValue::List(items.iter().map(value_to_std).collect()),
+        Value::Vector(items) => lisp_std::StdValue::Vector(items.iter().map(value_to_std).collect()),
+        Value::Map(map) => lisp_std::StdValue::Map(
+            map.iter()
+                .map(|(k, val)| (k.clone(), value_to_std(val)))
+                .collect(),
+        ),
+        Value::Opaque(s) => lisp_std::StdValue::String(s.clone()),
+    }
+}
+
+#[cfg(feature = "std-batteries")]
+fn std_to_value(v: lisp_std::StdValue) -> Value {
+    match v {
+        lisp_std::StdValue::Nil => Value::Nil,
+        lisp_std::StdValue::Bool(b) => Value::Bool(b),
+        lisp_std::StdValue::Int(i) => Value::Int(i),
+        lisp_std::StdValue::Float(f) => Value::Float(f),
+        lisp_std::StdValue::String(s) => Value::String(s),
+        lisp_std::StdValue::Bytes(b) => Value::Bytes(b),
+        lisp_std::StdValue::Symbol(s) => Value::Symbol(s),
+        lisp_std::StdValue::List(items) => {
+            Value::List(items.into_iter().map(std_to_value).collect())
+        }
+        lisp_std::StdValue::Vector(items) => {
+            Value::Vector(items.into_iter().map(std_to_value).collect())
+        }
+        lisp_std::StdValue::Map(map) => Value::Map(
+            map.into_iter()
+                .map(|(k, val)| (k, std_to_value(val)))
+                .collect(),
+        ),
+    }
+}
+
+#[cfg(feature = "std-batteries")]
+fn register_std_batteries(
+    engine: &mut Engine,
+    runtime: &Arc<lisp_std::StdRuntime>,
+) -> Result<(), Error> {
+    let mut reg_err: Option<Error> = None;
+    lisp_std::register_all(runtime, |name, handler| {
+        if reg_err.is_some() {
+            return;
+        }
+        let h = Arc::clone(&handler);
+        if let Err(err) = engine.register_fn(name, move |args| {
+            let std_args: Vec<lisp_std::StdValue> = args.iter().map(value_to_std).collect();
+            h(&std_args).map(std_to_value)
+        }) {
+            reg_err = Some(err);
+        }
+    });
+    if let Some(err) = reg_err {
+        Err(err)
+    } else {
+        Ok(())
     }
 }
