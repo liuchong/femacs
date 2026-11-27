@@ -1,0 +1,235 @@
+;;; fe-test-dsl.el --- Shared data model and target helpers for fe-test -*- lexical-binding: t; -*-
+
+;;; Commentary:
+;; Core case definition, registry, repository/binary resolution, JSON I/O, and
+;; git changed-file helpers for the native Lisp test framework (`fe-test`).
+
+;;; Code:
+
+(require 'cl-lib)
+(require 'json)
+
+(cl-defstruct (fe-test-case
+               (:constructor fe-test-make-case))
+  (id nil :type string)
+  (suite nil :type string)
+  (title "" :type string)
+  (command nil :type list)
+  (cwd nil)
+  (env nil :type list)
+  (timeout-ms 60000 :type integer)
+  (memory-limit-bytes 0 :type integer)
+  (heavy nil :type boolean)
+  (pty nil :type boolean)
+  (cacheable t :type boolean)
+  (cache-inputs nil :type list)
+  (tags nil :type list)
+  (check-fn nil))
+
+(defvar fe-test--registry nil
+  "Registered `fe-test-case' entries in declaration order.")
+
+(defvar fe-test-repo-root-override nil
+  "Optional override for repository root discovery in tests.")
+
+(defvar fe-test-xtask-override nil
+  "Optional override for the xtask executable path.")
+
+(defvar fe-test-state-dir-override nil
+  "Optional override for persistent state storage directory.")
+
+(defun fe-test-clear-registry ()
+  "Reset all registered test cases."
+  (setq fe-test--registry nil))
+
+(defun fe-test-registered-cases ()
+  "Return a copy of all registered `fe-test-case' objects."
+  (copy-sequence fe-test--registry))
+
+(defun fe-test-register-case (&rest plist)
+  "Create and register a `fe-test-case' from PLIST."
+  (let* ((tc (apply #'fe-test-make-case plist))
+         (id (fe-test-case-id tc))
+         (suite (fe-test-case-suite tc)))
+    (unless (and (stringp id) (> (length id) 0))
+      (error "fe-test-register-case requires non-empty :id"))
+    (unless (and (stringp suite) (> (length suite) 0))
+      (error "fe-test-register-case requires non-empty :suite for %s" id))
+    (unless (and (listp (fe-test-case-command tc)) (fe-test-case-command tc))
+      (error "fe-test-register-case requires non-empty :command for %s" id))
+    (when (cl-find id fe-test--registry :key #'fe-test-case-id :test #'string=)
+      (error "Duplicate fe-test case id: %s" id))
+    (setq fe-test--registry (nconc fe-test--registry (list tc)))
+    tc))
+
+(defun fe-test-repo-root ()
+  "Return the absolute repository root directory (without trailing slash)."
+  (or fe-test-repo-root-override
+      (let* ((this-file (or load-file-name
+                            (and (boundp 'byte-compile-current-file)
+                                 byte-compile-current-file)
+                            (locate-library "fe-test-dsl")))
+             (probe (if this-file
+                        (file-name-directory
+                         (directory-file-name
+                          (file-name-directory
+                           (directory-file-name (file-name-directory this-file)))))
+                      default-directory)))
+        (directory-file-name
+         (expand-file-name
+          (if (file-exists-p (expand-file-name "Cargo.toml" probe))
+              probe
+            default-directory))))))
+
+(defun fe-test-path (rel)
+  "Resolve repository-relative path REL into an absolute path."
+  (expand-file-name rel (fe-test-repo-root)))
+
+(defun fe-test-state-dir (&optional override)
+  "Return persistent state directory for profiles, failures, cache, and reports."
+  (directory-file-name
+   (expand-file-name
+    (or override fe-test-state-dir-override (fe-test-path "build/test-framework")))))
+
+(defun fe-test-find-xtask (&optional override)
+  "Locate the built `xtask' binary supporting `test-exec'."
+  (let ((cand (or override
+                  fe-test-xtask-override
+                  (let ((rel (fe-test-path "build/cargo/release/xtask"))
+                        (dbg (fe-test-path "build/cargo/debug/xtask")))
+                    (cond
+                     ((file-executable-p rel) rel)
+                     ((file-executable-p dbg) dbg)
+                     (t nil))))))
+    (unless (and cand (file-executable-p cand))
+      (error "xtask binary not found; build with `cargo build -p xtask --target-dir build/cargo'"))
+    (expand-file-name cand)))
+
+(defun fe-test-targets ()
+  "Discover built target binaries in the workspace and host environment."
+  (let* ((term-emacs (fe-test-path "build/terminal/port/src/emacs"))
+         (term-client (fe-test-path "build/terminal/port/lib-src/emacsclient"))
+         (cocoa-app "/Applications/Fe.app")
+         (cocoa-staged (fe-test-path "dist/macos/Femacs.app"))
+         (cocoa-bin "/Applications/Fe.app/Contents/MacOS/Femacs")
+         (cocoa-client "/Applications/Fe.app/Contents/MacOS/bin/emacsclient")
+         (staged-bin (fe-test-path "dist/macos/Femacs.app/Contents/MacOS/Femacs"))
+         (lisp-host (fe-test-path "dist/lisp/bin/femacs-lisp"))
+         (lisp-pdmp (fe-test-path "dist/lisp/bin/femacs-lisp.pdmp"))
+         (http-host (fe-test-path "dist/lisp/bin/http-host"))
+         (env-editor (getenv "FEMACS_TEST_EDITOR"))
+         (editor (cond
+                  ((and env-editor (file-executable-p env-editor)) env-editor)
+                  ((file-executable-p term-emacs) term-emacs)
+                  ((file-executable-p cocoa-bin) cocoa-bin)
+                  ((file-executable-p staged-bin) staged-bin)
+                  (t nil))))
+    (list :term-emacs (and (file-executable-p term-emacs) term-emacs)
+          :term-client (and (file-executable-p term-client) term-client)
+          :cocoa-app (and (file-directory-p cocoa-app) cocoa-app)
+          :cocoa-staged (and (file-directory-p cocoa-staged) cocoa-staged)
+          :cocoa-bin (and (file-executable-p cocoa-bin) cocoa-bin)
+          :cocoa-client (and (file-executable-p cocoa-client) cocoa-client)
+          :lisp-host (and (file-executable-p lisp-host) lisp-host)
+          :lisp-pdmp (and (file-regular-p lisp-pdmp) lisp-pdmp)
+          :http-host (and (file-executable-p http-host) http-host)
+          :editor editor)))
+
+(defun fe-test-json-read-file (path)
+  "Read JSON object from PATH as an alist, or nil if PATH does not exist."
+  (when (file-regular-p path)
+    (with-temp-buffer
+      (insert-file-contents path)
+      (json-parse-string (buffer-string)
+                         :object-type 'alist
+                         :array-type 'list
+                         :null-object nil
+                         :false-object nil))))
+
+(defun fe-test-json-write-file (path data)
+  "Atomically write Lisp object DATA encoded as JSON to PATH."
+  (let* ((abs (expand-file-name path))
+         (dir (file-name-directory abs))
+         (tmp (format "%s.tmp.%d" abs (emacs-pid))))
+    (make-directory dir t)
+    (let ((coding-system-for-write 'utf-8-unix))
+      (with-temp-file tmp
+        (insert (json-encode data) "\n")))
+    (rename-file tmp abs t)))
+
+(defun fe-test-call-json (program args &optional cwd)
+  "Run PROGRAM with ARGS synchronously and parse JSON stdout into an alist."
+  (with-temp-buffer
+    (let* ((default-directory (file-name-as-directory (or cwd (fe-test-repo-root))))
+           (rc (apply #'call-process program nil (current-buffer) nil args))
+           (out (buffer-string)))
+      (unless (eql rc 0)
+        (error "Command failed (exit %s): %s %s\n%s"
+               rc program (mapconcat #'identity args " ") out))
+      (json-parse-string out
+                         :object-type 'alist
+                         :array-type 'list
+                         :null-object nil
+                         :false-object nil))))
+
+(defun fe-test-verify-stable-host (xtask-bin)
+  "Verify cached `dist/lisp' binaries against `dist/lisp/manifest.json'."
+  (let* ((manifest-path (fe-test-path "dist/lisp/manifest.json"))
+         (manifest (fe-test-json-read-file manifest-path)))
+    (unless manifest
+      (error "Missing dist/lisp/manifest.json at %s" manifest-path))
+    (let* ((binaries (alist-get 'binaries manifest))
+           (lisp-bin (fe-test-path "dist/lisp/bin/femacs-lisp"))
+           (lisp-pdmp (fe-test-path "dist/lisp/bin/femacs-lisp.pdmp"))
+           (http-bin (fe-test-path "dist/lisp/bin/http-host"))
+           (digest-res (fe-test-call-json
+                        xtask-bin
+                        (list "test-exec" "digest" lisp-bin lisp-pdmp http-bin)))
+           (entries (alist-get 'entries digest-res)))
+      (dolist (pair `((femacs-lisp . ,lisp-bin)
+                      (femacs-lisp.pdmp . ,lisp-pdmp)
+                      (http-host . ,http-bin)))
+        (let* ((sym (car pair))
+               (full (cdr pair))
+               (want (alist-get 'sha256 (alist-get sym binaries)))
+               (got-row (cl-find full entries
+                                 :key (lambda (row) (alist-get 'path row))
+                                 :test #'string=))
+               (got (and got-row (alist-get 'sha256 got-row))))
+          (unless (and want got (string= want got))
+            (error "Host verification failed for %s: expected %s got %s"
+                   sym want got)))))))
+
+(defun fe-test-git-changed-files ()
+  "Return deduplicated repo-relative files modified in working tree or vs HEAD."
+  (let ((root (fe-test-repo-root))
+        (seen (make-hash-table :test #'equal))
+        (out nil))
+    (with-temp-buffer
+      (let ((default-directory (file-name-as-directory root)))
+        (when (eql 0 (call-process "git" nil (current-buffer) nil
+                                   "status" "--porcelain" "--untracked-files=normal"))
+          (goto-char (point-min))
+          (while (not (eobp))
+            (let ((line (buffer-substring-no-properties
+                         (line-beginning-position) (line-end-position))))
+              (when (>= (length line) 4)
+                (let* ((raw (substring line 3))
+                       (parts (split-string raw " -> " t)))
+                  (dolist (p parts)
+                    (unless (gethash p seen)
+                      (puthash p t seen)
+                      (push p out))))))
+            (forward-line 1)))))
+    (nreverse out)))
+
+(defun fe-test-now-iso8601 ()
+  "Return current UTC timestamp formatted as ISO-8601."
+  (format-time-string "%Y-%m-%dT%H:%M:%SZ" nil t))
+
+(defun fe-test-now-ms ()
+  "Return monotonic/wall time in milliseconds as an integer."
+  (truncate (* (float-time) 1000.0)))
+
+(provide 'fe-test-dsl)
+;;; fe-test-dsl.el ends here

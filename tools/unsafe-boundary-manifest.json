@@ -169,6 +169,8 @@
     "xtask/src/runtime_backend.rs",
     "xtask/src/runtime_tests.rs",
     "xtask/src/standalone.rs",
+    "xtask/src/test_exec.rs",
+    "xtask/src/test_exec_tests.rs",
     "xtask/src/test_support.rs",
     "xtask/src/tls.rs",
     "xtask/src/tooling.rs",
@@ -2173,10 +2175,10 @@
     },
     "xtask/src/os_ffi.rs": {
       "boundary_class": "xtask_os_process_ffi",
-      "caller": "xtask bundle::exchange_dirs and serialized runtime/test environment setup",
-      "failure_path": "exchange_dirs returns formatted OS error preserving existing destination app",
-      "invariant": "renamex_np receives valid CStrings; set_var/remove_var run before worker threads or under env_lock()",
-      "ownership": "Temporary NUL-terminated CStrings and single-threaded/mutex-serialized process env"
+      "caller": "xtask bundle::exchange_dirs, test_exec process-group termination & memory queries, and serialized runtime/test environment setup",
+      "failure_path": "exchange_dirs and signal_process_group return explicit errors; pid_rusage_memory falls back cleanly on non-zero status",
+      "invariant": "renamex_np receives valid CStrings; signal_process_group enforces pgid > 1; install_termination_handlers stores only AtomicBool; proc_pid_rusage passes valid RusageInfoV2 storage; set_var/remove_var run before worker threads or under env_lock()",
+      "ownership": "Temporary NUL-terminated CStrings, caller-owned RusageInfoV2 stack struct, and single-threaded/mutex-serialized process env"
     }
   },
   "root_categories": [

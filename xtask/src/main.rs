@@ -23,6 +23,7 @@ mod check_units;
 mod macos;
 mod owned_copy;
 mod standalone;
+mod test_exec;
 mod manuals;
 mod probes;
 mod product_sources;
@@ -115,6 +116,7 @@ fn main() {
         "build-manuals" => manuals::command(&args[1..]),
         "audit-probe" => probes::command(&args[1..]),
         "android" => android::command(&args[1..]),
+        "test-exec" => test_exec::command(&args[1..]),
         "gate-platforms" => android::platforms(&args[1..]),
         "generate-resources" => {
             if args.len() != 3 || args[1] != "--program" {
@@ -165,7 +167,7 @@ fn main() {
         }
         _ => {
             println!(
-                "usage: xtask <build-terminal|build-lisp [--out DIR]|build-macos|runtime-build --product terminal|cocoa --variant baseline|native|collector|native-collector --out build/runtime/<name> [--observer] [--test-hooks] [--backend-prefix <prefix>]|generate-resources --program <owned-program>|link-owned|gen-config|layout-asserts|layout-check|\
+                "usage: xtask <build-terminal|build-lisp [--out DIR]|build-macos|runtime-build --product terminal|cocoa --variant baseline|native|collector|native-collector --out build/runtime/<name> [--observer] [--test-hooks] [--backend-prefix <prefix>]|test-exec <supervise|mem-tree|digest>|generate-resources --program <owned-program>|link-owned|gen-config|layout-asserts|layout-check|\
                  check-units [list]|gate-fast|gate-probes|gate-probe-programs|gate-load [--report]|\
                  link-program <tool>|dump|gate-full>"
             );

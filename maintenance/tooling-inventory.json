@@ -8642,8 +8642,8 @@
     },
     {
       "path": "tools/unsafe-boundary-manifest.json",
-      "sha256": "15b3a4c00bf8c0eaf5a2635f4622020941be1ac1777d5d91d24db52e34864a38",
-      "bytes": 146484,
+      "sha256": "e1cc90811c34d3d56b21444f0689b776de3dc572debcb6080f7d0a73b18ca97f",
+      "bytes": 146832,
       "family": "fixture",
       "decision": "retain",
       "replacement": null,
@@ -8702,6 +8702,248 @@
           "path": "tools/runtime-final-audit.py",
           "anchor": "xml-acceptance",
           "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/testing/fe-test-cache.el",
+      "sha256": "832030bd8167834ab268b7a5e4392827976c585754db02d7946507aeb29478eb",
+      "bytes": 6480,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "native fe-test framework module/suite (P-489)",
+      "readers": [
+        {
+          "path": "docs/design/test-framework.md",
+          "anchor": "fe-test",
+          "kind": "design specification"
+        },
+        {
+          "path": "tools/testing/fe-test.el",
+          "anchor": "fe-test-main",
+          "kind": "framework entrypoint"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/testing/fe-test-dsl.el",
+      "sha256": "8309876106321447a6b0dd216c3e765466811b0af326e78b9a077c6ff1a561cd",
+      "bytes": 10263,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "native fe-test framework module/suite (P-489)",
+      "readers": [
+        {
+          "path": "docs/design/test-framework.md",
+          "anchor": "fe-test",
+          "kind": "design specification"
+        },
+        {
+          "path": "tools/testing/fe-test.el",
+          "anchor": "fe-test-main",
+          "kind": "framework entrypoint"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/testing/fe-test-profile.el",
+      "sha256": "5f0f360e973f5bda4aa6c0dc3d460a5ec55d76e585573a1d2cae4dda045554d8",
+      "bytes": 5004,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "native fe-test framework module/suite (P-489)",
+      "readers": [
+        {
+          "path": "docs/design/test-framework.md",
+          "anchor": "fe-test",
+          "kind": "design specification"
+        },
+        {
+          "path": "tools/testing/fe-test.el",
+          "anchor": "fe-test-main",
+          "kind": "framework entrypoint"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/testing/fe-test-reporter.el",
+      "sha256": "f68cd5d85c299aecef6a8293ee794553e3ee8fb9c7c743a2c86d81ab71fdc86c",
+      "bytes": 6617,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "native fe-test framework module/suite (P-489)",
+      "readers": [
+        {
+          "path": "docs/design/test-framework.md",
+          "anchor": "fe-test",
+          "kind": "design specification"
+        },
+        {
+          "path": "tools/testing/fe-test.el",
+          "anchor": "fe-test-main",
+          "kind": "framework entrypoint"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/testing/fe-test-scheduler.el",
+      "sha256": "b53715d17a89d8dc49f46d6ba78b14e665643419e775b4ef095353ba3085b8bc",
+      "bytes": 18521,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "native fe-test framework module/suite (P-489)",
+      "readers": [
+        {
+          "path": "docs/design/test-framework.md",
+          "anchor": "fe-test",
+          "kind": "design specification"
+        },
+        {
+          "path": "tools/testing/fe-test.el",
+          "anchor": "fe-test-main",
+          "kind": "framework entrypoint"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/testing/fe-test.el",
+      "sha256": "8dcab6fe9e25e050ff1396e22ba9337c95345daab0c25bcc67ecb9fee6f08c41",
+      "bytes": 12370,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "native fe-test framework module/suite (P-489)",
+      "readers": [
+        {
+          "path": "docs/design/test-framework.md",
+          "anchor": "fe-test",
+          "kind": "design specification"
+        },
+        {
+          "path": "tools/testing/fe-test.el",
+          "anchor": "fe-test-main",
+          "kind": "framework entrypoint"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/testing/suites/suite-ert-core.el",
+      "sha256": "f285fcf2e87881d1c9ef4c75811acb69c399094929bb5da5d5235658126e4941",
+      "bytes": 2175,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "native fe-test framework module/suite (P-489)",
+      "readers": [
+        {
+          "path": "docs/design/test-framework.md",
+          "anchor": "fe-test",
+          "kind": "design specification"
+        },
+        {
+          "path": "tools/testing/fe-test.el",
+          "anchor": "fe-test-main",
+          "kind": "framework entrypoint"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/testing/suites/suite-host.el",
+      "sha256": "022340a707f11904f988f5df5c5159824adc595d31a516c0c408bd3c3d04a618",
+      "bytes": 11456,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "native fe-test framework module/suite (P-489)",
+      "readers": [
+        {
+          "path": "docs/design/test-framework.md",
+          "anchor": "fe-test",
+          "kind": "design specification"
+        },
+        {
+          "path": "tools/testing/fe-test.el",
+          "anchor": "fe-test-main",
+          "kind": "framework entrypoint"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/testing/suites/suite-smoke.el",
+      "sha256": "d0556f8baa0eb2047d34ae6d35239949d0df7791179cb9d59c3f14628f8c7ea4",
+      "bytes": 5505,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "native fe-test framework module/suite (P-489)",
+      "readers": [
+        {
+          "path": "docs/design/test-framework.md",
+          "anchor": "fe-test",
+          "kind": "design specification"
+        },
+        {
+          "path": "tools/testing/fe-test.el",
+          "anchor": "fe-test-main",
+          "kind": "framework entrypoint"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/testing/suites/suite-static.el",
+      "sha256": "c485be25c7c4b5e0aa962ff3446e0b26051e65ee034d703d158018a0bca3aba9",
+      "bytes": 4520,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "native fe-test framework module/suite (P-489)",
+      "readers": [
+        {
+          "path": "docs/design/test-framework.md",
+          "anchor": "fe-test",
+          "kind": "design specification"
+        },
+        {
+          "path": "tools/testing/fe-test.el",
+          "anchor": "fe-test-main",
+          "kind": "framework entrypoint"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/testing/tests/fe-test-self-tests.el",
+      "sha256": "bbe940f97ba252dce3c831b9741975d52d9f63b8497cb4b26613dcead764a6f2",
+      "bytes": 9591,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "native fe-test framework module/suite (P-489)",
+      "readers": [
+        {
+          "path": "docs/design/test-framework.md",
+          "anchor": "fe-test",
+          "kind": "design specification"
+        },
+        {
+          "path": "tools/testing/fe-test.el",
+          "anchor": "fe-test-main",
+          "kind": "framework entrypoint"
         }
       ],
       "uncertainty": null
