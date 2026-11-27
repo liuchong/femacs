@@ -67,6 +67,10 @@ fn case_engine_new_roundtrips_and_call() {
         engine.eval("[10 20]").expect("vector"),
         Value::Vector(vec![Value::Int(10), Value::Int(20)])
     );
+    assert_eq!(
+        engine.eval("(unibyte-string 0 255 128 1)").expect("bytes"),
+        Value::Bytes(vec![0, 255, 128, 1])
+    );
 
     let sum = engine
         .call("+", &[Value::Int(20), Value::Int(22)])
@@ -75,6 +79,52 @@ fn case_engine_new_roundtrips_and_call() {
 
     let dup = Engine::new();
     assert!(matches!(dup, Err(Error::AlreadyInitialized)));
+}
+
+fn case_engine_register_fn_and_bytes_roundtrip() {
+    let mut engine = Engine::new().expect("init engine for register_fn");
+
+    engine
+        .register_fn("rust-add-mul", |args| {
+            let a = args.first().and_then(Value::as_int).unwrap_or(0);
+            let b = args.get(1).and_then(Value::as_int).unwrap_or(0);
+            Ok(Value::Int((a + b) * 2))
+        })
+        .expect("register rust-add-mul");
+    assert_eq!(
+        engine.eval("(rust-add-mul 10 11)").expect("call host fn"),
+        Value::Int(42)
+    );
+
+    engine
+        .register_fn("rust-xor-bytes", |args| {
+            let bytes = args
+                .first()
+                .and_then(Value::as_bytes)
+                .ok_or_else(|| "expected bytes argument".to_string())?;
+            let xored: Vec<u8> = bytes.iter().map(|b| b ^ 0xFF).collect();
+            Ok(Value::Bytes(xored))
+        })
+        .expect("register rust-xor-bytes");
+    assert_eq!(
+        engine
+            .eval("(rust-xor-bytes (unibyte-string #x00 #xff #x80 #x01))")
+            .expect("bytes roundtrip"),
+        Value::Bytes(vec![0xff, 0x00, 0x7f, 0xfe])
+    );
+
+    engine
+        .register_fn("rust-always-fail", |_args| Err("host boom".to_string()))
+        .expect("register rust-always-fail");
+    assert_eq!(
+        engine
+            .eval("(condition-case err (rust-always-fail) (error (cadr err)))")
+            .expect("catch host error"),
+        Value::String("host boom".to_string())
+    );
+
+    let syms = engine.complete_symbols().expect("complete symbols");
+    assert!(syms.iter().any(|s| s == "rust-add-mul"));
 }
 
 fn case_engine_error_variants() {
@@ -181,9 +231,22 @@ fn run_cli_subcommands(bin: &Path, work_root: &Path, cache_dir: &Path) {
         cmd.output().expect("execute lisp-core binary")
     };
 
-    let eval_out = run_bin(&["eval", "(+ 20 22)"]);
+    let eval_out = run_bin(&["--no-auto-warm", "eval", "(+ 20 22)"]);
     assert!(eval_out.status.success(), "{eval_out:?}");
     assert_eq!(String::from_utf8_lossy(&eval_out.stdout).trim(), "42");
+    assert!(
+        eval_out.stderr.is_empty(),
+        "cold boot stderr must be silent by default, got: {}",
+        String::from_utf8_lossy(&eval_out.stderr)
+    );
+
+    let verbose_out = run_bin(&["--no-auto-warm", "--verbose", "eval", "(+ 20 22)"]);
+    assert!(verbose_out.status.success(), "{verbose_out:?}");
+    assert!(
+        String::from_utf8_lossy(&verbose_out.stderr).contains("Loading "),
+        "--verbose should emit bootstrap load progress: {}",
+        String::from_utf8_lossy(&verbose_out.stderr)
+    );
 
     let script = work_root.join("it_script.el");
     fs::write(
@@ -261,6 +324,9 @@ fn main() {
         match case.as_str() {
             "engine_minimal_no_charsets" => case_engine_minimal_no_charsets(),
             "engine_new_roundtrips_and_call" => case_engine_new_roundtrips_and_call(),
+            "engine_register_fn_and_bytes_roundtrip" => {
+                case_engine_register_fn_and_bytes_roundtrip()
+            }
             "engine_error_variants" => case_engine_error_variants(),
             "engine_corrupt_pdmp_fallback_bad_magic" => {
                 case_engine_corrupt_pdmp_fallback_bad_magic()
@@ -284,6 +350,7 @@ fn main() {
     for case in [
         "engine_minimal_no_charsets",
         "engine_new_roundtrips_and_call",
+        "engine_register_fn_and_bytes_roundtrip",
         "engine_error_variants",
         "engine_corrupt_pdmp_fallback_bad_magic",
         "engine_corrupt_pdmp_fallback_corrupt_body",
@@ -298,5 +365,5 @@ fn main() {
     run_cli_subcommands(&bin, &work_dir, &cache_dir);
 
     let _ = fs::remove_dir_all(&tmp_root);
-    println!("engine_integration: all 7 integration cases passed");
+    println!("engine_integration: all 8 integration cases passed");
 }

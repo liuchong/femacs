@@ -38,6 +38,7 @@ pub struct EngineConfig {
     pub cache_dir: Option<PathBuf>,
     pub load_paths: Vec<PathBuf>,
     pub quiet_bootstrap: bool,
+    pub verbose: bool,
     pub replace_load_path: bool,
     pub defer_delayed_custom_init: bool,
 }
@@ -45,11 +46,12 @@ pub struct EngineConfig {
 impl Default for EngineConfig {
     fn default() -> Self {
         Self {
-            program_name: "lisp-core".to_string(),
+            program_name: crate::brand::CLI_NAME.to_string(),
             bootstrap: BootstrapMode::AutoCache,
             cache_dir: None,
             load_paths: Vec::new(),
             quiet_bootstrap: true,
+            verbose: false,
             replace_load_path: false,
             defer_delayed_custom_init: false,
         }
@@ -98,6 +100,12 @@ impl EngineConfig {
         self
     }
 
+    pub fn with_verbose(mut self, verbose: bool) -> Self {
+        self.verbose = verbose;
+        self.quiet_bootstrap = !verbose;
+        self
+    }
+
     pub fn with_replace_load_path(mut self, replace: bool) -> Self {
         self.replace_load_path = replace;
         self
@@ -134,7 +142,7 @@ impl Engine {
                     .with_program_name(config.program_name.clone())
                     .with_replace_load_path(config.replace_load_path)
                     .with_defer_delayed_custom_init(config.defer_delayed_custom_init);
-                hc.quiet_bootstrap = config.quiet_bootstrap;
+                hc.quiet_bootstrap = config.quiet_bootstrap && !config.verbose;
                 for dir in &config.load_paths {
                     hc = hc.with_load_path(dir);
                 }
@@ -149,7 +157,7 @@ impl Engine {
                         .with_data_dir(&layout.data_dir)
                         .with_replace_load_path(config.replace_load_path)
                         .with_defer_delayed_custom_init(config.defer_delayed_custom_init);
-                hc.quiet_bootstrap = config.quiet_bootstrap;
+                hc.quiet_bootstrap = config.quiet_bootstrap && !config.verbose;
                 hc = hc
                     .with_load_path(layout.stdlib_dir.join("emacs-lisp"))
                     .with_load_path(layout.stdlib_dir.join("international"));
@@ -176,7 +184,7 @@ impl Engine {
                     .with_defer_delayed_custom_init(config.defer_delayed_custom_init)
                     .with_load_path(layout.stdlib_dir.join("emacs-lisp"))
                     .with_load_path(layout.stdlib_dir.join("international"));
-                hc.quiet_bootstrap = config.quiet_bootstrap;
+                hc.quiet_bootstrap = config.quiet_bootstrap && !config.verbose;
                 (hc, Some(layout), config.load_paths.clone())
             }
             BootstrapMode::Custom {
@@ -216,7 +224,7 @@ impl Engine {
                     .with_program_name(config.program_name.clone())
                     .with_replace_load_path(config.replace_load_path)
                     .with_defer_delayed_custom_init(config.defer_delayed_custom_init);
-                hc.quiet_bootstrap = config.quiet_bootstrap;
+                hc.quiet_bootstrap = config.quiet_bootstrap && !config.verbose;
                 if let Some(d) = data_dir {
                     hc = hc.with_data_dir(d);
                 }
@@ -360,5 +368,27 @@ impl Engine {
     /// Inspect runtime diagnostics (noninteractive flags, frame/terminal counts, rooting stats).
     pub fn inspect_environment(&mut self) -> Result<HeadlessDiagnostics, Error> {
         Ok(self.vm.inspect_environment()?)
+    }
+
+    /// Return `true` when this VM instance restored pre-dumped `.pdmp` state.
+    pub fn booted_from_dump(&mut self) -> Result<bool, Error> {
+        Ok(self.vm.inspect_environment()?.dumped_with_pdumper)
+    }
+
+    /// Return sorted bound/fbound symbol names currently interned for completion.
+    pub fn complete_symbols(&mut self) -> Result<Vec<String>, Error> {
+        Ok(self.vm.list_interned_symbols()?)
+    }
+
+    /// Register a safe Rust host callback callable from Lisp under `name`.
+    pub fn register_fn<F>(&mut self, name: &str, f: F) -> Result<(), Error>
+    where
+        F: Fn(&[Value]) -> Result<Value, String> + Send + Sync + 'static,
+    {
+        let wrapped: lisp_vm::host_runtime::HostExtFn = std::sync::Arc::new(move |raw_args| {
+            let args: Vec<Value> = raw_args.iter().cloned().map(Value::from).collect();
+            f(&args).map(|val| VmValue::from(&val))
+        });
+        Ok(self.vm.register_host_fn(name, wrapped)?)
     }
 }

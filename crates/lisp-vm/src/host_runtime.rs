@@ -10,29 +10,34 @@ use core::ffi::{c_char, c_int, c_void};
 use core::fmt;
 use core::hint::black_box;
 use core::marker::PhantomData;
+use std::collections::HashMap;
 use std::ffi::{CString, OsString};
 use std::io;
 use std::os::fd::{AsRawFd, FromRawFd, OwnedFd};
 use std::os::unix::net::UnixStream;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicU8, AtomicUsize, Ordering};
+use std::sync::{Arc, OnceLock, RwLock};
 
 use crate::alloc::Fcons;
 use crate::common::{
-    AREF, ASET, ASIZE, BIGNUMP, CONDITION_CASE, CONSP, EMACS_INT, EQ, FD_CLOEXEC,
-    FLOATP, F_DUPFD_CLOEXEC, F_GETFD, F_SETFD, Fboundp, Fdefault_toplevel_value,
+    AREF, ASET, ASIZE, Aligned_Lisp_Subr, BIGNUMP, CONSP, CONDITION_CASE, EMACS_INT, EQ,
+    FD_CLOEXEC, FLOATP, F_DUPFD_CLOEXEC, F_GETFD, F_SETFD, Fboundp, Fdefault_toplevel_value,
     Ferror_message_string, Fexpand_file_name, Ffboundp, Ffile_name_as_directory, Ffile_regular_p,
-    Ffuncall, Fgarbage_collect, Fget, Findirect_variable, Fintern, Fload, Fmake_hash_table,
-    Fmake_vector, Fmemq, Fprin1_to_string, Fputhash, Fset, Fsymbol_value, HASH_KEY,
-    HASH_TABLE_P, HASH_TABLE_SIZE, HASH_VALUE, Lisp_Object, NILP, O_RDWR, QCtest,
-    Qcommand_line_processed, Qend_of_file, Qequal, Qerror_conditions, Qfile_error,
-    Qinvalid_read_syntax, Qkill_emacs_hook, Qlexical_binding, Qquit, Qt, Qunbound, SBYTES,
-    SDATA, STRINGP, SYMBOLP, VECTORP, Vcharset_map_path, Vdata_directory, Vdoc_directory,
-    Vlexical_binding, Vload_path, Vpdumper_fingerprint, Vpurify_flag, Vquit_flag, Vtop_level,
-    XCAR, XCDR, XFIXNUM, XFLOAT_DATA, XHASH_TABLE, build_utf8_str, close, current_thread,
-    dumped_with_pdumper_p, dup2, fcntl, fflush, handler, hash_unused_entry_key_p,
-    integer_to_intmax_opt, intern_c_string, intmax_t, lisp_h_Qnil, make_fixnum, make_float,
-    make_int, open, safe_run_hooks, specbind, stderr, stdout, unbind_to_safe, wrap_specpdl_ref,
+    Ffset, Ffuncall, Fgarbage_collect, Fget, Findirect_variable, Fintern, Fload, Fmake_hash_table,
+    Fmake_vector, Fmemq, Fprin1_to_string, Fputhash, Fset, Fsymbol_value, HASH_KEY, HASH_TABLE_P,
+    HASH_TABLE_SIZE, HASH_VALUE, Lisp_Object, Lisp_Subr, Lisp_Subr_function, Lisp_Subr_intspec,
+    Lisp_Type, MANY, NILP, OBARRAYP, O_RDWR, PSEUDOVECTOR_AREA_BITS, QCtest, Qand_rest, Qapply,
+    Qcommand_line_processed, Qend_of_file, Qequal, Qerror, Qerror_conditions, Qfile_error,
+    Qinvalid_read_syntax, Qkill_emacs_hook, Qlambda, Qlexical_binding, Qquit, Qquote, Qt, Qunbound,
+    SBYTES, SDATA, STRINGP, STRING_MULTIBYTE, SYMBOLP, VECTORP, Vcharset_map_path,
+    Vdata_directory, Vdoc_directory, Vlexical_binding, Vload_path, Vobarray, Vpdumper_fingerprint,
+    Vpurify_flag, Vquit_flag, Vtop_level, XCAR, XCDR, XFIXNUM, XFLOAT_DATA, XHASH_TABLE, XOBARRAY,
+    build_utf8_str, close, current_thread, defsubr_global, dumped_with_pdumper_p, dup2, fcntl,
+    fflush, handler, hash_unused_entry_key_p, integer_to_intmax_opt, intern_c_string, intmax_t,
+    lisp_h_Qnil, make_fixnum, make_float, make_int, make_lisp_ptr, make_obarray_iter,
+    make_unibyte_string_bytes, obarray_iter_at_end, obarray_iter_step, obarray_iter_symbol, open, pvec_type, safe_run_hooks,
+    specbind, stderr, stdout, unbind_to_safe, vectorlike_header, wrap_specpdl_ref, xsignal1,
 };
 use crate::data::{Fsymbol_name, find_symbol_value};
 use crate::eval::{Feval, push_handler_nosignal};
@@ -266,6 +271,115 @@ pub enum HostBootstrap {
     },
 }
 
+/// Host extension callback signature registered through [`HeadlessVm::register_host_fn`].
+pub type HostExtFn =
+    Arc<dyn Fn(&[VmValue]) -> Result<VmValue, String> + Send + Sync + 'static>;
+
+static HOST_EXT_REGISTRY: OnceLock<RwLock<HashMap<String, HostExtFn>>> = OnceLock::new();
+
+#[inline]
+fn host_ext_registry() -> &'static RwLock<HashMap<String, HostExtFn>> {
+    HOST_EXT_REGISTRY.get_or_init(|| RwLock::new(HashMap::new()))
+}
+
+#[cfg_attr(target_os = "macos", unsafe(link_section = "__DATA,subrs"))]
+#[cfg_attr(not(target_os = "macos"), unsafe(link_section = ".subrs"))]
+static Sinternal_host_call: crate::sys::VmGlobal<Aligned_Lisp_Subr> =
+    crate::sys::VmGlobal::new(Aligned_Lisp_Subr {
+        s: Lisp_Subr {
+            header: vectorlike_header {
+                size: (pvec_type::PVEC_SUBR as isize) << PSEUDOVECTOR_AREA_BITS,
+            },
+            function: Lisp_Subr_function {
+                aMANY: Some(Finternal_host_call),
+            },
+            min_args: 1,
+            max_args: MANY as i16,
+            symbol_name: c"internal-host-call".as_ptr(),
+            intspec: Lisp_Subr_intspec {
+                string: core::ptr::null(),
+            },
+            command_modes: lisp_h_Qnil(),
+            doc: 0,
+            #[cfg(feature = "have_native_comp")]
+            native_comp_u: lisp_h_Qnil(),
+            #[cfg(feature = "have_native_comp")]
+            native_c_name: core::ptr::null_mut(),
+            #[cfg(feature = "have_native_comp")]
+            lambda_list: lisp_h_Qnil(),
+            #[cfg(feature = "have_native_comp")]
+            r#type: lisp_h_Qnil(),
+        },
+    });
+
+unsafe fn ensure_host_call_subr_registered() {
+    // SAFETY: Caller holds the active VM lock inside `with_host_condition_catch`; on cold boots
+    // registers `Sinternal_host_call` via `defsubr_global`, while on `.pdmp` restores binds
+    // directly with `Ffset` so `Vcomp_subr_list`/`Vcomp_abi_hash` assertions stay untouched.
+    unsafe {
+        if !dumped_with_pdumper_p() {
+            defsubr_global(&Sinternal_host_call);
+        } else {
+            let sym = intern_c_string(c"internal-host-call".as_ptr());
+            let _sym_root = ScopedLispRoot::new(&[sym]);
+            let subr_ptr = (&raw mut (*Sinternal_host_call.as_mut_ptr()).s).cast::<c_void>();
+            let subr_obj = make_lisp_ptr(subr_ptr, Lisp_Type::Lisp_Vectorlike);
+            Ffset(sym, subr_obj);
+        }
+    }
+}
+
+unsafe extern "C-unwind" fn Finternal_host_call(
+    nargs: isize,
+    args: *mut Lisp_Object,
+) -> Lisp_Object {
+    // SAFETY: Invoked by VM subr dispatcher on active VM thread with `nargs >= 1` valid
+    // `Lisp_Object` slots at `args`.
+    unsafe {
+        if nargs < 1 || args.is_null() {
+            let msg = build_utf8_str("internal-host-call requires a function name");
+            let _msg_root = ScopedLispRoot::new(&[msg]);
+            xsignal1(Qerror(), msg);
+        }
+        let name_obj = *args;
+        let fn_name = if STRINGP(name_obj) {
+            raw_string_to_owned(name_obj).unwrap_or_default()
+        } else if SYMBOLP(name_obj) {
+            raw_symbol_to_owned(name_obj)
+        } else {
+            let msg = build_utf8_str("internal-host-call: first argument must be string or symbol");
+            let _msg_root = ScopedLispRoot::new(&[msg]);
+            xsignal1(Qerror(), msg);
+        };
+
+        let callback = {
+            let guard = host_ext_registry()
+                .read()
+                .unwrap_or_else(|e| e.into_inner());
+            guard.get(&fn_name).cloned()
+        };
+        let Some(callback) = callback else {
+            let msg = build_utf8_str(&format!("unknown host extension function: {fn_name}"));
+            let _msg_root = ScopedLispRoot::new(&[msg]);
+            xsignal1(Qerror(), msg);
+        };
+
+        let mut host_args = Vec::with_capacity((nargs - 1) as usize);
+        for idx in 1..nargs {
+            host_args.push(raw_to_vm_value(*args.offset(idx), 0));
+        }
+
+        match callback(&host_args) {
+            Ok(ret) => vm_value_to_raw(&ret),
+            Err(err_msg) => {
+                let msg = build_utf8_str(&err_msg);
+                let _msg_root = ScopedLispRoot::new(&[msg]);
+                xsignal1(Qerror(), msg);
+            }
+        }
+    }
+}
+
 /// Safe host-owned Lisp value representation exchanged across the `HeadlessVm` boundary.
 #[derive(Clone, Debug, PartialEq)]
 pub enum VmValue {
@@ -274,6 +388,7 @@ pub enum VmValue {
     Int(i64),
     Float(f64),
     String(String),
+    Bytes(Vec<u8>),
     Symbol(String),
     List(Vec<VmValue>),
     Vector(Vec<VmValue>),
@@ -521,6 +636,24 @@ fn with_host_stack_anchor<R>(ctx: &mut GcContext, body: impl FnOnce(&mut GcConte
     drop(guard);
     black_box(anchor);
     result
+}
+
+unsafe fn raw_string_to_bytes(raw: Lisp_Object) -> Option<Vec<u8>> {
+    if !STRINGP(raw) {
+        return None;
+    }
+    let len = SBYTES(raw);
+    if len < 0 {
+        return None;
+    }
+    if len == 0 {
+        return Some(Vec::new());
+    }
+    let ptr = SDATA(raw) as *const u8;
+    // SAFETY: Caller guarantees active VM lock ownership, no safepoint during read, and valid
+    // rooted/static string storage of `len > 0` bytes.
+    let bytes = unsafe { core::slice::from_raw_parts(ptr, len as usize) };
+    Some(bytes.to_vec())
 }
 
 /// Extract an owned UTF-8 `String` from an already-rooted Lisp string under active VM lock.
@@ -1025,6 +1158,17 @@ fn init_headless_host(config: &HostInitConfig) -> Result<GcContext, VmHostError>
         }
     }
 
+    // Register host extension dispatch subr for both cold boots and `.pdmp` restores without
+    // modifying pdumper relocation globals or editor `femacs-host` symbol tables.
+    let host_subr_res = with_host_condition_catch(&mut ctx, || {
+        // SAFETY: Registers `internal-host-call` under active VM condition catch.
+        unsafe { ensure_host_call_subr_registered() };
+    });
+    if let Err(err) = host_subr_res {
+        shutdown_headless_host(ctx);
+        return Err(err);
+    }
+
     let cold_boot_target: Option<String> = match &config.bootstrap {
         HostBootstrap::ColdLoadup if !dumped_with_pdumper_p() => Some("loadup.el".to_string()),
         HostBootstrap::ColdBootScript(path) if !dumped_with_pdumper_p() => {
@@ -1263,6 +1407,13 @@ unsafe fn raw_to_vm_value(val: Lisp_Object, depth: usize) -> VmValue {
             return VmValue::Float(XFLOAT_DATA(val));
         }
         if STRINGP(val) {
+            if !STRING_MULTIBYTE(val) {
+                let bytes = raw_string_to_bytes(val).unwrap_or_default();
+                if bytes.iter().any(|&b| b >= 0x80) {
+                    return VmValue::Bytes(bytes);
+                }
+                return VmValue::String(String::from_utf8_lossy(&bytes).into_owned());
+            }
             return VmValue::String(raw_string_to_owned(val).unwrap_or_default());
         }
         if SYMBOLP(val) {
@@ -1332,6 +1483,7 @@ unsafe fn vm_value_to_raw(value: &VmValue) -> Lisp_Object {
             VmValue::Int(n) => make_int(*n as intmax_t),
             VmValue::Float(f) => make_float(*f),
             VmValue::String(s) | VmValue::Opaque(s) => build_utf8_str(s),
+            VmValue::Bytes(bytes) => make_unibyte_string_bytes(bytes),
             VmValue::Symbol(s) => {
                 let s_obj = build_utf8_str(s);
                 let _root = ScopedLispRoot::new(&[s_obj]);
@@ -1863,6 +2015,103 @@ impl HeadlessVm {
     pub fn safe_domain_read_eval(&mut self, source: &str) -> Result<String, VmHostError> {
         with_host_condition_catch_ctx(self.ctx_mut(), |ctx| {
             crate::safe_domain::read_eval_and_format_utf8(ctx, source)
+        })
+    }
+
+    /// Register a host Rust callback reachable in Lisp under `name`.
+    pub fn register_host_fn(&mut self, name: &str, f: HostExtFn) -> Result<(), VmHostError> {
+        {
+            let mut guard = host_ext_registry()
+                .write()
+                .unwrap_or_else(|e| e.into_inner());
+            guard.insert(name.to_string(), f);
+        }
+        let fn_name = name.to_string();
+        with_host_condition_catch(self.ctx_mut(), || {
+            // SAFETY: Runs inside `with_host_condition_catch` on the active VM thread with every
+            // allocated symbol/list/string kept rooted across nested `Fcons` calls.
+            unsafe {
+                ensure_host_call_subr_registered();
+                let name_str = build_utf8_str(&fn_name);
+                let mut roots = ScopedLispRoot::new(&[
+                    name_str,
+                    lisp_h_Qnil(),
+                    lisp_h_Qnil(),
+                    lisp_h_Qnil(),
+                    lisp_h_Qnil(),
+                    lisp_h_Qnil(),
+                ]);
+                let sym = Fintern(name_str, lisp_h_Qnil());
+                roots.set(1, sym);
+                let host_call_str = build_utf8_str("internal-host-call");
+                roots.set(2, host_call_str);
+                let host_call_sym = Fintern(host_call_str, lisp_h_Qnil());
+                roots.set(2, host_call_sym);
+                let rest_arg_str = build_utf8_str("--host-ext-args");
+                roots.set(3, rest_arg_str);
+                let rest_arg_sym = Fintern(rest_arg_str, lisp_h_Qnil());
+                roots.set(3, rest_arg_sym);
+
+                // (quote internal-host-call)
+                let quoted_host_call = Fcons(host_call_sym, lisp_h_Qnil());
+                roots.set(4, quoted_host_call);
+                let quoted_host_call = Fcons(Qquote(), quoted_host_call);
+                roots.set(4, quoted_host_call);
+
+                // (apply (quote internal-host-call) name_str --host-ext-args)
+                let call_tail = Fcons(rest_arg_sym, lisp_h_Qnil());
+                roots.set(5, call_tail);
+                let call_tail = Fcons(name_str, call_tail);
+                roots.set(5, call_tail);
+                let call_tail = Fcons(quoted_host_call, call_tail);
+                roots.set(5, call_tail);
+                let apply_expr = Fcons(Qapply(), call_tail);
+                roots.set(4, apply_expr);
+
+                // (&rest --host-ext-args)
+                let arglist = Fcons(rest_arg_sym, lisp_h_Qnil());
+                roots.set(5, arglist);
+                let arglist = Fcons(Qand_rest(), arglist);
+                roots.set(5, arglist);
+
+                // (lambda (&rest --host-ext-args) (apply (quote internal-host-call) name_str --host-ext-args))
+                let lambda_body = Fcons(apply_expr, lisp_h_Qnil());
+                roots.set(4, lambda_body);
+                let lambda_form = Fcons(arglist, lambda_body);
+                roots.set(4, lambda_form);
+                let lambda_form = Fcons(Qlambda(), lambda_form);
+                roots.set(4, lambda_form);
+                Ffset(sym, lambda_form);
+            }
+        })
+    }
+
+    /// Return sorted unique bound/fbound symbol names currently interned in the VM obarray.
+    pub fn list_interned_symbols(&mut self) -> Result<Vec<String>, VmHostError> {
+        with_host_condition_catch(self.ctx_mut(), || {
+            // SAFETY: Runs under active VM lock inside `with_host_condition_catch`.
+            unsafe {
+                let obarray = *Vobarray.as_mut_ptr();
+                if !OBARRAYP(obarray) {
+                    return Vec::new();
+                }
+                let mut it = make_obarray_iter(XOBARRAY(obarray));
+                let mut names = Vec::new();
+                while !obarray_iter_at_end(&raw mut it) {
+                    let sym = obarray_iter_symbol(&raw mut it);
+                    if SYMBOLP(sym) && (!NILP(Fboundp(sym)) || !NILP(Ffboundp(sym))) {
+                        if let Some(name) = raw_string_to_owned(Fsymbol_name(sym)) {
+                            if !name.is_empty() && !name.contains(' ') {
+                                names.push(name);
+                            }
+                        }
+                    }
+                    obarray_iter_step(&raw mut it);
+                }
+                names.sort_unstable();
+                names.dedup();
+                names
+            }
         })
     }
 }

@@ -15,6 +15,7 @@ pub enum Value {
     Int(i64),
     Float(f64),
     String(String),
+    Bytes(Vec<u8>),
     Symbol(String),
     List(Vec<Value>),
     Vector(Vec<Value>),
@@ -57,6 +58,14 @@ impl Value {
         }
     }
 
+    pub fn as_bytes(&self) -> Option<&[u8]> {
+        match self {
+            Self::Bytes(bytes) => Some(bytes.as_slice()),
+            Self::String(s) => Some(s.as_bytes()),
+            _ => None,
+        }
+    }
+
     pub fn as_list(&self) -> Option<&[Value]> {
         match self {
             Self::Nil => Some(&[]),
@@ -82,6 +91,7 @@ impl fmt::Display for Value {
             Self::Int(n) => write!(f, "{n}"),
             Self::Float(x) => write!(f, "{x}"),
             Self::String(s) => write!(f, "{s:?}"),
+            Self::Bytes(bytes) => write!(f, "#<bytes len={}>", bytes.len()),
             Self::Symbol(s) | Self::Opaque(s) => f.write_str(s),
             Self::List(items) => {
                 f.write_str("(")?;
@@ -153,6 +163,18 @@ impl From<&str> for Value {
     }
 }
 
+impl From<Vec<u8>> for Value {
+    fn from(v: Vec<u8>) -> Self {
+        Self::Bytes(v)
+    }
+}
+
+impl From<&[u8]> for Value {
+    fn from(v: &[u8]) -> Self {
+        Self::Bytes(v.to_vec())
+    }
+}
+
 impl From<Vec<Value>> for Value {
     fn from(v: Vec<Value>) -> Self {
         Self::List(v)
@@ -174,6 +196,7 @@ impl From<VmValue> for Value {
             VmValue::Int(n) => Self::Int(n),
             VmValue::Float(x) => Self::Float(x),
             VmValue::String(s) => Self::String(s),
+            VmValue::Bytes(bytes) => Self::Bytes(bytes),
             VmValue::Symbol(s) => Self::Symbol(s),
             VmValue::List(items) => Self::List(items.into_iter().map(Self::from).collect()),
             VmValue::Vector(items) => Self::Vector(items.into_iter().map(Self::from).collect()),
@@ -198,6 +221,7 @@ impl From<&Value> for VmValue {
             Value::Int(n) => Self::Int(*n),
             Value::Float(x) => Self::Float(*x),
             Value::String(s) => Self::String(s.clone()),
+            Value::Bytes(bytes) => Self::Bytes(bytes.clone()),
             Value::Symbol(s) => Self::Symbol(s.clone()),
             Value::List(items) => Self::List(items.iter().map(Self::from).collect()),
             Value::Vector(items) => Self::Vector(items.iter().map(Self::from).collect()),
@@ -239,6 +263,11 @@ mod tests {
         let map_val = Value::from(map);
         assert_eq!(map_val.as_map().and_then(|m| m.get("k")), Some(&Value::Int(9)));
         assert_eq!(Value::Nil.as_map(), None);
+
+        let bytes_owned = Value::from(vec![0u8, 255]);
+        assert_eq!(bytes_owned.as_bytes(), Some(&[0u8, 255][..]));
+        assert_eq!(bytes_owned.as_str(), None);
+        assert_eq!(Value::from(&[10u8, 20][..]), Value::Bytes(vec![10, 20]));
     }
 
     #[test]
@@ -249,6 +278,7 @@ mod tests {
         assert_eq!(Value::Int(-5).to_string(), "-5");
         assert_eq!(Value::Float(2.5).to_string(), "2.5");
         assert_eq!(Value::String("a".to_string()).to_string(), "\"a\"");
+        assert_eq!(Value::Bytes(vec![0, 255]).to_string(), "#<bytes len=2>");
         assert_eq!(Value::Symbol("sym".to_string()).to_string(), "sym");
         assert_eq!(
             Value::from(vec![Value::Int(1), Value::Symbol("x".to_string())]).to_string(),

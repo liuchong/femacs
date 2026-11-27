@@ -12,6 +12,13 @@
 (setq purify-flag nil)
 (setq max-lisp-eval-depth (max max-lisp-eval-depth 4200))
 
+(defvar lisp-core--quiet-boot
+  (and (boundp 'inhibit-message)
+       inhibit-message
+       (let ((v (getenv-internal "LISP_CORE_VERBOSE")))
+         (or (null v) (string= v "") (string= v "0"))))
+  "Non-nil to suppress bootstrap load progress messages.")
+
 ;; Ensure `stdlib/', `stdlib/emacs-lisp', and `stdlib/international' sit at the
 ;; front of `load-path' when booting from cold stdlib sources (prior to `subr').
 (let ((root (or (and (boundp 'lisp-core--boot-root) lisp-core--boot-root)
@@ -29,14 +36,14 @@
             (setq load-path (cons root load-path))))))
 
 ;; Preload core Lisp language layers in strict dependency order.
-(load "emacs-lisp/debug-early")
-(load "emacs-lisp/byte-run")
-(load "emacs-lisp/backquote")
-(load "subr")
-(load "keymap")
-(load "version")
-(load "widget")
-(load "custom")
+(load "emacs-lisp/debug-early" nil lisp-core--quiet-boot)
+(load "emacs-lisp/byte-run" nil lisp-core--quiet-boot)
+(load "emacs-lisp/backquote" nil lisp-core--quiet-boot)
+(load "subr" nil lisp-core--quiet-boot)
+(load "keymap" nil lisp-core--quiet-boot)
+(load "version" nil lisp-core--quiet-boot)
+(load "widget" nil lisp-core--quiet-boot)
+(load "custom" nil lisp-core--quiet-boot)
 
 (unless (fboundp 'custom-declare-face)
   (defun custom-declare-face (face _spec _doc &rest _args)
@@ -190,7 +197,7 @@
     "Return the value of symbol VAR if it is bound, else nil."
     `(and (boundp ',var) ,var)))
 
-(load "international/mule")
+(load "international/mule" nil lisp-core--quiet-boot)
 
 ;; Load full `international/mule-conf' when external `.map' files exist; otherwise
 ;; define all map-free core Unicode/ASCII/Latin-1/UTF-8/UTF-16/binary coding systems.
@@ -198,12 +205,12 @@
          charset-map-path
          (locate-file-internal "8859-2" charset-map-path '(".map" "")))
     (progn
-      (load "international/mule-conf")
-      (load "env")
-      (load "format")
-      (load "obarray")
-      (load "case-table")
-      (load "international/characters"))
+      (load "international/mule-conf" nil lisp-core--quiet-boot)
+      (load "env" nil lisp-core--quiet-boot)
+      (load "format" nil lisp-core--quiet-boot)
+      (load "obarray" nil lisp-core--quiet-boot)
+      (load "case-table" nil lisp-core--quiet-boot)
+      (load "international/characters" nil lisp-core--quiet-boot))
   (progn
     (define-charset-alias 'ucs 'unicode)
     (define-charset 'latin-iso8859-1
@@ -381,27 +388,27 @@
             ("" . (undecided . nil))))
     (set-coding-system-priority 'utf-8 'iso-latin-1)
 
-    (load "env")
-    (load "format")
-    (load "obarray")
-    (load "case-table")
-    (load "core-autoloads")
-    (load "emacs-lisp/derived")
+    (load "env" nil lisp-core--quiet-boot)
+    (load "format" nil lisp-core--quiet-boot)
+    (load "obarray" nil lisp-core--quiet-boot)
+    (load "case-table" nil lisp-core--quiet-boot)
+    (load "core-autoloads" nil lisp-core--quiet-boot)
+    (load "emacs-lisp/derived" nil lisp-core--quiet-boot)
 
     (setq load-source-file-function #'load-with-code-conversion)
-    (load "files")
+    (load "files" nil lisp-core--quiet-boot)
 
     ;; Bootstrap eager macro-expansion with `pcase' before `international/characters'.
-    (load "emacs-lisp/macroexp")
+    (load "emacs-lisp/macroexp" nil lisp-core--quiet-boot)
     (unless (compiled-function-p (symbol-function 'macroexpand-all))
       (let ((macroexp--pending-eager-loads '(skip)))
-        (load "emacs-lisp/pcase")
-        (load "emacs-lisp/inline"))
+        (load "emacs-lisp/pcase" nil lisp-core--quiet-boot)
+        (load "emacs-lisp/inline" nil lisp-core--quiet-boot))
       (let ((max-lisp-eval-depth (* 2 max-lisp-eval-depth)))
-        (load "emacs-lisp/macroexp")))
+        (load "emacs-lisp/macroexp" nil lisp-core--quiet-boot)))
     (require 'gv)
-    (load "emacs-lisp/easy-mmode")
-    (load "button")
+    (load "emacs-lisp/easy-mmode" nil lisp-core--quiet-boot)
+    (load "button" nil lisp-core--quiet-boot)
 
     (defvar current-language-environment "UTF-8")
     (unless (fboundp 'get-language-info)
@@ -433,7 +440,7 @@
                   (lambda (uc lc table)
                     (when (and (integerp uc) (integerp lc))
                       (funcall orig-pair uc lc table))))
-            (load "international/characters"))
+            (load "international/characters" nil lisp-core--quiet-boot))
         (fset 'put-charset-property orig-put)
         (fset 'map-charset-chars orig-map)
         (fset 'decode-char orig-dec)
@@ -441,43 +448,43 @@
         (fset 'set-case-syntax-pair orig-pair)))))
 
 (unless (featurep 'core-autoloads)
-  (load "core-autoloads"))
+  (load "core-autoloads" nil lisp-core--quiet-boot))
 (unless (featurep 'derived)
-  (load "emacs-lisp/derived"))
+  (load "emacs-lisp/derived" nil lisp-core--quiet-boot))
 (unless (featurep 'files)
   (setq load-source-file-function #'load-with-code-conversion)
-  (load "files"))
+  (load "files" nil lisp-core--quiet-boot))
 
 (unless (featurep 'macroexp)
-  (load "emacs-lisp/macroexp")
+  (load "emacs-lisp/macroexp" nil lisp-core--quiet-boot)
   (unless (compiled-function-p (symbol-function 'macroexpand-all))
     (let ((macroexp--pending-eager-loads '(skip)))
-      (load "emacs-lisp/pcase")
-      (load "emacs-lisp/inline"))
+      (load "emacs-lisp/pcase" nil lisp-core--quiet-boot)
+      (load "emacs-lisp/inline" nil lisp-core--quiet-boot))
     (let ((max-lisp-eval-depth (* 2 max-lisp-eval-depth)))
-      (load "emacs-lisp/macroexp"))))
+      (load "emacs-lisp/macroexp" nil lisp-core--quiet-boot))))
 
 (require 'gv)
 (unless (featurep 'easy-mmode)
-  (load "emacs-lisp/easy-mmode"))
+  (load "emacs-lisp/easy-mmode" nil lisp-core--quiet-boot))
 (unless (featurep 'button)
-  (load "button"))
-(load "emacs-lisp/cl-preloaded")
-(load "emacs-lisp/oclosure")
-(load "emacs-lisp/cl-generic")
-(load "emacs-lisp/seq")
-(load "emacs-lisp/map")
-(load "emacs-lisp/subr-x")
-(load "emacs-lisp/nadvice")
-(load "emacs-lisp/timer")
-(load "emacs-lisp/float-sup")
+  (load "button" nil lisp-core--quiet-boot))
+(load "emacs-lisp/cl-preloaded" nil lisp-core--quiet-boot)
+(load "emacs-lisp/oclosure" nil lisp-core--quiet-boot)
+(load "emacs-lisp/cl-generic" nil lisp-core--quiet-boot)
+(load "emacs-lisp/seq" nil lisp-core--quiet-boot)
+(load "emacs-lisp/map" nil lisp-core--quiet-boot)
+(load "emacs-lisp/subr-x" nil lisp-core--quiet-boot)
+(load "emacs-lisp/nadvice" nil lisp-core--quiet-boot)
+(load "emacs-lisp/timer" nil lisp-core--quiet-boot)
+(load "emacs-lisp/float-sup" nil lisp-core--quiet-boot)
 (require 'rx)
 (rx-define lisp-mode-symbol (+ (| (syntax word)
                                   (syntax symbol)
                                   (: "\\" nonl))))
-(load "emacs-lisp/shorthands")
-(load "emacs-lisp/warnings")
-(load "emacs-lisp/cconv")
+(load "emacs-lisp/shorthands" nil lisp-core--quiet-boot)
+(load "emacs-lisp/warnings" nil lisp-core--quiet-boot)
+(load "emacs-lisp/cconv" nil lisp-core--quiet-boot)
 
 (unless (fboundp 'function-documentation)
   (cl-defgeneric function-documentation (function)
@@ -524,7 +531,7 @@
 (set-terminal-coding-system 'utf-8)
 
 ;; Load general-purpose prelude (script runner, strict compile, ERT driver).
-(load "core-prelude")
+(load "core-prelude" nil lisp-core--quiet-boot)
 
 ;; Clear temporary load tracking before optional portable dump creation.
 (setq current-load-list nil)

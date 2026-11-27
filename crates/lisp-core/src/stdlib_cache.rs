@@ -3,16 +3,21 @@
 
 use std::fs;
 #[cfg(feature = "vm")]
-use std::fs::File;
+use std::fs::{File, OpenOptions};
 #[cfg(feature = "vm")]
 use std::io::{self, Read};
-use std::path::{Component, Path, PathBuf};
 #[cfg(feature = "vm")]
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::path::Component;
+use std::path::{Path, PathBuf};
+#[cfg(feature = "vm")]
+use std::process::{Command, Stdio};
+#[cfg(feature = "vm")]
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 #[cfg(feature = "vm")]
 use flate2::read::GzDecoder;
 
+use crate::brand;
 use crate::error::Error;
 
 /// SHA-256 hex digest of the bundled `stdlib/` tree computed at build time.
@@ -42,32 +47,37 @@ pub fn resolve_cache_root(override_dir: Option<&Path>) -> PathBuf {
     if let Some(dir) = override_dir {
         return dir.to_path_buf();
     }
-    if let Some(val) = std::env::var_os("LISP_CORE_CACHE_DIR") {
+    if let Some(val) = std::env::var_os(brand::ENV_CACHE_DIR) {
         if !val.is_empty() {
             return PathBuf::from(val);
         }
     }
     if let Some(xdg) = std::env::var_os("XDG_CACHE_HOME") {
         if !xdg.is_empty() {
-            return PathBuf::from(xdg).join("lisp-core");
+            return PathBuf::from(xdg).join(brand::CACHE_APP_DIR);
         }
     }
     if let Some(home) = std::env::var_os("HOME") {
         if !home.is_empty() {
             let home_path = PathBuf::from(home);
             if cfg!(target_os = "macos") {
-                return home_path.join("Library/Caches/lisp-core");
+                return home_path.join("Library/Caches").join(brand::CACHE_APP_DIR);
             }
-            return home_path.join(".cache/lisp-core");
+            return home_path.join(".cache").join(brand::CACHE_APP_DIR);
         }
     }
-    std::env::temp_dir().join("lisp-core-cache")
+    std::env::temp_dir().join(brand::CACHE_FALLBACK_TEMP_DIR)
 }
 
 /// Return the digest-scoped cache directory for this package version and stdlib digest.
 pub fn versioned_cache_dir(cache_root: &Path) -> PathBuf {
     let short_sha = &STDLIB_SHA256[..STDLIB_SHA256.len().min(16)];
-    cache_root.join(format!("v{}-{short_sha}", env!("CARGO_PKG_VERSION")))
+    cache_root.join(format!("v{}-{short_sha}", brand::VERSION))
+}
+
+/// Return the persistent REPL history path inside the versioned cache directory.
+pub fn repl_history_path(cache_root: &Path) -> PathBuf {
+    versioned_cache_dir(cache_root).join(brand::REPL_HISTORY_FILE)
 }
 
 /// Return the default portable dump path inside `version_root` keyed by the current executable.
@@ -76,7 +86,7 @@ pub fn exe_pdmp_path(version_root: &Path) -> PathBuf {
         .ok()
         .and_then(|p| p.file_stem().map(|s| s.to_string_lossy().into_owned()))
         .filter(|s| !s.is_empty())
-        .unwrap_or_else(|| "lisp-core".to_string());
+        .unwrap_or_else(|| brand::CLI_NAME.to_string());
     version_root.join(format!("{stem}.pdmp"))
 }
 
@@ -276,6 +286,92 @@ pub fn ensure_unpacked(cache_root: &Path) -> Result<CacheLayout, Error> {
     }
 }
 
+#[cfg(feature = "vm")]
+/// Advisory lock guard serializing background/foreground `.pdmp` warm writes in `version_root`.
+pub struct WarmLockGuard {
+    path: PathBuf,
+}
+
+#[cfg(feature = "vm")]
+impl Drop for WarmLockGuard {
+    fn drop(&mut self) {
+        let _ = fs::remove_file(&self.path);
+    }
+}
+
+#[cfg(feature = "vm")]
+/// Try acquiring `.warm.lock` inside `version_root`, reclaiming lockfiles older than 120s.
+pub fn try_acquire_warm_lock(version_root: &Path) -> Option<WarmLockGuard> {
+    if fs::create_dir_all(version_root).is_err() {
+        return None;
+    }
+    let lock_path = version_root.join(".warm.lock");
+    for attempt in 0..2 {
+        match OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&lock_path)
+        {
+            Ok(mut f) => {
+                use std::io::Write as _;
+                let _ = writeln!(f, "{}", std::process::id());
+                return Some(WarmLockGuard { path: lock_path });
+            }
+            Err(err) if err.kind() == io::ErrorKind::AlreadyExists && attempt == 0 => {
+                let stale = fs::metadata(&lock_path)
+                    .and_then(|m| m.modified())
+                    .ok()
+                    .and_then(|mtime| SystemTime::now().duration_since(mtime).ok())
+                    .is_some_and(|age| age > Duration::from_secs(120));
+                if stale {
+                    let _ = fs::remove_file(&lock_path);
+                    continue;
+                }
+                return None;
+            }
+            Err(_) => return None,
+        }
+    }
+    None
+}
+
+#[cfg(feature = "vm")]
+/// Construct a process-scoped temporary path in the same directory as `target` for atomic rename.
+pub fn atomic_temp_dump_path(target: &Path) -> PathBuf {
+    let fname = target
+        .file_name()
+        .and_then(|s| s.to_str())
+        .filter(|s| !s.is_empty())
+        .unwrap_or("runtime.pdmp");
+    target.with_file_name(format!(".{fname}.tmp.{}", std::process::id()))
+}
+
+#[cfg(feature = "vm")]
+/// Spawn a detached background `cache warm --quiet` child when `.pdmp` does not yet exist.
+pub fn maybe_spawn_background_warm(cache_dir: Option<&Path>, pdmp_path: &Path) {
+    if is_valid_dump_header(pdmp_path) {
+        return;
+    }
+    if std::env::var_os(brand::ENV_NO_AUTO_WARM)
+        .is_some_and(|v| !v.is_empty() && v != "0" && v != "false")
+    {
+        return;
+    }
+    let Ok(exe) = std::env::current_exe() else {
+        return;
+    };
+    let mut cmd = Command::new(exe);
+    cmd.arg("cache").arg("warm").arg("--quiet");
+    if let Some(dir) = cache_dir {
+        cmd.arg("--cache-dir").arg(dir);
+    }
+    cmd.env(brand::ENV_NO_AUTO_WARM, "1");
+    cmd.stdin(Stdio::null());
+    cmd.stdout(Stdio::null());
+    cmd.stderr(Stdio::null());
+    let _ = cmd.spawn();
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -335,6 +431,31 @@ mod tests {
         assert!(!is_valid_dump_header(&wrong));
 
         assert!(!is_valid_dump_header(&base.join("missing.pdmp")));
+        let _ = fs::remove_dir_all(&base);
+    }
+
+    #[cfg(feature = "vm")]
+    #[test]
+    fn warm_lock_and_atomic_temp_path_work_cleanly() {
+        let base = std::env::temp_dir().join(format!("lisp-core-warm-lock-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&base);
+        let target = base.join("lisp-core.pdmp");
+        let tmp = atomic_temp_dump_path(&target);
+        assert_eq!(tmp.parent(), Some(base.as_path()));
+        assert!(
+            tmp.file_name()
+                .and_then(|s| s.to_str())
+                .is_some_and(|n| n.starts_with(".lisp-core.pdmp.tmp."))
+        );
+
+        let guard = try_acquire_warm_lock(&base).expect("acquire warm lock");
+        assert!(base.join(".warm.lock").exists());
+        assert!(
+            try_acquire_warm_lock(&base).is_none(),
+            "second concurrent lock must wait/skip"
+        );
+        drop(guard);
+        assert!(!base.join(".warm.lock").exists());
         let _ = fs::remove_dir_all(&base);
     }
 }

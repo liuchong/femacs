@@ -4734,6 +4734,23 @@
       "uncertainty": null
     },
     {
+      "path": "tools/check-crate-boundaries.py",
+      "sha256": "5b852781ad598084cd3c4b4ca329e785289988f37ca4028141d954233a439d30",
+      "bytes": 4063,
+      "family": "comparison-gate",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "verify editor/standalone crate isolation and zero C compiler dependencies",
+      "readers": [
+        {
+          "path": "tools/testing/suites/suite-static.el",
+          "anchor": "static/crate-boundaries",
+          "kind": "fe-test-static-case"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
       "path": "tools/check-unsafe-boundary.py",
       "sha256": "5ab5bfb8b50a32ac61c5f73b4400726b35dd48227a2974186806f4cb4624c8dc",
       "bytes": 40111,
@@ -4745,6 +4762,28 @@
         {
           "path": "xtask/src/main.rs",
           "anchor": "tools/check-unsafe-boundary.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/femacs-lisp-cache.py",
+      "sha256": "31bc91c36eeeca151d2c7c03adc1b1187a7a48a8ba9903a36e03a56f73d9267d",
+      "bytes": 31464,
+      "family": "rust-build",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Phase II Stage C3/A3 verifiable femacs-lisp package & host cache manager",
+      "readers": [
+        {
+          "path": "tools/femacs-lisp-cache.py",
+          "anchor": "ensure_cache",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/test-c3-a3-seed-host.py",
+          "anchor": "CACHE_TOOL",
           "kind": "current explicit dispatch/import/documented invocation"
         }
       ],
@@ -4823,6 +4862,28 @@
         {
           "path": "maintenance/releases/2026-10-30-process-wait-base64.md",
           "anchor": "tools/fixtures/base64-protection.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/c5-a5-worker-cases.el",
+      "sha256": "09c8682e5c8aae48b73218fd8a0f06ce3d3e39f95f2e71a281f6befef038789e",
+      "bytes": 49513,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Phase I Stage C5/A5 and C6/A6 detached Cocoa/Terminal editor Eliscript worker acceptance fixture",
+      "readers": [
+        {
+          "path": "tools/test-c5-a5-worker.py",
+          "anchor": "DEFAULT_FIXTURE",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/test-c6-a6-node.py",
+          "anchor": "DEFAULT_FIXTURE",
           "kind": "current explicit dispatch/import/documented invocation"
         }
       ],
@@ -7256,6 +7317,125 @@
       "uncertainty": null
     },
     {
+      "path": "tools/test-c1-a1-host.py",
+      "sha256": "c1162b2fa0b359802527bd49b488ea012a05b5df4ec79dd06552be8fae9dd718",
+      "bytes": 14019,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Phase II Stage C1/A1 host boundary and editor-fidelity acceptance gate",
+      "readers": [
+        {
+          "path": "tools/test-c1-a1-host.py",
+          "anchor": "C1_A1_host_acceptance",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-c2-a2-lisp-app.py",
+      "sha256": "d6f21612754ea0371be674453eab32038417c8458a8e0dca8355feec222396f0",
+      "bytes": 42606,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Phase II Stage C2/A2 standalone femacs-lisp, http-host, build-lisp, and relocated app acceptance gate",
+      "readers": [
+        {
+          "path": "tools/test-c2-a2-lisp-app.py",
+          "anchor": "run_acceptance",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-c3-a3-seed-host.py",
+      "sha256": "9a2936f41ad111f64f47b65115e2115c65c54b8c5a26694b1869134369d0ef8f",
+      "bytes": 33212,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Phase II Stage C3/A3 Seed, Stage 0, batch args-left, and host cache acceptance gate",
+      "readers": [
+        {
+          "path": "tools/test-c3-a3-seed-host.py",
+          "anchor": "main",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-c4-a4-modern-local.py",
+      "sha256": "6419cd611d3fe2516f2be9130588ff534140d76954187e7ee80f0077704b022d",
+      "bytes": 31963,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Phase II Stage C4/A4 dual-host modern local .eli interpretation, ERT, and explicit rejection gate",
+      "readers": [
+        {
+          "path": "tools/test-c4-a4-modern-local.py",
+          "anchor": "main",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-c4-r1-abi-exit.py",
+      "sha256": "24057a0477878e7191b76e4dd3107146d7c394f29aa1f9666d8914e04c8b2dcb",
+      "bytes": 17310,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Phase II Stage C4-R1 real C dynamic module, subthread, and nested ABI-safe host-exit verification gate",
+      "readers": [
+        {
+          "path": "tools/test-c4-r1-abi-exit.py",
+          "anchor": "main",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-c5-a5-worker.py",
+      "sha256": "8b4c19c248c8a64b869944a0952a3de2ff7c6bcdf0f282404cf36610aff5384d",
+      "bytes": 39979,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Phase I Stage C5/A5 opt-in Eliscript worker integration acceptance gate across Cocoa GUI and Terminal PTY",
+      "readers": [
+        {
+          "path": "tools/test-c5-a5-worker.py",
+          "anchor": "main",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-c6-a6-node.py",
+      "sha256": "9eb8bb1d85901096baed22f8e7637070ea192fe3e57228998d2db62b4593b5cc",
+      "bytes": 18794,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Phase I Stage C6/A6 Bun-free Node/V8 external ESM consumer and runtime-resolution honesty gate across Cocoa GUI and Terminal PTY",
+      "readers": [
+        {
+          "path": "tools/test-c6-a6-node.py",
+          "anchor": "main",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
       "path": "tools/test-charset-bytecopy.py",
       "sha256": "6774fbb61b7abaff0b48f45d1af9bfe100ee1877ecffd5ca5de906a8b495845e",
       "bytes": 12845,
@@ -8300,169 +8480,6 @@
       "uncertainty": null
     },
     {
-      "path": "tools/test-c1-a1-host.py",
-      "sha256": "c1162b2fa0b359802527bd49b488ea012a05b5df4ec79dd06552be8fae9dd718",
-      "bytes": 14019,
-      "family": "test",
-      "decision": "retain",
-      "replacement": null,
-      "reason": "owned Phase II Stage C1/A1 host boundary and editor-fidelity acceptance gate",
-      "readers": [
-        {
-          "path": "tools/test-c1-a1-host.py",
-          "anchor": "C1_A1_host_acceptance",
-          "kind": "current explicit dispatch/import/documented invocation"
-        }
-      ],
-      "uncertainty": null
-    },
-    {
-      "path": "tools/test-c2-a2-lisp-app.py",
-      "sha256": "d6f21612754ea0371be674453eab32038417c8458a8e0dca8355feec222396f0",
-      "bytes": 42606,
-      "family": "test",
-      "decision": "retain",
-      "replacement": null,
-      "reason": "owned Phase II Stage C2/A2 standalone femacs-lisp, http-host, build-lisp, and relocated app acceptance gate",
-      "readers": [
-        {
-          "path": "tools/test-c2-a2-lisp-app.py",
-          "anchor": "run_acceptance",
-          "kind": "current explicit dispatch/import/documented invocation"
-        }
-      ],
-      "uncertainty": null
-    },
-    {
-      "path": "tools/femacs-lisp-cache.py",
-      "sha256": "31bc91c36eeeca151d2c7c03adc1b1187a7a48a8ba9903a36e03a56f73d9267d",
-      "bytes": 31464,
-      "family": "rust-build",
-      "decision": "retain",
-      "replacement": null,
-      "reason": "owned Phase II Stage C3/A3 verifiable femacs-lisp package & host cache manager",
-      "readers": [
-        {
-          "path": "tools/femacs-lisp-cache.py",
-          "anchor": "ensure_cache",
-          "kind": "current explicit dispatch/import/documented invocation"
-        },
-        {
-          "path": "tools/test-c3-a3-seed-host.py",
-          "anchor": "CACHE_TOOL",
-          "kind": "current explicit dispatch/import/documented invocation"
-        }
-      ],
-      "uncertainty": null
-    },
-    {
-      "path": "tools/test-c3-a3-seed-host.py",
-      "sha256": "9a2936f41ad111f64f47b65115e2115c65c54b8c5a26694b1869134369d0ef8f",
-      "bytes": 33212,
-      "family": "test",
-      "decision": "retain",
-      "replacement": null,
-      "reason": "owned Phase II Stage C3/A3 Seed, Stage 0, batch args-left, and host cache acceptance gate",
-      "readers": [
-        {
-          "path": "tools/test-c3-a3-seed-host.py",
-          "anchor": "main",
-          "kind": "current explicit dispatch/import/documented invocation"
-        }
-      ],
-      "uncertainty": null
-    },
-    {
-      "path": "tools/test-c4-a4-modern-local.py",
-      "sha256": "6419cd611d3fe2516f2be9130588ff534140d76954187e7ee80f0077704b022d",
-      "bytes": 31963,
-      "family": "test",
-      "decision": "retain",
-      "replacement": null,
-      "reason": "owned Phase II Stage C4/A4 dual-host modern local .eli interpretation, ERT, and explicit rejection gate",
-      "readers": [
-        {
-          "path": "tools/test-c4-a4-modern-local.py",
-          "anchor": "main",
-          "kind": "current explicit dispatch/import/documented invocation"
-        }
-      ],
-      "uncertainty": null
-    },
-    {
-      "path": "tools/test-c4-r1-abi-exit.py",
-      "sha256": "24057a0477878e7191b76e4dd3107146d7c394f29aa1f9666d8914e04c8b2dcb",
-      "bytes": 17310,
-      "family": "test",
-      "decision": "retain",
-      "replacement": null,
-      "reason": "owned Phase II Stage C4-R1 real C dynamic module, subthread, and nested ABI-safe host-exit verification gate",
-      "readers": [
-        {
-          "path": "tools/test-c4-r1-abi-exit.py",
-          "anchor": "main",
-          "kind": "current explicit dispatch/import/documented invocation"
-        }
-      ],
-      "uncertainty": null
-    },
-    {
-      "path": "tools/test-c5-a5-worker.py",
-      "sha256": "8b4c19c248c8a64b869944a0952a3de2ff7c6bcdf0f282404cf36610aff5384d",
-      "bytes": 39979,
-      "family": "test",
-      "decision": "retain",
-      "replacement": null,
-      "reason": "owned Phase I Stage C5/A5 opt-in Eliscript worker integration acceptance gate across Cocoa GUI and Terminal PTY",
-      "readers": [
-        {
-          "path": "tools/test-c5-a5-worker.py",
-          "anchor": "main",
-          "kind": "current explicit dispatch/import/documented invocation"
-        }
-      ],
-      "uncertainty": null
-    },
-    {
-      "path": "tools/test-c6-a6-node.py",
-      "sha256": "9eb8bb1d85901096baed22f8e7637070ea192fe3e57228998d2db62b4593b5cc",
-      "bytes": 18794,
-      "family": "test",
-      "decision": "retain",
-      "replacement": null,
-      "reason": "owned Phase I Stage C6/A6 Bun-free Node/V8 external ESM consumer and runtime-resolution honesty gate across Cocoa GUI and Terminal PTY",
-      "readers": [
-        {
-          "path": "tools/test-c6-a6-node.py",
-          "anchor": "main",
-          "kind": "current explicit dispatch/import/documented invocation"
-        }
-      ],
-      "uncertainty": null
-    },
-    {
-      "path": "tools/fixtures/c5-a5-worker-cases.el",
-      "sha256": "09c8682e5c8aae48b73218fd8a0f06ce3d3e39f95f2e71a281f6befef038789e",
-      "bytes": 49513,
-      "family": "fixture",
-      "decision": "retain",
-      "replacement": null,
-      "reason": "owned Phase I Stage C5/A5 and C6/A6 detached Cocoa/Terminal editor Eliscript worker acceptance fixture",
-      "readers": [
-        {
-          "path": "tools/test-c5-a5-worker.py",
-          "anchor": "DEFAULT_FIXTURE",
-          "kind": "current explicit dispatch/import/documented invocation"
-        },
-        {
-          "path": "tools/test-c6-a6-node.py",
-          "anchor": "DEFAULT_FIXTURE",
-          "kind": "current explicit dispatch/import/documented invocation"
-        }
-      ],
-      "uncertainty": null
-    },
-    {
       "path": "tools/test-u3-unit.py",
       "sha256": "43b331ea92becfba196140f52b50133a3f2a44f0ebe021cdfecad87283e4cab6",
       "bytes": 31303,
@@ -8559,152 +8576,6 @@
         {
           "path": "docs/testing-strategy.md",
           "anchor": "D-11",
-          "kind": "current explicit dispatch/import/documented invocation"
-        }
-      ],
-      "uncertainty": null
-    },
-    {
-      "path": "tools/tls-abi.py",
-      "sha256": "ea5f040324118f3b1539732aba079d4a30bfddec94dbfad63545ea261452ce78",
-      "bytes": 18697,
-      "family": "comparison-gate",
-      "decision": "retain",
-      "replacement": null,
-      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
-      "readers": [
-        {
-          "path": "docs/ports/gnutls.md",
-          "anchor": "d9a41b0a GnuTLS ABI check entrypoint",
-          "kind": "current explicit dispatch/import/documented invocation"
-        }
-      ],
-      "uncertainty": null
-    },
-    {
-      "path": "tools/tls-acceptance.py",
-      "sha256": "8111996091df94dc10b6f267035ed1e92e332ef56c74835df90b86fc77d0666e",
-      "bytes": 25708,
-      "family": "comparison-gate",
-      "decision": "retain",
-      "replacement": null,
-      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
-      "readers": [
-        {
-          "path": "tools/fixtures/tls-acceptance.el",
-          "anchor": "tls-acceptance",
-          "kind": "current explicit dispatch/import/documented invocation"
-        }
-      ],
-      "uncertainty": null
-    },
-    {
-      "path": "tools/toolchain-pins.py",
-      "sha256": "9bcfef8e490f3ddc33377d7d951a3b15361871ffdd0f219f1d68b81e4bf8482e",
-      "bytes": 9134,
-      "family": "generator",
-      "decision": "retain",
-      "replacement": null,
-      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
-      "readers": [
-        {
-          "path": "docs/current-state.md",
-          "anchor": "toolchain-pins",
-          "kind": "current explicit dispatch/import/documented invocation"
-        },
-        {
-          "path": "docs/modernization.md",
-          "anchor": "tools/toolchain-pins.py",
-          "kind": "current explicit dispatch/import/documented invocation"
-        },
-        {
-          "path": "docs/repository-bootstrap.md",
-          "anchor": "tools/toolchain-pins.py",
-          "kind": "current explicit dispatch/import/documented invocation"
-        }
-      ],
-      "uncertainty": null
-    },
-    {
-      "path": "tools/treesit-abi.py",
-      "sha256": "82ec8374aa4e632429dd4f9290255d3fc1a23e3ef12c435a94d7748dbf7a841d",
-      "bytes": 14979,
-      "family": "comparison-gate",
-      "decision": "retain",
-      "replacement": null,
-      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
-      "readers": [
-        {
-          "path": "maintenance/releases/2026-10-29-macos-treesit.md",
-          "anchor": "tools/treesit-abi.py",
-          "kind": "current explicit dispatch/import/documented invocation"
-        }
-      ],
-      "uncertainty": null
-    },
-    {
-      "path": "tools/unsafe-boundary-manifest.json",
-      "sha256": "563b60bcf32a4bac8d5e6da754b4a601b815f3482310d97ec85d9a6f102ec446",
-      "bytes": 156199,
-      "family": "fixture",
-      "decision": "retain",
-      "replacement": null,
-      "reason": "owned U1-U5 / Stage I-III verification or safety boundary input; explicit reader retained",
-      "readers": [
-        {
-          "path": "xtask/src/main.rs",
-          "anchor": "tools/unsafe-boundary-manifest.json",
-          "kind": "current explicit dispatch/import/documented invocation"
-        }
-      ],
-      "uncertainty": null,
-      "current_sha256": "563b60bcf32a4bac8d5e6da754b4a601b815f3482310d97ec85d9a6f102ec446",
-      "current_bytes": 156199
-    },
-    {
-      "path": "tools/version_resources.py",
-      "sha256": "e3a31fb945724828cfd858f9fb8701d5c4059f336d23e03a80929c300761fabc",
-      "bytes": 878,
-      "family": "generator",
-      "decision": "retain",
-      "replacement": null,
-      "reason": "owned G4 implementation or acceptance input; explicit reader retained",
-      "readers": [
-        {
-          "path": "tools/bootstrap-resources.py",
-          "anchor": "import render_versions",
-          "kind": "current explicit dispatch/import/documented invocation"
-        },
-        {
-          "path": "tools/build-manuals.py",
-          "anchor": "import render_versions",
-          "kind": "current explicit dispatch/import/documented invocation"
-        }
-      ],
-      "uncertainty": null
-    },
-    {
-      "path": "tools/xml-acceptance.py",
-      "sha256": "9fbc4216d8e4051793db5c4ef2e8e721d1499c6ef78fbd7df6bf46272664a806",
-      "bytes": 18640,
-      "family": "comparison-gate",
-      "decision": "retain",
-      "replacement": null,
-      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
-      "readers": [
-        {
-          "path": "tools/fixtures/xml-acceptance.el",
-          "anchor": "xml-acceptance",
-          "kind": "current explicit dispatch/import/documented invocation"
-        },
-        {
-          "path": "tools/runtime-execution.py",
-          "anchor": "xml-acceptance",
-          "kind": "current explicit dispatch/import/documented invocation"
-        },
-        {
-          "path": "tools/runtime-final-audit.py",
-          "anchor": "xml-acceptance",
           "kind": "current explicit dispatch/import/documented invocation"
         }
       ],
@@ -8924,8 +8795,8 @@
     },
     {
       "path": "tools/testing/suites/suite-static.el",
-      "sha256": "286442bf45f38ca2f914a57ff096945cb4f23acc0f619ba871d0bf2dd520a30b",
-      "bytes": 4529,
+      "sha256": "b40c2a48e2b95ea2d04a3b2d19a95c8070a91e4765109aea19049af673f47570",
+      "bytes": 5062,
       "family": "test",
       "decision": "retain",
       "replacement": null,
@@ -8967,6 +8838,150 @@
       "uncertainty": null,
       "current_sha256": "9ea0395d6a621445d45f753fa05eaae476977535e1e9cf853a5f894df4f62128",
       "current_bytes": 25337
+    },
+    {
+      "path": "tools/tls-abi.py",
+      "sha256": "ea5f040324118f3b1539732aba079d4a30bfddec94dbfad63545ea261452ce78",
+      "bytes": 18697,
+      "family": "comparison-gate",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "docs/ports/gnutls.md",
+          "anchor": "d9a41b0a GnuTLS ABI check entrypoint",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/tls-acceptance.py",
+      "sha256": "8111996091df94dc10b6f267035ed1e92e332ef56c74835df90b86fc77d0666e",
+      "bytes": 25708,
+      "family": "comparison-gate",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/fixtures/tls-acceptance.el",
+          "anchor": "tls-acceptance",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/toolchain-pins.py",
+      "sha256": "9bcfef8e490f3ddc33377d7d951a3b15361871ffdd0f219f1d68b81e4bf8482e",
+      "bytes": 9134,
+      "family": "generator",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "docs/current-state.md",
+          "anchor": "toolchain-pins",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "docs/modernization.md",
+          "anchor": "tools/toolchain-pins.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "docs/repository-bootstrap.md",
+          "anchor": "tools/toolchain-pins.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/treesit-abi.py",
+      "sha256": "82ec8374aa4e632429dd4f9290255d3fc1a23e3ef12c435a94d7748dbf7a841d",
+      "bytes": 14979,
+      "family": "comparison-gate",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "maintenance/releases/2026-10-29-macos-treesit.md",
+          "anchor": "tools/treesit-abi.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/unsafe-boundary-manifest.json",
+      "sha256": "087bc333b4251363cb5822be1c0b72677b31cd5787d4c9ad6fe7c78b572ad36b",
+      "bytes": 156272,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned U1-U5 / Stage I-III verification or safety boundary input; explicit reader retained",
+      "readers": [
+        {
+          "path": "xtask/src/main.rs",
+          "anchor": "tools/unsafe-boundary-manifest.json",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/version_resources.py",
+      "sha256": "e3a31fb945724828cfd858f9fb8701d5c4059f336d23e03a80929c300761fabc",
+      "bytes": 878,
+      "family": "generator",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned G4 implementation or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/bootstrap-resources.py",
+          "anchor": "import render_versions",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/build-manuals.py",
+          "anchor": "import render_versions",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/xml-acceptance.py",
+      "sha256": "9fbc4216d8e4051793db5c4ef2e8e721d1499c6ef78fbd7df6bf46272664a806",
+      "bytes": 18640,
+      "family": "comparison-gate",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/fixtures/xml-acceptance.el",
+          "anchor": "xml-acceptance",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/runtime-execution.py",
+          "anchor": "xml-acceptance",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/runtime-final-audit.py",
+          "anchor": "xml-acceptance",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
     }
   ],
   "cleanup_manifests": [

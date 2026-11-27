@@ -2,18 +2,22 @@
 //! Standalone general-purpose CLI parser, subcommand dispatch, REPL, and batch runner.
 
 use std::ffi::OsString;
-use std::io::{self, BufRead, Write};
+use std::fs;
+use std::io::{self, Write};
 use std::path::PathBuf;
 
 use lisp_vm::host_runtime::adopt_inherited_rpc_socket;
 
+use crate::brand;
 use crate::engine::{BootstrapMode, Engine, EngineConfig};
 use crate::error::Error;
 use crate::exec;
-use crate::rpc::{
-    DEFAULT_MAX_FRAME_BYTES, DEFAULT_RPC_ENTRY, has_complete_lisp_form, serve_http_rpc,
+use crate::repl;
+use crate::rpc::{DEFAULT_MAX_FRAME_BYTES, DEFAULT_RPC_ENTRY, serve_http_rpc};
+use crate::stdlib_cache::{
+    atomic_temp_dump_path, clean_cache, maybe_spawn_background_warm, repl_history_path,
+    resolve_cache_root, try_acquire_warm_lock,
 };
-use crate::stdlib_cache::{clean_cache, resolve_cache_root};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum BatchAction {
@@ -29,7 +33,10 @@ pub enum BatchAction {
 pub enum CacheAction {
     Path,
     Clean,
-    Warm { dump_out: Option<PathBuf> },
+    Warm {
+        dump_out: Option<PathBuf>,
+        quiet: bool,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -86,6 +93,8 @@ pub enum Command {
 pub struct CommonOptions {
     pub cache_dir: Option<PathBuf>,
     pub no_dump: bool,
+    pub no_auto_warm: bool,
+    pub verbose: bool,
     pub lisp_dir: Option<PathBuf>,
     pub data_dir: Option<PathBuf>,
     pub dump_file: Option<PathBuf>,
@@ -113,6 +122,8 @@ SUBCOMMANDS:
 COMMON OPTIONS:
   --cache-dir <DIR>           Override runtime stdlib / `.pdmp` cache directory
   --no-dump                   Cold-boot without reading cached portable dump
+  --no-auto-warm              Disable detached background `.pdmp` warm caching
+  --verbose                   Emit bootstrap load progress diagnostics to stderr
   -L, --directory <DIR>       Prepend DIR to load-path
   -l, --load <FILE>           Load Lisp library before subcommand
   --rpc http                  Start JSON-RPC 2.0 `http.handle` worker loop
@@ -139,7 +150,7 @@ pub fn parse_args(args: &[OsString]) -> Result<Command, (i32, String)> {
             }
             return Ok(Command::FastExit {
                 code: 0,
-                stdout: format!("lisp-core {}", env!("CARGO_PKG_VERSION")),
+                stdout: format!("{} {}", brand::CLI_NAME, brand::VERSION),
             });
         }
         "-h" | "--help" => {
@@ -255,6 +266,8 @@ fn merge_common_options(dst: &mut CommonOptions, lead: &CommonOptions) {
         dst.cache_dir = lead.cache_dir.clone();
     }
     dst.no_dump |= lead.no_dump;
+    dst.no_auto_warm |= lead.no_auto_warm;
+    dst.verbose |= lead.verbose;
     if dst.lisp_dir.is_none() {
         dst.lisp_dir = lead.lisp_dir.clone();
     }
@@ -298,6 +311,14 @@ fn parse_common_flag(
             opts.no_dump = true;
             Ok(true)
         }
+        "--no-auto-warm" => {
+            opts.no_auto_warm = true;
+            Ok(true)
+        }
+        "--verbose" => {
+            opts.verbose = true;
+            Ok(true)
+        }
         "-L" | "--directory" => {
             opts.load_paths.push(PathBuf::from(take_val(args, idx, flag)?));
             Ok(true)
@@ -326,16 +347,18 @@ fn parse_cache_subcommand(args: &[OsString]) -> Result<Command, (i32, String)> {
     let mut sub: Option<String> = None;
     let mut cache_dir: Option<PathBuf> = None;
     let mut dump_out: Option<PathBuf> = None;
+    let mut quiet = false;
     let mut idx = 0usize;
     while idx < args.len() {
         let s = args[idx].to_string_lossy();
         match s.as_ref() {
             "--cache-dir" => cache_dir = Some(PathBuf::from(take_val(args, &mut idx, "--cache-dir")?)),
             "--dump-out" => dump_out = Some(PathBuf::from(take_val(args, &mut idx, "--dump-out")?)),
+            "--quiet" | "-q" => quiet = true,
             "-h" | "--help" => {
                 return Ok(Command::FastExit {
                     code: 0,
-                    stdout: "usage: lisp-core cache <path|warm|clean> [--cache-dir DIR] [--dump-out PATH]".to_string(),
+                    stdout: "usage: lisp-core cache <path|warm|clean> [--cache-dir DIR] [--dump-out PATH] [--quiet]".to_string(),
                 });
             }
             arg if arg.starts_with('-') => return Err((2, format!("unknown cache option: {arg}"))),
@@ -347,7 +370,7 @@ fn parse_cache_subcommand(args: &[OsString]) -> Result<Command, (i32, String)> {
     let action = match sub.as_deref() {
         Some("path") => CacheAction::Path,
         Some("clean") => CacheAction::Clean,
-        Some("warm") => CacheAction::Warm { dump_out },
+        Some("warm") => CacheAction::Warm { dump_out, quiet },
         Some(other) => return Err((2, format!("unknown cache subcommand '{other}'; expected path, warm, or clean"))),
         None => return Err((2, "usage: lisp-core cache <path|warm|clean>".to_string())),
     };
@@ -571,6 +594,8 @@ fn parse_legacy_flags(args: &[OsString]) -> Result<Command, (i32, String)> {
             }
             "--repl" => repl = true,
             "--no-dump" => options.no_dump = true,
+            "--no-auto-warm" => options.no_auto_warm = true,
+            "--verbose" => options.verbose = true,
             "--cache-dir" => options.cache_dir = Some(PathBuf::from(take_val(args, &mut idx, "--cache-dir")?)),
             "--lisp-dir" => options.lisp_dir = Some(PathBuf::from(take_val(args, &mut idx, "--lisp-dir")?)),
             "--data-dir" => options.data_dir = Some(PathBuf::from(take_val(args, &mut idx, "--data-dir")?)),
@@ -738,10 +763,33 @@ fn build_engine_config(options: &CommonOptions) -> EngineConfig {
     if let Some(dir) = &options.cache_dir {
         cfg = cfg.with_cache_dir(dir);
     }
+    if options.verbose
+        || std::env::var_os(brand::ENV_VERBOSE)
+            .is_some_and(|v| !v.is_empty() && v != "0" && v != "false")
+    {
+        cfg = cfg.with_verbose(true);
+    }
     for dir in &options.load_paths {
         cfg = cfg.with_load_path(dir);
     }
     cfg
+}
+
+fn maybe_auto_warm(options: &CommonOptions, engine: &mut Engine) {
+    if options.no_auto_warm
+        || options.no_dump
+        || options.lisp_dir.is_some()
+        || options.dump_file.is_some()
+        || options.data_dir.is_some()
+    {
+        return;
+    }
+    if engine.booted_from_dump().unwrap_or(true) {
+        return;
+    }
+    if let Some(layout) = engine.cache_layout() {
+        maybe_spawn_background_warm(options.cache_dir.as_deref(), &layout.pdmp_path);
+    }
 }
 
 fn preload_libraries(engine: &mut Engine, libraries: &[String]) -> Result<(), Error> {
@@ -846,68 +894,24 @@ fn run_batch_actions(
     Ok(0)
 }
 
-fn run_repl_loop(engine: &mut Engine, actions: &[BatchAction]) -> Result<i32, Error> {
+fn run_repl_loop(
+    engine: &mut Engine,
+    actions: &[BatchAction],
+    options: &CommonOptions,
+) -> Result<i32, Error> {
     for action in actions {
         match action {
             BatchAction::AddLoadPath(dir) => engine.prepend_load_path(dir)?,
             BatchAction::Load(file) => engine.load_library(file)?,
-            BatchAction::Eval(_) | BatchAction::Funcall { .. } | BatchAction::Script { .. } | BatchAction::ExtraArg(_) => {}
+            BatchAction::Eval(_)
+            | BatchAction::Funcall { .. }
+            | BatchAction::Script { .. }
+            | BatchAction::ExtraArg(_) => {}
         }
     }
 
-    let stdin = io::stdin();
-    let mut reader = stdin.lock();
-    let mut buffer = String::new();
-    let mut line = String::new();
-
-    loop {
-        line.clear();
-        let bytes = match reader.read_line(&mut line) {
-            Ok(n) => n,
-            Err(e) => {
-                eprintln!("lisp-core repl read error: {e}");
-                return Ok(1);
-            }
-        };
-        if bytes == 0 {
-            if !buffer.trim().is_empty() {
-                match engine.eval_printed(&buffer) {
-                    Ok(out) => {
-                        println!("{out}");
-                        let _ = io::stdout().flush();
-                    }
-                    Err(Error::Exit(code)) => return Ok(code),
-                    Err(err) => {
-                        eprintln!("error: {err}");
-                        let _ = io::stderr().flush();
-                    }
-                }
-            }
-            return Ok(0);
-        }
-
-        buffer.push_str(&line);
-        if buffer.trim().is_empty() {
-            buffer.clear();
-            continue;
-        }
-        if !has_complete_lisp_form(&buffer) {
-            continue;
-        }
-
-        match engine.eval_printed(&buffer) {
-            Ok(out) => {
-                println!("{out}");
-                let _ = io::stdout().flush();
-            }
-            Err(Error::Exit(code)) => return Ok(code),
-            Err(err) => {
-                eprintln!("error: {err}");
-                let _ = io::stderr().flush();
-            }
-        }
-        buffer.clear();
-    }
+    let history_path = repl_history_path(&resolve_cache_root(options.cache_dir.as_deref()));
+    repl::run_repl(engine, Some(&history_path))
 }
 
 /// CLI entrypoint executing parsed arguments and returning a process exit code.
@@ -946,7 +950,7 @@ pub fn run_cli(raw_args: &[OsString]) -> i32 {
         }
         Command::Cache {
             cache_dir,
-            action: CacheAction::Warm { dump_out },
+            action: CacheAction::Warm { dump_out, quiet },
         } => {
             let mut cfg = EngineConfig::cold_stdlib().with_defer_delayed_custom_init(true);
             if let Some(dir) = cache_dir {
@@ -955,6 +959,18 @@ pub fn run_cli(raw_args: &[OsString]) -> i32 {
             let mut engine = match Engine::init(cfg) {
                 Ok(e) => e,
                 Err(err) => return exit_for_error(&err),
+            };
+            let _lock_guard = match (&dump_out, engine.cache_layout()) {
+                (None, Some(layout)) => match try_acquire_warm_lock(&layout.version_root) {
+                    Some(g) => Some(g),
+                    None => {
+                        if !quiet {
+                            println!("{}", layout.pdmp_path.display());
+                        }
+                        return 0;
+                    }
+                },
+                _ => None,
             };
             let target = match dump_out {
                 Some(p) => p,
@@ -966,12 +982,31 @@ pub fn run_cli(raw_args: &[OsString]) -> i32 {
                     }
                 },
             };
-            match engine.dump_image(&target) {
-                Ok(()) => {
-                    println!("{}", target.display());
-                    0
+            if let Some(parent) = target.parent() {
+                if let Err(err) = fs::create_dir_all(parent) {
+                    eprintln!("lisp-core: failed to create dump parent dir {}: {err}", parent.display());
+                    return 1;
                 }
-                Err(err) => exit_for_error(&err),
+            }
+            let tmp_target = atomic_temp_dump_path(&target);
+            match engine.dump_image(&tmp_target) {
+                Ok(()) => match fs::rename(&tmp_target, &target) {
+                    Ok(()) => {
+                        if !quiet {
+                            println!("{}", target.display());
+                        }
+                        0
+                    }
+                    Err(err) => {
+                        let _ = fs::remove_file(&tmp_target);
+                        eprintln!("lisp-core: failed to finalize dump {}: {err}", target.display());
+                        1
+                    }
+                },
+                Err(err) => {
+                    let _ = fs::remove_file(&tmp_target);
+                    exit_for_error(&err)
+                }
             }
         }
         Command::Eval { exprs, options } => {
@@ -979,6 +1014,7 @@ pub fn run_cli(raw_args: &[OsString]) -> i32 {
                 Ok(e) => e,
                 Err(err) => return exit_for_error(&err),
             };
+            maybe_auto_warm(&options, &mut engine);
             if let Err(err) = preload_libraries(&mut engine, &options.libraries) {
                 return exit_for_error(&err);
             }
@@ -1001,6 +1037,7 @@ pub fn run_cli(raw_args: &[OsString]) -> i32 {
                 Ok(e) => e,
                 Err(err) => return exit_for_error(&err),
             };
+            maybe_auto_warm(&options, &mut engine);
             if let Err(err) = preload_libraries(&mut engine, &options.libraries) {
                 return exit_for_error(&err);
             }
@@ -1014,10 +1051,11 @@ pub fn run_cli(raw_args: &[OsString]) -> i32 {
                 Ok(e) => e,
                 Err(err) => return exit_for_error(&err),
             };
+            maybe_auto_warm(&options, &mut engine);
             if let Err(err) = preload_libraries(&mut engine, &options.libraries) {
                 return exit_for_error(&err);
             }
-            match run_repl_loop(&mut engine, &actions) {
+            match run_repl_loop(&mut engine, &actions, &options) {
                 Ok(code) => code,
                 Err(err) => exit_for_error(&err),
             }
@@ -1031,6 +1069,7 @@ pub fn run_cli(raw_args: &[OsString]) -> i32 {
                 Ok(e) => e,
                 Err(err) => return exit_for_error(&err),
             };
+            maybe_auto_warm(&options, &mut engine);
             if let Err(err) = preload_libraries(&mut engine, &options.libraries) {
                 return exit_for_error(&err);
             }
@@ -1044,6 +1083,7 @@ pub fn run_cli(raw_args: &[OsString]) -> i32 {
                 Ok(e) => e,
                 Err(err) => return exit_for_error(&err),
             };
+            maybe_auto_warm(&options, &mut engine);
             if let Err(err) = preload_libraries(&mut engine, &options.libraries) {
                 return exit_for_error(&err);
             }
@@ -1188,8 +1228,28 @@ mod tests {
         let test_cmd = parse_args(&os(&["test", "t.el"])).expect("parse test");
         assert!(matches!(test_cmd, Command::Test { files, .. } if files == vec![PathBuf::from("t.el")]));
 
-        let cache = parse_args(&os(&["cache", "warm"])).expect("parse cache warm");
-        assert!(matches!(cache, Command::Cache { action: CacheAction::Warm { .. }, .. }));
+        let cache = parse_args(&os(&["cache", "warm", "--quiet"])).expect("parse cache warm quiet");
+        assert!(matches!(
+            cache,
+            Command::Cache {
+                action: CacheAction::Warm { quiet: true, .. },
+                ..
+            }
+        ));
+
+        let verbose_eval = parse_args(&os(&["--verbose", "--no-auto-warm", "eval", "1"]))
+            .expect("parse verbose eval");
+        assert!(matches!(
+            verbose_eval,
+            Command::Eval {
+                options: CommonOptions {
+                    verbose: true,
+                    no_auto_warm: true,
+                    ..
+                },
+                ..
+            }
+        ));
 
         let exec = parse_args(&os(&["exec", "digest", "Cargo.toml"]))
             .expect("parse exec");
