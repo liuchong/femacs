@@ -7,7 +7,8 @@ use std::time::{Duration, Instant};
 
 use super::{
     ProcIdentity, ProcRow, TrackedTree, compute_digest, compute_mem_tree, finalize_children_reaped,
-    reap_tracked_tree_with, run_supervise, spawn_pipe_drain, verified_signal_targets,
+    proc_identity_for_row, reap_tracked_tree_with_ident, run_supervise, sample_pid_memories,
+    spawn_pipe_drain, verified_signal_targets,
 };
 
 struct TempTestDir {
@@ -284,12 +285,62 @@ fn reap_returns_false_when_process_table_snapshot_fails() {
     let (r_root, _) = sim_row(5000, 1, 5000, 100);
     let mut tree = TrackedTree::new_with_rows(5000, 999, 999, Some(&[r_root]));
     tree.drop_root_after_wait();
-    let ok = reap_tracked_tree_with(
+    let ok = reap_tracked_tree_with_ident(
         &mut tree,
         || Err("simulated ps failure".to_string()),
+        proc_identity_for_row,
         |_tree, _survivors, _sig| {},
     );
     assert!(!ok, "snapshot failure must never report reaped=true");
+}
+
+#[test]
+fn reap_skips_sigkill_and_returns_false_when_snapshots_fail_after_term() {
+    let (r_root, i_root) = sim_row(5000, 1, 5000, 100);
+    let (r_child, i_child) = sim_row(5001, 5000, 5001, 105);
+    let mut idents = std::collections::BTreeMap::new();
+    idents.insert(5000u32, i_root);
+    idents.insert(5001u32, i_child);
+
+    let mut tree = TrackedTree::new_with_rows(5000, 999, 999, None);
+    let _ = tree.refresh_with_ident(&[r_root, r_child.clone()], |r| idents[&r.pid].clone());
+    tree.drop_root_after_wait();
+
+    let mut snap_calls = 0usize;
+    let mut signals: Vec<(i32, Vec<u32>)> = Vec::new();
+    let ok = reap_tracked_tree_with_ident(
+        &mut tree,
+        || {
+            snap_calls += 1;
+            if snap_calls == 1 {
+                Ok(vec![r_child.clone()])
+            } else {
+                Err("transient ps outage".to_string())
+            }
+        },
+        |r| idents[&r.pid].clone(),
+        |_tree, survivors, sig| {
+            signals.push((sig, survivors.iter().map(|r| r.pid).collect()));
+        },
+    );
+    assert!(!ok, "snapshot outage before KILL must report reaped=false");
+    assert_eq!(signals.len(), 1, "must send only initial TERM, never stale KILL");
+    assert_eq!(signals[0].0, crate::os_ffi::SIGTERM);
+    assert_eq!(signals[0].1, vec![5001]);
+}
+
+#[test]
+fn sample_pid_memories_omits_unconfirmed_root_not_in_snapshot() {
+    let (r_alive, _) = sim_row(7001, 1, 7001, 100);
+    let mut r_alive_mem = r_alive;
+    r_alive_mem.rss_bytes = 4096;
+    let (_, _, _, per_pid) = sample_pid_memories(&[r_alive_mem], &[7001, 999_999]);
+    assert!(per_pid.contains_key("7001"));
+    assert!(per_pid["7001"].accounted_bytes >= 4096);
+    assert!(
+        !per_pid.contains_key("999999"),
+        "missing root must be omitted from per_pid instead of synthesizing 0"
+    );
 }
 
 #[test]

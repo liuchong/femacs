@@ -531,6 +531,9 @@ fn sample_pid_memories(
     let mut all_pids = BTreeSet::new();
     let mut per_pid_closures: Vec<(u32, BTreeSet<u32>)> = Vec::with_capacity(roots.len());
     for &root in roots {
+        if !ps_rss_by_pid.contains_key(&root) {
+            continue;
+        }
         let closure = collect_tree_closure(rows, root);
         all_pids.extend(closure.iter().copied());
         per_pid_closures.push((root, closure));
@@ -630,7 +633,11 @@ fn terminate_tracked_tree(child: &mut Child, tree: &mut TrackedTree) {
     while Instant::now() < grace_deadline {
         if !child_done {
             match child.try_wait() {
-                Ok(Some(_)) | Err(_) => child_done = true,
+                Ok(Some(_)) => {
+                    child_done = true;
+                    tree.drop_root_after_wait();
+                }
+                Err(_) => child_done = true,
                 Ok(None) => {}
             }
         }
@@ -647,27 +654,33 @@ fn terminate_tracked_tree(child: &mut Child, tree: &mut TrackedTree) {
         let survivors = tree.refresh(&rows);
         signal_tree_snapshot(tree, &survivors, os_ffi::SIGKILL);
     }
-    let _ = child.kill();
+    if !child_done {
+        let _ = child.kill();
+    }
 }
 
-fn reap_tracked_tree_with<S, F>(tree: &mut TrackedTree, mut snap_fn: S, mut signal_fn: F) -> bool
+fn reap_tracked_tree_with_ident<S, I, F>(
+    tree: &mut TrackedTree,
+    mut snap_fn: S,
+    mut ident_fn: I,
+    mut signal_fn: F,
+) -> bool
 where
     S: FnMut() -> Result<Vec<ProcRow>, String>,
+    I: FnMut(&ProcRow) -> ProcIdentity,
     F: FnMut(&TrackedTree, &[ProcRow], i32),
 {
-    let mut last_survivors: Vec<ProcRow> = Vec::new();
     let mut signaled_term = false;
 
     let term_deadline = Instant::now() + Duration::from_millis(200);
     loop {
         if let Ok(rows) = snap_fn() {
-            let survivors = tree.refresh(&rows);
+            let survivors = tree.refresh_with_ident(&rows, &mut ident_fn);
             if survivors.is_empty() {
                 return true;
             }
-            last_survivors = survivors;
             if !signaled_term {
-                signal_fn(tree, &last_survivors, os_ffi::SIGTERM);
+                signal_fn(tree, &survivors, os_ffi::SIGTERM);
                 signaled_term = true;
             }
         }
@@ -677,14 +690,11 @@ where
         thread::sleep(Duration::from_millis(20));
     }
 
-    if !last_survivors.is_empty() {
-        signal_fn(tree, &last_survivors, os_ffi::SIGKILL);
-    }
-    let mut signaled_kill = !last_survivors.is_empty();
+    let mut signaled_kill = false;
     let kill_deadline = Instant::now() + Duration::from_millis(300);
     loop {
         if let Ok(rows) = snap_fn() {
-            let survivors = tree.refresh(&rows);
+            let survivors = tree.refresh_with_ident(&rows, &mut ident_fn);
             if survivors.is_empty() {
                 return true;
             }
@@ -699,13 +709,18 @@ where
         thread::sleep(Duration::from_millis(20));
     }
     match snap_fn() {
-        Ok(rows) => tree.refresh(&rows).is_empty(),
+        Ok(rows) => tree.refresh_with_ident(&rows, &mut ident_fn).is_empty(),
         Err(_) => false,
     }
 }
 
 fn reap_tracked_tree(tree: &mut TrackedTree) -> bool {
-    reap_tracked_tree_with(tree, snapshot_process_table, signal_tree_snapshot)
+    reap_tracked_tree_with_ident(
+        tree,
+        snapshot_process_table,
+        proc_identity_for_row,
+        signal_tree_snapshot,
+    )
 }
 
 fn build_child_command(spec: &SuperviseSpec) -> Command {

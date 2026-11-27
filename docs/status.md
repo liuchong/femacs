@@ -1,3 +1,12 @@
+## 2026-11-27: Close `fe-test` R3 narrow edge cases (no stale `SIGKILL`, omit unconfirmed `mem-tree` roots, `CLN310`)
+
+Resolved the two remaining `xtask/src/test_exec.rs` edge cases from independent review of `e1685687`, verified `xtask` (`134/134`), and closed `CLN310`:
+- **Fixes & targeted unit tests (`xtask/src/{test_exec,test_exec_tests}.rs`, `run_id=3c2de89af74b4915b4c5a160356e49f5`, `6.655s`, `exit=0`)**:
+  - Removed `last_survivors` carry-over across `SIGTERM`→`SIGKILL` phases in `reap_tracked_tree_with_ident` so `SIGKILL` is sent only after a fresh snapshot and identity refresh; retired `tree.drop_root_after_wait()` immediately when `child.try_wait()` returns `Ok(Some(_))` inside `terminate_tracked_tree`.
+  - Omitted requested roots absent from `ps_rss_by_pid` in `sample_pid_memories` instead of emitting `0`-byte synthetic entries.
+  - Verified **`134/134`** `xtask` tests passing, including new `reap_skips_sigkill_and_returns_false_when_snapshots_fail_after_term` and `sample_pid_memories_omits_unconfirmed_root_not_in_snapshot`.
+- **`CLN310` & post-cleanup verification (`run_id=26243c746b2b448181f99a9463aa3159`, `19.867s`, `exit=0`, `cleanup_complete=true`)**: retired `build/cargo` and `8` scratch subdirs (`1,346` files, `391` dirs, `2` symlinks, `231,711,905` B); verified empty `build/`, absent `tools/__pycache__`, empty `diff -rq`, strict `codesign`, `femacs-lisp 42`, `Fe.app (42 t t nil t)`, `emacsclient 32.0.50`, and all `5` static Python gates (`445` active files, `152` `forbid`, `6,345/6,345` `SAFETY:`, `0` errors). [CLN310](../maintenance/cleanup/reports/2026-11-27-310-fe-test-r3-closure.md).
+
 ## 2026-11-27: Close `fe-test` R2 narrow edge cases (`ps` failure, mem-row guard, hermetic cache env, `CLN309`)
 
 Resolved the three remaining edge-case items from independent review of `8883b678`, added simulated-table & missing-row/env self-tests, ran targeted verification + static gates, and closed `CLN309`:
