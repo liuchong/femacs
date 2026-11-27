@@ -1,5 +1,5 @@
 #![forbid(unsafe_code)]
-//! Pure-Rust multi-core concurrency runtime (`std/chan`, `std/sync`, `std/task`) for `lisp-core`.
+//! Pure-Rust multi-core concurrency runtime (`std/chan`, `std/sync`, `std/task`) for `lisp`.
 //!
 //! Backed by isolated per-thread `NoGil` VMs (`isolate_vm`), channels, atomics, shared maps,
 //! tasks, and a bounded pre-warmed worker pool without `unsafe` or C dependencies.

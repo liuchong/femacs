@@ -1,0 +1,31 @@
+[package]
+name = "elisp"
+version = "0.0.1"
+edition.workspace = true
+rust-version = "1.85"
+license.workspace = true
+description = "Standalone general-purpose Elisp-compatible CLI and interactive REPL"
+repository = "https://github.com/liuchong/femacs"
+readme = "README.md"
+keywords = ["elisp", "lisp", "cli", "repl", "scripting"]
+categories = ["command-line-utilities", "compilers", "development-tools"]
+
+[[bin]]
+name = "elisp"
+path = "src/main.rs"
+
+[[test]]
+name = "cli_integration"
+harness = false
+
+[features]
+default = ["repl-tty", "std"]
+repl-tty = ["dep:rustyline"]
+std = ["lisp/std"]
+
+[dependencies]
+lisp = { version = "0.0.1", path = "../lisp", default-features = false, features = ["vm", "pkg"] }
+rustyline = { version = "15", default-features = false, features = ["with-file-history"], optional = true }
+
+[dev-dependencies]
+serde_json = "1"

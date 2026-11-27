@@ -88,7 +88,9 @@
    :cache-inputs '("tools/check-crate-boundaries.py"
                    "Cargo.toml"
                    "crates/lisp-vm/Cargo.toml"
-                   "crates/lisp-core/Cargo.toml"
+                   "crates/lisp-std/Cargo.toml"
+                   "crates/lisp/Cargo.toml"
+                   "crates/elisp/Cargo.toml"
                    "crates/femacs-host/Cargo.toml"
                    "xtask/Cargo.toml")
    :tags '("static" "fast")))

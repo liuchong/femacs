@@ -431,7 +431,7 @@ fn install_url_dep(
     expected_sha256: Option<&str>,
     dest: &Path,
 ) -> Result<(String, String), Error> {
-    #[cfg(feature = "std-batteries")]
+    #[cfg(feature = "std")]
     {
         let bytes = lisp_std::download_url_bytes(url, 30_000).map_err(|e| {
             Error::InitFailed(format!("failed to download dependency '{name}' from {url}: {e}"))
@@ -460,16 +460,16 @@ fn install_url_dep(
         }
         Ok((format!("url:{url}"), dl_digest))
     }
-    #[cfg(not(feature = "std-batteries"))]
+    #[cfg(not(feature = "std"))]
     {
         let _ = (expected_sha256, dest);
         Err(Error::InitFailed(format!(
-            "cannot install URL dependency '{name}' ({url}): `std-batteries` feature is disabled"
+            "cannot install URL dependency '{name}' ({url}): `std` feature is disabled"
         )))
     }
 }
 
-#[cfg(feature = "std-batteries")]
+#[cfg(feature = "std")]
 fn normalize_single_top_level_dir(dest: &Path) -> Result<(), Error> {
     use std::path::Component;
     if dest.join("lisp.toml").is_file() || dest.join("src").is_dir() {

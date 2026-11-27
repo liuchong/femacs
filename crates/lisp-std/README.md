@@ -1,8 +1,8 @@
 # lisp-std
 
-100% pure-Rust (`#![forbid(unsafe_code)]`, zero `cc` or C `-sys` dependencies) standard library batteries for standalone `lisp-core` (`0.0.1`).
+100% pure-Rust (`#![forbid(unsafe_code)]`, zero `cc` or C `-sys` dependencies) standard library batteries for standalone [`lisp`](../lisp/README.md) and [`elisp`](../elisp/README.md) (`0.0.1`).
 
-Isolated under the `std-batteries` feature of `lisp-core` so editor builds never pull HTTP, TLS, or embedded database dependencies.
+Enabled via the `std` feature on `lisp` (on by default) and `elisp`, keeping minimal VM embedders and editor consumers completely isolated from HTTP, TLS, or embedded database dependencies.
 
 ## Modules
 
@@ -17,7 +17,7 @@ Isolated under the `std-batteries` feature of `lisp-core` so editor builds never
 
 ## Platform Support
 
-- Pure Rust `#![forbid(unsafe_code)]` across macOS, Linux, and Windows targets (`cargo check` verified on macOS, Linux `aarch64`/`x86_64`, and Windows `x86_64-pc-windows-msvc`/`gnu`; Windows is cross-compile verified ONLY without physical Windows host runtime verification).
+- Pure Rust `#![forbid(unsafe_code)]` across macOS, Linux, and Windows targets (`cargo check` verified on macOS, Linux `aarch64`/`x86_64`, and Windows `x86_64-pc-windows-msvc`/`gnu`; **Windows is cross-compile architecture verified ONLY without physical Windows host runtime verification**).
 
 ## License
 

@@ -662,7 +662,7 @@ pub(crate) fn check_workspace_crates() -> Result<(), String> {
                 "-p",
                 "lisp-vm",
                 "-p",
-                "lisp-core",
+                "lisp",
                 "-p",
                 "femacs-host",
                 "-p",
@@ -743,10 +743,10 @@ mod tests {
         let host_out = dir.join("build/femacs-host/90a26b70/out");
         fs::create_dir_all(&host_out).unwrap();
         let nested_rlib = nested.join("liblisp_vm-abc123.rlib");
-        let deps_rlib = deps.join("liblisp_core-def456.rlib");
+        let deps_rlib = deps.join("liblisp-def456.rlib");
         let test_bin = host_out.join("a1_host_acceptance-90a26b70");
         fs::write(&nested_rlib, b"vm").unwrap();
-        fs::write(&deps_rlib, b"core").unwrap();
+        fs::write(&deps_rlib, b"lisp").unwrap();
         fs::write(&test_bin, b"bin").unwrap();
         #[cfg(unix)]
         {
@@ -755,7 +755,7 @@ mod tests {
         }
 
         assert_eq!(find_newest_rlib(&dir, "liblisp_vm-").unwrap(), nested_rlib);
-        assert_eq!(find_newest_rlib(&dir, "liblisp_core-").unwrap(), deps_rlib);
+        assert_eq!(find_newest_rlib(&dir, "liblisp-").unwrap(), deps_rlib);
         assert!(find_newest_rlib(&dir, "libfemacs_missing-").is_err());
         assert_eq!(find_newest_test_executable(&dir, "a1_host_acceptance").unwrap(), test_bin);
         assert!(find_newest_test_executable(&dir, "missing_test").is_err());

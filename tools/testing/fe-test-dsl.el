@@ -36,7 +36,7 @@
   "Optional override for the supervisor/digest runner executable path.")
 
 (defvar fe-test-exec-override nil
-  "Optional override for the `lisp-core'/`xtask' exec runner executable path.")
+  "Optional override for the `elisp'/`xtask' exec runner executable path.")
 
 (defvar fe-test-state-dir-override nil
   "Optional override for persistent state storage directory.")
@@ -118,12 +118,12 @@
   (cons (fe-test--exec-subcommand runner-bin) args))
 
 (defun fe-test-find-exec-runner (&optional override)
-  "Locate the built `lisp-core' or `xtask' exec runner."
+  "Locate the built `elisp' or `xtask' exec runner."
   (let* ((self-exe (when (and (boundp 'invocation-directory)
                               (boundp 'invocation-name)
                               (stringp invocation-directory)
                               (stringp invocation-name)
-                              (string-match-p "\\`lisp-core\\(\\.exe\\)?\\'"
+                              (string-match-p "\\`elisp\\(\\.exe\\)?\\'"
                                               (file-name-nondirectory invocation-name)))
                      (expand-file-name invocation-name invocation-directory)))
          (cand (or override
@@ -132,17 +132,17 @@
                    (cl-find-if
                     (lambda (p) (and p (file-executable-p p)))
                     (list self-exe
-                          (fe-test-path "build/cargo/release/lisp-core")
-                          (fe-test-path "build/cargo/debug/lisp-core")
+                          (fe-test-path "build/cargo/release/elisp")
+                          (fe-test-path "build/cargo/debug/elisp")
                           (fe-test-path "build/cargo/release/xtask")
                           (fe-test-path "build/cargo/debug/xtask")
-                          (executable-find "lisp-core"))))))
+                          (executable-find "elisp"))))))
     (unless (and cand (file-executable-p cand))
-      (error "No exec runner found; build `lisp-core' with `cargo build -p lisp-core --target-dir build/cargo'"))
+      (error "No exec runner found; build `elisp' with `cargo build -p elisp --target-dir build/cargo'"))
     (expand-file-name cand)))
 
 (defun fe-test-find-xtask (&optional override)
-  "Locate the exec runner binary (`lisp-core' or `xtask')."
+  "Locate the exec runner binary (`elisp' or `xtask')."
   (fe-test-find-exec-runner override))
 
 (defun fe-test-targets ()

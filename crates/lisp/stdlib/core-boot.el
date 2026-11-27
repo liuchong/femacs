@@ -15,7 +15,7 @@
 (defvar lisp-core--quiet-boot
   (and (boundp 'inhibit-message)
        inhibit-message
-       (let ((v (getenv-internal "LISP_CORE_VERBOSE")))
+       (let ((v (getenv-internal "LISP_VERBOSE")))
          (or (null v) (string= v "") (string= v "0"))))
   "Non-nil to suppress bootstrap load progress messages.")
 

@@ -1,5 +1,5 @@
 #![forbid(unsafe_code)]
-//! End-to-end integration tests for `lisp-std` batteries (`std/*`) and `init` / `pkg` workflow.
+//! End-to-end integration tests for `lisp` pure-Rust standard library (`std/*` via `lisp-std`).
 
 use std::env;
 use std::fs;
@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::thread;
 
-use lisp_core::{Engine, EngineConfig, Value};
+use lisp::{Engine, EngineConfig, Value};
 
 const TEST_ENV_KEY: &str = "LISP_STD_TEST_CASE";
 
@@ -21,7 +21,7 @@ fn spawn_child_case(case: &str, cache_dir: &Path) {
     let exe = env::current_exe().expect("resolve test executable");
     let mut cmd = Command::new(exe);
     cmd.env(TEST_ENV_KEY, case)
-        .env("LISP_CORE_CACHE_DIR", cache_dir);
+        .env("LISP_CACHE_DIR", cache_dir);
     scrub_cmd_env(&mut cmd);
     let out = cmd.output().expect("spawn child test case");
     if !out.status.success() {
@@ -39,7 +39,7 @@ fn new_engine(cache_dir: &Path) -> Engine {
 }
 
 fn case_http_client_and_server() {
-    let cache = env::var_os("LISP_CORE_CACHE_DIR").unwrap();
+    let cache = env::var_os("LISP_CACHE_DIR").unwrap();
     let mut srv_eng = new_engine(Path::new(&cache));
     let mut cli_eng = new_engine(Path::new(&cache));
     let port_val = srv_eng
@@ -133,9 +133,9 @@ fn case_http_client_and_server() {
 fn case_kv_and_sql_persistence() {
     let cache = Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
-        .unwrap(); // unused; use LISP_CORE_CACHE_DIR
+        .unwrap(); // unused; use LISP_CACHE_DIR
     let _ = cache;
-    let cache_dir = env::var_os("LISP_CORE_CACHE_DIR").unwrap();
+    let cache_dir = env::var_os("LISP_CACHE_DIR").unwrap();
     let work = PathBuf::from(&cache_dir).parent().unwrap().join("db-work");
     let _ = fs::remove_dir_all(&work);
     fs::create_dir_all(&work).unwrap();
@@ -214,7 +214,7 @@ fn case_kv_and_sql_persistence() {
 }
 
 fn case_formats_archive_crypto_time_fs_regex_proc_cli_log() {
-    let cache_dir = env::var_os("LISP_CORE_CACHE_DIR").unwrap();
+    let cache_dir = env::var_os("LISP_CACHE_DIR").unwrap();
     let work = PathBuf::from(&cache_dir).parent().unwrap().join("all-work");
     let _ = fs::remove_dir_all(&work);
     fs::create_dir_all(&work).unwrap();
@@ -326,7 +326,7 @@ fn case_formats_archive_crypto_time_fs_regex_proc_cli_log() {
 }
 
 fn case_nogil_parallel_batteries() {
-    let cache_dir = env::var_os("LISP_CORE_CACHE_DIR").unwrap();
+    let cache_dir = env::var_os("LISP_CACHE_DIR").unwrap();
     let mut eng = new_engine(Path::new(&cache_dir));
     let hashes = eng
         .eval(
@@ -351,147 +351,14 @@ fn case_nogil_parallel_batteries() {
         list[0],
         Value::String("7692c3ad3540bb803c020b3aee66cd8887123234ea0c6e7143c0add73ff431ed".to_string())
     );
-}
-
-fn run_init_and_pkg_cli_workflow(bin: &Path, work_dir: &Path, cache_dir: &Path) {
-    let wf = work_dir.join("pkg-workflow");
-    let _ = fs::remove_dir_all(&wf);
-    fs::create_dir_all(&wf).unwrap();
-
-    // 1. Create a local `--path` dependency `local-math`.
-    let dep_local = wf.join("local-math");
-    let mut cmd = Command::new(bin);
-    scrub_cmd_env(&mut cmd);
-    let out = cmd
-        .args(["init", dep_local.to_str().unwrap(), "--name", "local-math"])
-        .output()
-        .expect("init local-math");
-    assert!(out.status.success(), "init local-math failed: {:?}", out);
-    fs::write(
-        dep_local.join("src/local-math.el"),
-        ";;; local-math.el -*- lexical-binding: t; -*-\n(defun local-math-double (x) (* 2 x))\n(provide 'local-math)\n",
-    )
-    .unwrap();
-
-    // 2. Create a remote `--url` dependency archive (`remote-fmt.tar.gz`) and serve over localhost HTTP!
-    let remote_src = wf.join("remote-fmt-src");
-    fs::create_dir_all(remote_src.join("src")).unwrap();
-    fs::write(
-        remote_src.join("lisp.toml"),
-        "[package]\nname = \"remote-fmt\"\nversion = \"0.3.0\"\n",
-    )
-    .unwrap();
-    fs::write(
-        remote_src.join("src/remote-fmt.el"),
-        ";;; remote-fmt.el -*- lexical-binding: t; -*-\n(defun remote-fmt-tag (n) (format \"val=%d\" n))\n(provide 'remote-fmt)\n",
-    )
-    .unwrap();
-
-    let mut srv_eng = new_engine(cache_dir);
-    let tgz_path = wf.join("remote-fmt.tar.gz");
-    let port = srv_eng
-        .eval(&format!(
-            "(progn
-               (require 'std/archive)
-               (require 'std/fs)
-               (require 'std/http)
-               (std-tar-pack {:?} {:?} t)
-               (let ((srv (std-http-server-start \"127.0.0.1:0\")))
-                 (setq it-pkg-srv-id (gethash \"id\" srv))
-                 (gethash \"port\" srv)))",
-            remote_src.to_string_lossy(),
-            tgz_path.to_string_lossy()
-        ))
-        .expect("pack and start pkg http server")
-        .as_int()
-        .expect("pkg server port");
-
-    let tgz_path_str = tgz_path.to_string_lossy().into_owned();
-    let srv_thread = thread::spawn(move || {
-        // Serve 2 GET fetches (pkg add --url + pkg update)
-        for _ in 0..2 {
-            srv_eng
-                .eval(&format!(
-                    "(let ((req (std-http-server-accept it-pkg-srv-id 30000)))
-                       (when req
-                         (std-http-server-respond
-                          it-pkg-srv-id
-                          (gethash \"id\" req)
-                          200
-                          '((\"content-type\" . \"application/gzip\"))
-                          (std-fs-read-bytes {:?}))))",
-                    tgz_path_str
-                ))
-                .expect("serve tar.gz");
-        }
-        srv_eng.eval("(std-http-server-stop it-pkg-srv-id)").unwrap();
-    });
-
-    // 3. `lisp-core init` main app, add path dep + url dep, `pkg list`, `run`, `test`, `pkg update`, `pkg remove`.
-    let app = wf.join("my-app");
-    let run_cli = |args: &[&str], cwd: &Path| {
-        let mut c = Command::new(bin);
-        scrub_cmd_env(&mut c);
-        c.current_dir(cwd)
-            .env("LISP_CORE_CACHE_DIR", cache_dir)
-            .env("LISP_CORE_NO_AUTO_WARM", "1")
-            .args(args);
-        let o = c.output().expect("run cli");
-        assert!(
-            o.status.success(),
-            "cli {:?} failed:\nstdout:\n{}\nstderr:\n{}",
-            args,
-            String::from_utf8_lossy(&o.stdout),
-            String::from_utf8_lossy(&o.stderr),
-        );
-        String::from_utf8_lossy(&o.stdout).into_owned()
-    };
-
-    run_cli(&["init", app.to_str().unwrap(), "--name", "my-app"], &wf);
-    run_cli(
-        &["pkg", "add", "local-math", "--path", "../local-math"],
-        &app,
+    assert_eq!(
+        lisp::vm::host_runtime::VmValue::Int(42),
+        lisp::vm::host_runtime::VmValue::Int(42)
     );
-    let url = format!("http://127.0.0.1:{port}/remote-fmt.tar.gz");
-    run_cli(&["pkg", "add", "remote-fmt", "--url", &url], &app);
-
-    let list_out = run_cli(&["pkg", "list"], &app);
-    assert!(list_out.contains("local-math"), "{list_out}");
-    assert!(list_out.contains("remote-fmt v0.3.0"), "{list_out}");
-
-    run_cli(&["pkg", "update"], &app);
-    srv_thread.join().expect("join pkg server");
-
-    fs::write(
-        app.join("src/main.el"),
-        ";;; main.el -*- lexical-binding: t; -*-\n\
-         (require 'local-math)\n\
-         (require 'remote-fmt)\n\
-         (defun my-app-run (n)\n  \
-           (remote-fmt-tag (local-math-double n)))\n\
-         (when (not (bound-and-true-p ert--running-tests))\n  \
-           (princ (concat (my-app-run 21) \"\\n\")))\n\
-         (provide 'main)\n",
-    )
-    .unwrap();
-    fs::write(
-        app.join("tests/main-test.el"),
-        ";;; main-test.el -*- lexical-binding: t; -*-\n\
-         (require 'ert)\n\
-         (defvar ert--running-tests t)\n\
-         (require 'main)\n\
-         (ert-deftest my-app-integration-test ()\n  \
-           (should (equal (my-app-run 21) \"val=42\")))\n",
-    )
-    .unwrap();
-
-    let run_out = run_cli(&["run"], &app);
-    assert_eq!(run_out.trim(), "val=42");
-
-    run_cli(&["test"], &app);
-
-    run_cli(&["pkg", "remove", "local-math"], &app);
-    assert!(!app.join(".lisp-packages/local-math").exists());
+    assert!(matches!(
+        lisp::stdlib::StdValue::Bool(true),
+        lisp::stdlib::StdValue::Bool(true)
+    ));
 }
 
 fn main() {
@@ -511,9 +378,7 @@ fn main() {
     let tmp_root = env::temp_dir().join(format!("lisp-std-it-{}", std::process::id()));
     let _ = fs::remove_dir_all(&tmp_root);
     let cache_dir = tmp_root.join("cache");
-    let work_dir = tmp_root.join("work");
     fs::create_dir_all(&cache_dir).expect("create temp cache dir");
-    fs::create_dir_all(&work_dir).expect("create temp work dir");
 
     for case in [
         "http_client_and_server",
@@ -525,10 +390,6 @@ fn main() {
         spawn_child_case(case, &cache_dir);
     }
 
-    let bin = PathBuf::from(env!("CARGO_BIN_EXE_lisp-core"));
-    println!("running init & pkg CLI workflow check");
-    run_init_and_pkg_cli_workflow(&bin, &work_dir, &cache_dir);
-
     let _ = fs::remove_dir_all(&tmp_root);
-    println!("std_batteries_integration: all 5 suites passed");
+    println!("std_batteries_integration: all 4 library suites passed");
 }

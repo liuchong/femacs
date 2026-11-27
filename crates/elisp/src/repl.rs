@@ -8,10 +8,12 @@ use std::io::IsTerminal;
 use std::io::{self, BufRead, Write};
 use std::path::Path;
 
-use crate::brand;
-use crate::engine::Engine;
-use crate::error::Error;
-use crate::rpc::has_complete_lisp_form;
+use crate::cli::CLI_NAME;
+#[cfg(feature = "repl-tty")]
+use crate::cli::REPL_PROMPT;
+use lisp::error::Error;
+use lisp::rpc::has_complete_lisp_form;
+use lisp::Engine;
 
 /// Run the interactive Lisp REPL on `stdin` (TTY with line editing/history/completion, or pipe).
 pub fn run_repl(engine: &mut Engine, history_path: Option<&Path>) -> Result<i32, Error> {
@@ -72,7 +74,7 @@ fn run_pipe_repl(engine: &mut Engine) -> Result<i32, Error> {
         let bytes = match reader.read_line(&mut line) {
             Ok(n) => n,
             Err(e) => {
-                eprintln!("{} repl read error: {e}", brand::CLI_NAME);
+                eprintln!("{CLI_NAME} repl read error: {e}");
                 return Ok(1);
             }
         };
@@ -204,8 +206,7 @@ mod tty {
             Ok(ed) => ed,
             Err(err) => {
                 eprintln!(
-                    "{} tty repl unavailable ({err}); falling back to pipe mode",
-                    brand::CLI_NAME
+                    "{CLI_NAME} tty repl unavailable ({err}); falling back to pipe mode"
                 );
                 return run_pipe_repl(engine);
             }
@@ -221,7 +222,7 @@ mod tty {
 
         let mut exit_code = 0;
         loop {
-            match editor.readline(brand::REPL_PROMPT) {
+            match editor.readline(REPL_PROMPT) {
                 Ok(line) => {
                     if line.trim().is_empty() || is_blank_or_comment_only(&line) {
                         continue;
@@ -255,7 +256,7 @@ mod tty {
                     break;
                 }
                 Err(err) => {
-                    eprintln!("{} repl error: {err}", brand::CLI_NAME);
+                    eprintln!("{CLI_NAME} repl error: {err}");
                     exit_code = 1;
                     break;
                 }

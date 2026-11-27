@@ -1,5 +1,5 @@
 #![forbid(unsafe_code)]
-//! Real-process integration tests for `lisp_core::Engine`, `Value`, `Error`, cache fallback, and CLI.
+//! Real-process integration tests for `lisp::Engine`, `Value`, `Error`, `NoGil`, and cache fallback.
 
 use std::env;
 use std::fs;
@@ -7,15 +7,15 @@ use std::io::{BufRead, BufReader, Write};
 use std::net::{TcpListener, TcpStream};
 #[cfg(unix)]
 use std::os::unix::net::UnixStream;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::Command;
 use std::thread;
 
-use lisp_core::rpc::{DEFAULT_MAX_FRAME_BYTES, serve_http_rpc};
-use lisp_core::stdlib_cache::{ensure_unpacked, exe_pdmp_path, resolve_cache_root};
-use lisp_core::{BootstrapMode, ConcurrencyMode, Engine, EngineConfig, Error, Value};
+use lisp::prelude::{BootstrapMode, ConcurrencyMode, Engine, EngineConfig, Error, Value};
+use lisp::rpc::{DEFAULT_MAX_FRAME_BYTES, serve_http_rpc};
+use lisp::stdlib_cache::{ensure_unpacked, exe_pdmp_path, resolve_cache_root};
 
-const TEST_ENV_KEY: &str = "LISP_CORE_TEST_CASE";
+const TEST_ENV_KEY: &str = "LISP_TEST_CASE";
 
 fn scrub_cmd_env(cmd: &mut Command) {
     for var in ["EMACSLOADPATH", "EMACSDATA", "EMACSDOC", "EMACSPATH"] {
@@ -27,7 +27,7 @@ fn spawn_child_case(case: &str, cache_dir: &Path) {
     let exe = env::current_exe().expect("resolve test executable");
     let mut cmd = Command::new(exe);
     cmd.env(TEST_ENV_KEY, case)
-        .env("LISP_CORE_CACHE_DIR", cache_dir);
+        .env("LISP_CACHE_DIR", cache_dir);
     scrub_cmd_env(&mut cmd);
     let out = cmd.output().expect("spawn child test case");
     if !out.status.success() {
@@ -288,118 +288,6 @@ fn case_engine_rpc_tcp_loopback() {
     assert_eq!(parsed["result"]["body"], "POST:/tcp");
 }
 
-fn run_cli_subcommands(bin: &Path, work_root: &Path, cache_dir: &Path) {
-    let run_bin = |args: &[&str]| -> std::process::Output {
-        let mut cmd = Command::new(bin);
-        cmd.args(args)
-            .current_dir("/tmp")
-            .env("LISP_CORE_CACHE_DIR", cache_dir);
-        scrub_cmd_env(&mut cmd);
-        cmd.output().expect("execute lisp-core binary")
-    };
-
-    let eval_out = run_bin(&["--no-auto-warm", "eval", "(+ 20 22)"]);
-    assert!(eval_out.status.success(), "{eval_out:?}");
-    assert_eq!(String::from_utf8_lossy(&eval_out.stdout).trim(), "42");
-    assert!(
-        eval_out.stderr.is_empty(),
-        "cold boot stderr must be silent by default, got: {}",
-        String::from_utf8_lossy(&eval_out.stderr)
-    );
-
-    let verbose_out = run_bin(&["--no-auto-warm", "--verbose", "eval", "(+ 20 22)"]);
-    assert!(verbose_out.status.success(), "{verbose_out:?}");
-    assert!(
-        String::from_utf8_lossy(&verbose_out.stderr).contains("Loading "),
-        "--verbose should emit bootstrap load progress: {}",
-        String::from_utf8_lossy(&verbose_out.stderr)
-    );
-
-    let warm_out = run_bin(&["cache", "warm", "--quiet"]);
-    assert!(warm_out.status.success(), "{warm_out:?}");
-
-    let warm_gc_out = run_bin(&[
-        "--no-auto-warm",
-        "eval",
-        "(progn (setq gc-cons-threshold 200000) (require 'bytecomp) (garbage-collect) 'warm-gc-ok)",
-    ]);
-    assert!(warm_gc_out.status.success(), "{warm_gc_out:?}");
-    assert!(
-        String::from_utf8_lossy(&warm_gc_out.stdout).contains("warm-gc-ok"),
-        "{warm_gc_out:?}"
-    );
-
-    let script = work_root.join("it_script.el");
-    fs::write(
-        &script,
-        "#!lisp-core run\n(princ (format \"%s|%s\\n\" lexical-binding command-line-args-left))\n",
-    )
-    .expect("write script");
-    let run_out = run_bin(&["run", script.to_str().unwrap(), "a", "b"]);
-    assert!(run_out.status.success(), "{run_out:?}");
-    assert!(
-        String::from_utf8_lossy(&run_out.stdout).contains("t|(a b)"),
-        "{run_out:?}"
-    );
-
-    let clean_el = work_root.join("clean.el");
-    fs::write(
-        &clean_el,
-        ";;; clean.el -*- lexical-binding: t -*-\n(defun it-ok (x) (+ x 1))\n(provide 'clean)\n",
-    )
-    .expect("write clean.el");
-    let comp_ok = run_bin(&["compile", "--strict", clean_el.to_str().unwrap()]);
-    assert!(comp_ok.status.success(), "{comp_ok:?}");
-    assert!(work_root.join("clean.elc").is_file());
-
-    let warn_el = work_root.join("warn.el");
-    fs::write(
-        &warn_el,
-        ";;; warn.el -*- lexical-binding: t -*-\n(defun it-warn () (missing-fn-xyz 1))\n(provide 'warn)\n",
-    )
-    .expect("write warn.el");
-    let comp_fail = run_bin(&["compile", "--strict", warn_el.to_str().unwrap()]);
-    assert!(!comp_fail.status.success());
-
-    let ert_ok = work_root.join("ert_ok.el");
-    fs::write(
-        &ert_ok,
-        ";;; ert_ok.el -*- lexical-binding: t -*-\n(require 'ert)\n(ert-deftest it-pass () (garbage-collect) (should (= 42 (+ 20 22))))\n",
-    )
-    .expect("write ert_ok.el");
-    let test_ok = run_bin(&["test", ert_ok.to_str().unwrap()]);
-    assert!(test_ok.status.success(), "{test_ok:?}");
-
-    let ert_bad = work_root.join("ert_bad.el");
-    fs::write(
-        &ert_bad,
-        ";;; ert_bad.el -*- lexical-binding: t -*-\n(require 'ert)\n(ert-deftest it-fail () (should (= 1 2)))\n",
-    )
-    .expect("write ert_bad.el");
-    let test_bad = run_bin(&["test", ert_bad.to_str().unwrap()]);
-    assert!(!test_bad.status.success());
-
-    let digest_out = run_bin(&["exec", "digest", ert_ok.to_str().unwrap()]);
-    assert!(digest_out.status.success(), "{digest_out:?}");
-    let digest_json: serde_json::Value =
-        serde_json::from_slice(&digest_out.stdout).expect("parse digest json");
-    assert_eq!(digest_json["schema"], "femacs-test-digest-v1");
-
-    let sup_out = run_bin(&["exec", "supervise", "--", "/bin/echo", "it-sup"]);
-    assert!(sup_out.status.success(), "{sup_out:?}");
-    let sup_json: serde_json::Value =
-        serde_json::from_slice(&sup_out.stdout).expect("parse supervise json");
-    assert_eq!(sup_json["schema"], "femacs-test-exec-v1");
-    assert_eq!(sup_json["children_reaped"], true);
-
-    let pid = std::process::id().to_string();
-    let mem_out = run_bin(&["exec", "mem-tree", &pid]);
-    assert!(mem_out.status.success(), "{mem_out:?}");
-    let mem_json: serde_json::Value =
-        serde_json::from_slice(&mem_out.stdout).expect("parse mem-tree json");
-    assert_eq!(mem_json["schema"], "femacs-test-mem-v1");
-}
-
 fn case_engine_nogil_multi_thread_parallel_and_gc_stress() {
     let mut handles = Vec::new();
     for tid in 0..4_i64 {
@@ -654,12 +542,10 @@ fn main() {
         return;
     }
 
-    let tmp_root = env::temp_dir().join(format!("lisp-core-it-{}", std::process::id()));
+    let tmp_root = env::temp_dir().join(format!("lisp-it-{}", std::process::id()));
     let _ = fs::remove_dir_all(&tmp_root);
     let cache_dir = tmp_root.join("cache");
-    let work_dir = tmp_root.join("work");
     fs::create_dir_all(&cache_dir).expect("create temp cache dir");
-    fs::create_dir_all(&work_dir).expect("create temp work dir");
 
     for case in [
         "engine_minimal_no_charsets",
@@ -680,10 +566,6 @@ fn main() {
         println!("running integration subprocess case: {case}");
         spawn_child_case(case, &cache_dir);
     }
-
-    let bin = PathBuf::from(env!("CARGO_BIN_EXE_lisp-core"));
-    println!("running cli subcommand integration checks");
-    run_cli_subcommands(&bin, &work_dir, &cache_dir);
 
     let _ = fs::remove_dir_all(&tmp_root);
     println!("engine_integration: all integration cases passed");

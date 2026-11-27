@@ -4735,8 +4735,8 @@
     },
     {
       "path": "tools/check-crate-boundaries.py",
-      "sha256": "5b852781ad598084cd3c4b4ca329e785289988f37ca4028141d954233a439d30",
-      "bytes": 4063,
+      "sha256": "b6f812e1802689fa187b717bf8e20b8e15b8c1f4b85007993c20d7b2f8e49694",
+      "bytes": 4193,
       "family": "comparison-gate",
       "decision": "retain",
       "replacement": null,
@@ -8607,8 +8607,8 @@
     },
     {
       "path": "tools/testing/fe-test-dsl.el",
-      "sha256": "a27775465d2febc8c01f4e0d12dbce9b4a2a0e04e6cc0b129e34efa31d4bfab5",
-      "bytes": 14792,
+      "sha256": "6f0665e51aa6e71f626ed6bd0190f5afe25407f6f8573009c16959ba8c0065ee",
+      "bytes": 14756,
       "family": "test",
       "decision": "retain",
       "replacement": null,
@@ -8626,8 +8626,8 @@
         }
       ],
       "uncertainty": null,
-      "current_sha256": "a27775465d2febc8c01f4e0d12dbce9b4a2a0e04e6cc0b129e34efa31d4bfab5",
-      "current_bytes": 14792
+      "current_sha256": "6f0665e51aa6e71f626ed6bd0190f5afe25407f6f8573009c16959ba8c0065ee",
+      "current_bytes": 14756
     },
     {
       "path": "tools/testing/fe-test-profile.el",
@@ -8701,8 +8701,8 @@
     },
     {
       "path": "tools/testing/fe-test.el",
-      "sha256": "351ba19c0c497c2d9d2183683846acf028b8b9bcd4efa4ebd93ae9df73f16cb2",
-      "bytes": 12576,
+      "sha256": "3f0cfd8e775bc62abb4a34f3ec82a52619117dd6e28ed385f7946c0a87cfd197",
+      "bytes": 12572,
       "family": "test",
       "decision": "retain",
       "replacement": null,
@@ -8795,8 +8795,8 @@
     },
     {
       "path": "tools/testing/suites/suite-static.el",
-      "sha256": "b40c2a48e2b95ea2d04a3b2d19a95c8070a91e4765109aea19049af673f47570",
-      "bytes": 5062,
+      "sha256": "358f761fb200df959ca24c792476e0d72ce2718dd17753ee4380b8627670062e",
+      "bytes": 5150,
       "family": "test",
       "decision": "retain",
       "replacement": null,
@@ -8919,8 +8919,8 @@
     },
     {
       "path": "tools/unsafe-boundary-manifest.json",
-      "sha256": "48c54756c4e3b357f28a249e7756ff8061d61048c7ef4dd69aa537200ec8d633",
-      "bytes": 157791,
+      "sha256": "fc38b70886488192cb9b265225d04292abd563fb2be142a1f96e1cb7c741760f",
+      "bytes": 157749,
       "family": "fixture",
       "decision": "retain",
       "replacement": null,

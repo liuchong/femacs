@@ -39,7 +39,7 @@ fn hex_digest(bytes: &[u8]) -> String {
 fn main() {
     println!("cargo:rerun-if-env-changed=CARGO_FEATURE_VM");
     if env::var_os("CARGO_FEATURE_VM").is_none() {
-        println!("cargo:rustc-env=LISP_CORE_STDLIB_SHA256=disabled");
+        println!("cargo:rustc-env=LISP_STDLIB_SHA256=disabled");
         return;
     }
 
@@ -81,5 +81,5 @@ fn main() {
 
     encoder.finish().expect("finish gzip stdlib bundle");
     let sha_hex = hex_digest(&hasher.finalize());
-    println!("cargo:rustc-env=LISP_CORE_STDLIB_SHA256={sha_hex}");
+    println!("cargo:rustc-env=LISP_STDLIB_SHA256={sha_hex}");
 }

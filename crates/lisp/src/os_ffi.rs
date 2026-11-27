@@ -1,4 +1,4 @@
-//! Minimal OS/process FFI boundary for `lisp-core` (termination signals, process-group /
+//! Minimal OS/process FFI boundary for `lisp` (termination signals, process-group /
 //! Job-Object supervision, process enumeration, and memory accounting).
 #![deny(static_mut_refs, unsafe_op_in_unsafe_fn)]
 

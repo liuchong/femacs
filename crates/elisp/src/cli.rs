@@ -7,23 +7,27 @@ use std::io::{self, Write};
 use std::net::TcpListener;
 use std::path::PathBuf;
 
-#[cfg(unix)]
-use lisp_vm::host_runtime::adopt_inherited_rpc_socket;
+pub const CLI_NAME: &str = "elisp";
+#[cfg(feature = "repl-tty")]
+pub const REPL_PROMPT: &str = "elisp> ";
 
-use crate::brand;
-use crate::engine::{BootstrapMode, ConcurrencyMode, Engine, EngineConfig};
-use crate::error::Error;
-use crate::exec;
-use crate::pkg::{
+#[cfg(unix)]
+use lisp::vm::host_runtime::adopt_inherited_rpc_socket;
+
+use lisp::brand;
+use lisp::exec;
+use lisp::pkg::{
     self, DependencySpec, discover_project_entry, discover_project_load_paths,
     discover_project_tests, find_project_root,
 };
-use crate::repl;
-use crate::rpc::{DEFAULT_MAX_FRAME_BYTES, DEFAULT_RPC_ENTRY, RpcTransport, serve_http_rpc};
-use crate::stdlib_cache::{
+use lisp::rpc::{DEFAULT_MAX_FRAME_BYTES, DEFAULT_RPC_ENTRY, RpcTransport, serve_http_rpc};
+use lisp::stdlib_cache::{
     atomic_temp_dump_path, clean_cache, maybe_spawn_background_warm, repl_history_path,
     resolve_cache_root, try_acquire_warm_lock,
 };
+use lisp::{BootstrapMode, ConcurrencyMode, Engine, EngineConfig, Error};
+
+use crate::repl;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum BatchAction {
@@ -135,35 +139,35 @@ pub struct CommonOptions {
 }
 
 const HELP_TEXT: &str = "\
-lisp-core 0.0.1 - Standalone general-purpose Lisp runtime
+elisp 0.0.1 - Standalone general-purpose Elisp-compatible Lisp CLI & REPL
 
 USAGE:
-  lisp-core <SUBCOMMAND> [OPTIONS]
-  lisp-core <FILE> [ARGS...]
-  lisp-core [BATCH_FLAGS...]
+  elisp <SUBCOMMAND> [OPTIONS]
+  elisp <FILE> [ARGS...]
+  elisp [BATCH_FLAGS...]
 
 SUBCOMMANDS:
-  init [DIR] [--name NAME]    Scaffold a new Lisp project (lisp.toml, src/, tests/)
-  pkg <add|install|list|update|remove>  Manage project dependencies (.lisp-packages/, lisp.lock)
-  eval <EXPR...>              Evaluate expression(s) and print the final value
-  run [FILE] [ARGS...]        Run a Lisp script (or project entry when run inside lisp.toml)
-  repl                        Start an interactive read-eval-print loop on stdin
-  compile [--strict] <FILES>  Byte-compile files (`--strict` fails on warnings)
-  test [FILES...]             Run ERT test files (or tests/*.el inside a lisp.toml project)
-  cache path|warm|clean       Manage the unpacked stdlib and `.pdmp` runtime cache
-  exec supervise|mem-tree|digest ...  Run process supervisor, memory accounting, or SHA-256
+  init [DIR] [--name NAME]            Scaffold a project (lisp.toml, src/, tests/)
+  pkg <add|install|list|update|remove>  Manage dependencies (.lisp-packages/, lisp.lock)
+  eval <EXPR...>                      Evaluate expression(s) and print the final value
+  run [FILE] [ARGS...]                Run a script (or project entry inside lisp.toml)
+  repl                                Start an interactive TTY/pipe read-eval-print loop
+  compile [--strict] <FILES...>       Byte-compile files (`--strict` fails on warnings)
+  test [FILES...]                     Run ERT test files (or tests/* inside lisp.toml)
+  cache path|warm|clean               Manage unpacked stdlib and `.pdmp` warm cache
+  exec supervise|mem-tree|digest ...  Run process supervisor, mem-tree, or SHA-256 tools
 
 COMMON OPTIONS:
-  --cache-dir <DIR>           Override runtime stdlib / `.pdmp` cache directory
-  --concurrency <MODE>        Select VM concurrency mode: `no-gil` (default) or `gil`
-  --no-dump                   Cold-boot without reading cached portable dump
-  --no-auto-warm              Disable detached background `.pdmp` warm caching
-  --verbose                   Emit bootstrap load progress diagnostics to stderr
-  -L, --directory <DIR>       Prepend DIR to load-path
-  -l, --load <FILE>           Load Lisp library before subcommand
-  --rpc http                  Start JSON-RPC 2.0 `http.handle` worker loop
-  -h, --help                  Print this help text
-  -V, --version               Print version information
+  --cache-dir <DIR>                   Override runtime cache dir (env: LISP_CACHE_DIR)
+  --concurrency <MODE>                VM mode: `no-gil` (default) or `gil` (LISP_CONCURRENCY)
+  --no-dump                           Cold-boot without reading cached `.pdmp`
+  --no-auto-warm                      Disable detached background `.pdmp` caching (LISP_NO_AUTO_WARM)
+  --verbose                           Print bootstrap load diagnostics to stderr (LISP_VERBOSE)
+  -L, --directory <DIR>               Prepend DIR to load-path
+  -l, --load <FILE>                   Load Lisp library before subcommand
+  --rpc http [--rpc-fd FD|--rpc-addr HOST:PORT]  Start JSON-RPC 2.0 `http.handle` worker
+  -h, --help                          Print this help text
+  -V, --version                       Print version information
 
 BATCH COMPATIBILITY FLAGS:
   --batch, -Q, --quick, -e/--eval <EXPR>, -f/--funcall <FN>, --script <FILE>,
@@ -185,7 +189,7 @@ pub fn parse_args(args: &[OsString]) -> Result<Command, (i32, String)> {
             }
             return Ok(Command::FastExit {
                 code: 0,
-                stdout: format!("{} {}", brand::CLI_NAME, brand::VERSION),
+                stdout: format!("{CLI_NAME} {}", brand::VERSION),
             });
         }
         "-h" | "--help" => {
@@ -417,7 +421,7 @@ fn parse_init_subcommand(args: &[OsString]) -> Result<Command, (i32, String)> {
             "-h" | "--help" => {
                 return Ok(Command::FastExit {
                     code: 0,
-                    stdout: "usage: lisp-core init [DIR] [--name NAME] [--force]".to_string(),
+                    stdout: "usage: elisp init [DIR] [--name NAME] [--force]".to_string(),
                 });
             }
             arg if arg.starts_with('-') => {
@@ -461,7 +465,7 @@ fn parse_pkg_subcommand(args: &[OsString]) -> Result<Command, (i32, String)> {
             "-h" | "--help" => {
                 return Ok(Command::FastExit {
                     code: 0,
-                    stdout: "usage: lisp-core pkg [--project DIR] <add <NAME> (--path DIR | --url URL) [--version VER] [--sha256 HEX] | install | list | update | remove <NAME>>".to_string(),
+                    stdout: "usage: elisp pkg [--project DIR] <add <NAME> (--path DIR | --url URL) [--version VER] [--sha256 HEX] | install | list | update | remove <NAME>>".to_string(),
                 });
             }
             arg if arg.starts_with('-') => {
@@ -519,7 +523,7 @@ fn parse_pkg_subcommand(args: &[OsString]) -> Result<Command, (i32, String)> {
         None => {
             return Err((
                 2,
-                "usage: lisp-core pkg <add|install|list|update|remove>".to_string(),
+                "usage: elisp pkg <add|install|list|update|remove>".to_string(),
             ));
         }
     };
@@ -545,7 +549,7 @@ fn parse_cache_subcommand(args: &[OsString]) -> Result<Command, (i32, String)> {
             "-h" | "--help" => {
                 return Ok(Command::FastExit {
                     code: 0,
-                    stdout: "usage: lisp-core cache <path|warm|clean> [--cache-dir DIR] [--dump-out PATH] [--quiet]".to_string(),
+                    stdout: "usage: elisp cache <path|warm|clean> [--cache-dir DIR] [--dump-out PATH] [--quiet]".to_string(),
                 });
             }
             arg if arg.starts_with('-') => return Err((2, format!("unknown cache option: {arg}"))),
@@ -559,7 +563,7 @@ fn parse_cache_subcommand(args: &[OsString]) -> Result<Command, (i32, String)> {
         Some("clean") => CacheAction::Clean,
         Some("warm") => CacheAction::Warm { dump_out, quiet },
         Some(other) => return Err((2, format!("unknown cache subcommand '{other}'; expected path, warm, or clean"))),
-        None => return Err((2, "usage: lisp-core cache <path|warm|clean>".to_string())),
+        None => return Err((2, "usage: elisp cache <path|warm|clean>".to_string())),
     };
     Ok(Command::Cache { cache_dir, action })
 }
@@ -583,7 +587,7 @@ fn parse_eval_subcommand(args: &[OsString]) -> Result<Command, (i32, String)> {
         if cur == "-h" || cur == "--help" {
             return Ok(Command::FastExit {
                 code: 0,
-                stdout: "usage: lisp-core eval [--no-dump] [-L DIR] [-l FILE] <EXPR...>".to_string(),
+                stdout: "usage: elisp eval [--no-dump] [-L DIR] [-l FILE] <EXPR...>".to_string(),
             });
         }
         if cur.starts_with('-') {
@@ -614,7 +618,7 @@ fn parse_run_subcommand(args: &[OsString]) -> Result<Command, (i32, String)> {
         if cur == "-h" || cur == "--help" {
             return Ok(Command::FastExit {
                 code: 0,
-                stdout: "usage: lisp-core run [--no-dump] [-L DIR] [-l FILE] <FILE> [ARGS...]".to_string(),
+                stdout: "usage: elisp run [--no-dump] [-L DIR] [-l FILE] <FILE> [ARGS...]".to_string(),
             });
         }
         if cur.starts_with('-') {
@@ -651,7 +655,7 @@ fn parse_repl_subcommand(args: &[OsString]) -> Result<Command, (i32, String)> {
         if cur == "-h" || cur == "--help" {
             return Ok(Command::FastExit {
                 code: 0,
-                stdout: "usage: lisp-core repl [--no-dump] [-L DIR] [-l FILE]".to_string(),
+                stdout: "usage: elisp repl [--no-dump] [-L DIR] [-l FILE]".to_string(),
             });
         }
         return Err((2, format!("unknown option for repl: {cur}")));
@@ -687,7 +691,7 @@ fn parse_compile_subcommand(args: &[OsString]) -> Result<Command, (i32, String)>
         if cur == "-h" || cur == "--help" {
             return Ok(Command::FastExit {
                 code: 0,
-                stdout: "usage: lisp-core compile [--strict] [-L DIR] [-l FILE] <FILES...>".to_string(),
+                stdout: "usage: elisp compile [--strict] [-L DIR] [-l FILE] <FILES...>".to_string(),
             });
         }
         if cur.starts_with('-') {
@@ -725,7 +729,7 @@ fn parse_test_subcommand(args: &[OsString]) -> Result<Command, (i32, String)> {
         if cur == "-h" || cur == "--help" {
             return Ok(Command::FastExit {
                 code: 0,
-                stdout: "usage: lisp-core test [-L DIR] [-l FILE] <FILES...>".to_string(),
+                stdout: "usage: elisp test [-L DIR] [-l FILE] <FILES...>".to_string(),
             });
         }
         if cur.starts_with('-') {
@@ -865,7 +869,7 @@ fn parse_legacy_flags(args: &[OsString]) -> Result<Command, (i32, String)> {
             "-V" | "--version" => {
                 return Ok(Command::FastExit {
                     code: 0,
-                    stdout: format!("lisp-core {}", env!("CARGO_PKG_VERSION")),
+                    stdout: format!("elisp {}", env!("CARGO_PKG_VERSION")),
                 });
             }
             "--" => {
@@ -987,6 +991,7 @@ fn build_engine_config(options: &CommonOptions) -> Result<EngineConfig, (i32, St
         BootstrapMode::AutoCache
     };
     let mut cfg = EngineConfig::default()
+        .with_program_name(CLI_NAME)
         .with_bootstrap(bootstrap)
         .with_concurrency(concurrency);
     if let Some(dir) = &options.cache_dir {
@@ -1039,7 +1044,7 @@ fn exit_for_error(err: &Error) -> i32 {
     if let Error::Exit(code) = err {
         return *code;
     }
-    eprintln!("lisp-core: {err}");
+    eprintln!("elisp: {err}");
     1
 }
 
@@ -1078,7 +1083,7 @@ fn run_batch_actions(
                             idx = 0;
                         }
                         Err((code, msg)) => {
-                            eprintln!("lisp-core: {msg}");
+                            eprintln!("elisp: {msg}");
                             return Ok(code);
                         }
                     }
@@ -1103,7 +1108,7 @@ fn run_batch_actions(
                             idx = 0;
                         }
                         Err((code, msg)) => {
-                            eprintln!("lisp-core: {msg}");
+                            eprintln!("elisp: {msg}");
                             return Ok(code);
                         }
                     }
@@ -1119,7 +1124,7 @@ fn run_batch_actions(
             }
             BatchAction::ExtraArg(arg) => {
                 eprintln!(
-                    "lisp-core: unrecognized option or argument: {}",
+                    "elisp: unrecognized option or argument: {}",
                     arg.to_string_lossy()
                 );
                 return Ok(2);
@@ -1155,7 +1160,7 @@ pub fn run_cli(raw_args: &[OsString]) -> i32 {
     let cmd = match parse_args(raw_args) {
         Ok(c) => c,
         Err((code, msg)) => {
-            eprintln!("lisp-core: {msg}");
+            eprintln!("elisp: {msg}");
             return code;
         }
     };
@@ -1184,14 +1189,14 @@ pub fn run_cli(raw_args: &[OsString]) -> i32 {
                 None => match std::env::current_dir() {
                     Ok(cwd) => cwd,
                     Err(e) => {
-                        eprintln!("lisp-core: cwd error: {e}");
+                        eprintln!("elisp: cwd error: {e}");
                         return 1;
                     }
                 },
             };
             let Some(root) = find_project_root(&start) else {
                 eprintln!(
-                    "lisp-core: no {} found in {} or ancestors",
+                    "elisp: no {} found in {} or ancestors",
                     pkg::MANIFEST_FILE,
                     start.display()
                 );
@@ -1248,7 +1253,7 @@ pub fn run_cli(raw_args: &[OsString]) -> i32 {
                         0
                     }
                     Ok(false) => {
-                        eprintln!("lisp-core: dependency '{name}' was not in {}", pkg::MANIFEST_FILE);
+                        eprintln!("elisp: dependency '{name}' was not in {}", pkg::MANIFEST_FILE);
                         1
                     }
                     Err(err) => exit_for_error(&err),
@@ -1277,7 +1282,9 @@ pub fn run_cli(raw_args: &[OsString]) -> i32 {
             cache_dir,
             action: CacheAction::Warm { dump_out, quiet },
         } => {
-            let mut cfg = EngineConfig::cold_stdlib().with_defer_delayed_custom_init(true);
+            let mut cfg = EngineConfig::cold_stdlib()
+                .with_program_name(CLI_NAME)
+                .with_defer_delayed_custom_init(true);
             if let Some(dir) = cache_dir {
                 cfg = cfg.with_cache_dir(dir);
             }
@@ -1302,14 +1309,14 @@ pub fn run_cli(raw_args: &[OsString]) -> i32 {
                 None => match engine.cache_layout() {
                     Some(layout) => layout.pdmp_path.clone(),
                     None => {
-                        eprintln!("lisp-core: missing cache layout for cache warm");
+                        eprintln!("elisp: missing cache layout for cache warm");
                         return 1;
                     }
                 },
             };
             if let Some(parent) = target.parent() {
                 if let Err(err) = fs::create_dir_all(parent) {
-                    eprintln!("lisp-core: failed to create dump parent dir {}: {err}", parent.display());
+                    eprintln!("elisp: failed to create dump parent dir {}: {err}", parent.display());
                     return 1;
                 }
             }
@@ -1324,7 +1331,7 @@ pub fn run_cli(raw_args: &[OsString]) -> i32 {
                     }
                     Err(err) => {
                         let _ = fs::remove_file(&tmp_target);
-                        eprintln!("lisp-core: failed to finalize dump {}: {err}", target.display());
+                        eprintln!("elisp: failed to finalize dump {}: {err}", target.display());
                         1
                     }
                 },
@@ -1338,7 +1345,7 @@ pub fn run_cli(raw_args: &[OsString]) -> i32 {
             let cfg = match build_engine_config(&options) {
                 Ok(c) => c,
                 Err((code, msg)) => {
-                    eprintln!("lisp-core: {msg}");
+                    eprintln!("elisp: {msg}");
                     return code;
                 }
             };
@@ -1368,7 +1375,7 @@ pub fn run_cli(raw_args: &[OsString]) -> i32 {
             let cfg = match build_engine_config(&options) {
                 Ok(c) => c,
                 Err((code, msg)) => {
-                    eprintln!("lisp-core: {msg}");
+                    eprintln!("elisp: {msg}");
                     return code;
                 }
             };
@@ -1389,7 +1396,7 @@ pub fn run_cli(raw_args: &[OsString]) -> i32 {
             let cfg = match build_engine_config(&options) {
                 Ok(c) => c,
                 Err((code, msg)) => {
-                    eprintln!("lisp-core: {msg}");
+                    eprintln!("elisp: {msg}");
                     return code;
                 }
             };
@@ -1414,7 +1421,7 @@ pub fn run_cli(raw_args: &[OsString]) -> i32 {
             let cfg = match build_engine_config(&options) {
                 Ok(c) => c,
                 Err((code, msg)) => {
-                    eprintln!("lisp-core: {msg}");
+                    eprintln!("elisp: {msg}");
                     return code;
                 }
             };
@@ -1435,7 +1442,7 @@ pub fn run_cli(raw_args: &[OsString]) -> i32 {
             let cfg = match build_engine_config(&options) {
                 Ok(c) => c,
                 Err((code, msg)) => {
-                    eprintln!("lisp-core: {msg}");
+                    eprintln!("elisp: {msg}");
                     return code;
                 }
             };
@@ -1463,20 +1470,20 @@ pub fn run_cli(raw_args: &[OsString]) -> i32 {
         } => {
             let transport = if let Some(bind_addr) = addr {
                 if fd.is_some() {
-                    eprintln!("lisp-core: --rpc-fd and --rpc-addr cannot be combined");
+                    eprintln!("elisp: --rpc-fd and --rpc-addr cannot be combined");
                     return 2;
                 }
                 let listener = match TcpListener::bind(&bind_addr) {
                     Ok(l) => l,
                     Err(e) => {
-                        eprintln!("lisp-core: failed to bind RPC listener {bind_addr}: {e}");
+                        eprintln!("elisp: failed to bind RPC listener {bind_addr}: {e}");
                         return 2;
                     }
                 };
                 match listener.accept() {
                     Ok((tcp_stream, _)) => RpcTransport::Tcp(tcp_stream),
                     Err(e) => {
-                        eprintln!("lisp-core: failed to accept RPC client on {bind_addr}: {e}");
+                        eprintln!("elisp: failed to accept RPC client on {bind_addr}: {e}");
                         return 2;
                     }
                 }
@@ -1486,7 +1493,7 @@ pub fn run_cli(raw_args: &[OsString]) -> i32 {
                     match adopt_inherited_rpc_socket(fd) {
                         Ok(s) => RpcTransport::Unix(s),
                         Err(e) => {
-                            eprintln!("lisp-core: failed to adopt inherited RPC socketpair: {e}");
+                            eprintln!("elisp: failed to adopt inherited RPC socketpair: {e}");
                             return 2;
                         }
                     }
@@ -1495,7 +1502,7 @@ pub fn run_cli(raw_args: &[OsString]) -> i32 {
                 {
                     let _ = fd;
                     eprintln!(
-                        "lisp-core: inherited Unix RPC socketpair (--rpc-fd) is unsupported on this OS; pass --rpc-addr 127.0.0.1:<PORT>"
+                        "elisp: inherited Unix RPC socketpair (--rpc-fd) is unsupported on this OS; pass --rpc-addr 127.0.0.1:<PORT>"
                     );
                     return 2;
                 }
@@ -1503,7 +1510,7 @@ pub fn run_cli(raw_args: &[OsString]) -> i32 {
             let cfg = match build_engine_config(&options) {
                 Ok(c) => c,
                 Err((code, msg)) => {
-                    eprintln!("lisp-core: {msg}");
+                    eprintln!("elisp: {msg}");
                     return code;
                 }
             };
@@ -1534,7 +1541,7 @@ pub fn run_cli(raw_args: &[OsString]) -> i32 {
             match serve_http_rpc(&mut engine, transport, &handler, &entry, max_frame_bytes) {
                 Ok(code) => code,
                 Err(msg) => {
-                    eprintln!("lisp-core rpc error: {msg}");
+                    eprintln!("elisp rpc error: {msg}");
                     1
                 }
             }
@@ -1547,7 +1554,7 @@ pub fn run_cli(raw_args: &[OsString]) -> i32 {
             let cfg = match build_engine_config(&options) {
                 Ok(c) => c.with_defer_delayed_custom_init(true),
                 Err((code, msg)) => {
-                    eprintln!("lisp-core: {msg}");
+                    eprintln!("elisp: {msg}");
                     return code;
                 }
             };
@@ -1571,7 +1578,7 @@ pub fn run_cli(raw_args: &[OsString]) -> i32 {
             let cfg = match build_engine_config(&options) {
                 Ok(c) => c,
                 Err((code, msg)) => {
-                    eprintln!("lisp-core: {msg}");
+                    eprintln!("elisp: {msg}");
                     return code;
                 }
             };
@@ -1677,7 +1684,7 @@ mod tests {
         let ver = parse_args(&os(&["--version"])).expect("parse --version");
         assert!(matches!(
             ver,
-            Command::FastExit { code: 0, stdout } if stdout == format!("lisp-core {}", env!("CARGO_PKG_VERSION"))
+            Command::FastExit { code: 0, stdout } if stdout == format!("elisp {}", env!("CARGO_PKG_VERSION"))
         ));
 
         let help = parse_args(&os(&["--help"])).expect("parse --help");

@@ -52,7 +52,7 @@ pub struct EngineConfig {
 impl Default for EngineConfig {
     fn default() -> Self {
         Self {
-            program_name: crate::brand::CLI_NAME.to_string(),
+            program_name: crate::brand::DEFAULT_PROGRAM_NAME.to_string(),
             bootstrap: BootstrapMode::AutoCache,
             cache_dir: None,
             load_paths: Vec::new(),
@@ -136,7 +136,7 @@ pub struct Engine {
     concurrency: ConcurrencyMode,
     _hub: Arc<ConcurrencyHub>,
     _shutdown_guard: Option<ConcurrencyShutdownGuard>,
-    #[cfg(feature = "std-batteries")]
+    #[cfg(feature = "std")]
     _std_runtime: Arc<lisp_std::StdRuntime>,
 }
 
@@ -153,11 +153,11 @@ impl Engine {
 
     /// Initialize the runtime with an explicit [`EngineConfig`].
     pub fn init(config: EngineConfig) -> Result<Self, Error> {
-        #[cfg(feature = "std-batteries")]
+        #[cfg(feature = "std")]
         {
             Self::init_with_hub(config, None, None)
         }
-        #[cfg(not(feature = "std-batteries"))]
+        #[cfg(not(feature = "std"))]
         {
             Self::init_with_hub(config, None)
         }
@@ -166,7 +166,7 @@ impl Engine {
     fn init_with_hub(
         config: EngineConfig,
         shared_hub: Option<Arc<ConcurrencyHub>>,
-        #[cfg(feature = "std-batteries")] shared_std: Option<Arc<lisp_std::StdRuntime>>,
+        #[cfg(feature = "std")] shared_std: Option<Arc<lisp_std::StdRuntime>>,
     ) -> Result<Self, Error> {
         let (host_cfg, cache_layout, extra_load_paths) = match &config.bootstrap {
             BootstrapMode::Minimal => {
@@ -280,7 +280,7 @@ impl Engine {
             vm.prepend_load_path(dir)?;
         }
 
-        #[cfg(feature = "std-batteries")]
+        #[cfg(feature = "std")]
         let std_runtime = shared_std.unwrap_or_else(lisp_std::StdRuntime::new);
 
         let (hub, shutdown_guard) = match shared_hub {
@@ -290,10 +290,10 @@ impl Engine {
                 if config.concurrency == ConcurrencyMode::NoGil {
                     let worker_cfg = worker_config_from(&config);
                     let worker_hub = Arc::clone(&h);
-                    #[cfg(feature = "std-batteries")]
+                    #[cfg(feature = "std")]
                     let worker_std = Arc::clone(&std_runtime);
                     h.set_worker_factory(Arc::new(move || {
-                        #[cfg(feature = "std-batteries")]
+                        #[cfg(feature = "std")]
                         {
                             Engine::init_with_hub(
                                 worker_cfg.clone(),
@@ -301,7 +301,7 @@ impl Engine {
                                 Some(Arc::clone(&worker_std)),
                             )
                         }
-                        #[cfg(not(feature = "std-batteries"))]
+                        #[cfg(not(feature = "std"))]
                         {
                             Engine::init_with_hub(
                                 worker_cfg.clone(),
@@ -320,11 +320,11 @@ impl Engine {
             concurrency: config.concurrency,
             _hub: hub.clone(),
             _shutdown_guard: shutdown_guard,
-            #[cfg(feature = "std-batteries")]
+            #[cfg(feature = "std")]
             _std_runtime: Arc::clone(&std_runtime),
         };
         register_concurrency_builtins(&mut engine, &hub)?;
-        #[cfg(feature = "std-batteries")]
+        #[cfg(feature = "std")]
         register_std_batteries(&mut engine, &std_runtime)?;
         Ok(engine)
     }
@@ -478,7 +478,7 @@ impl Engine {
     }
 }
 
-#[cfg(feature = "std-batteries")]
+#[cfg(feature = "std")]
 fn value_to_std(v: &Value) -> lisp_std::StdValue {
     match v {
         Value::Nil => lisp_std::StdValue::Nil,
@@ -499,7 +499,7 @@ fn value_to_std(v: &Value) -> lisp_std::StdValue {
     }
 }
 
-#[cfg(feature = "std-batteries")]
+#[cfg(feature = "std")]
 fn std_to_value(v: lisp_std::StdValue) -> Value {
     match v {
         lisp_std::StdValue::Nil => Value::Nil,
@@ -523,7 +523,7 @@ fn std_to_value(v: lisp_std::StdValue) -> Value {
     }
 }
 
-#[cfg(feature = "std-batteries")]
+#[cfg(feature = "std")]
 fn register_std_batteries(
     engine: &mut Engine,
     runtime: &Arc<lisp_std::StdRuntime>,

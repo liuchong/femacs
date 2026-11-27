@@ -1,22 +1,17 @@
 [package]
-name = "lisp-core"
+name = "lisp"
 version = "0.0.1"
 edition.workspace = true
 rust-version = "1.85"
 license.workspace = true
-description = "Standalone general-purpose Lisp programming language runtime, embedding engine, and CLI"
+description = "Standalone pure-Rust, No-GIL, Elisp-compatible embeddable Lisp runtime and standard library"
 repository = "https://github.com/liuchong/femacs"
 readme = "README.md"
-keywords = ["lisp", "language", "scripting", "interpreter", "cli"]
-categories = ["command-line-utilities", "compilers", "development-tools"]
+keywords = ["lisp", "elisp", "language", "scripting", "interpreter"]
+categories = ["compilers", "development-tools", "embedded"]
 
 [lib]
 path = "src/lib.rs"
-
-[[bin]]
-name = "lisp-core"
-path = "src/main.rs"
-required-features = ["vm"]
 
 [[test]]
 name = "engine_integration"
@@ -26,23 +21,22 @@ required-features = ["vm"]
 [[test]]
 name = "std_batteries_integration"
 harness = false
-required-features = ["vm", "std-batteries"]
+required-features = ["vm", "std"]
 
 [features]
-default = ["vm", "repl-tty", "std-batteries"]
-vm = ["dep:lisp-vm", "lisp-vm/isolate_vm", "dep:toml", "dep:flate2"]
-repl-tty = ["vm", "dep:rustyline"]
-std-batteries = ["vm", "dep:lisp-std"]
+default = ["vm", "std"]
+vm = ["dep:lisp-vm", "lisp-vm/isolate_vm", "dep:flate2"]
+std = ["vm", "dep:lisp-std"]
+pkg = ["vm", "dep:toml"]
 
 [dependencies]
 lisp-vm = { version = "0.0.1", path = "../lisp-vm", optional = true }
 lisp-std = { version = "0.0.1", path = "../lisp-std", optional = true }
 flate2 = { version = "1", default-features = false, features = ["rust_backend"], optional = true }
-rustyline = { version = "15", default-features = false, features = ["with-file-history"], optional = true }
+toml = { version = "0.8", optional = true }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"
-toml = { version = "0.8", optional = true }
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.61", features = [

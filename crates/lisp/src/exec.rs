@@ -151,7 +151,7 @@ pub fn run_cli(args: &[String]) -> i32 {
     match run_command(args) {
         Ok(code) => code,
         Err(msg) => {
-            eprintln!("lisp-core exec: {msg}");
+            eprintln!("lisp exec: {msg}");
             2
         }
     }

@@ -1,7 +1,7 @@
 #![deny(static_mut_refs, unsafe_op_in_unsafe_fn)]
 //! femacs build and gate driver.
 //!
-//! Orchestrates Cargo workspace builds (`lisp-vm`, `lisp-core`,
+//! Orchestrates Cargo workspace builds (`lisp-vm`, `lisp`,
 //! `femacs-host`, `femacs-tools`), generates target-local configuration mirrors and
 //! layout assertions from the frozen baselines, and runs the mechanical gates.
 //!
@@ -115,7 +115,7 @@ fn main() {
         "build-manuals" => manuals::command(&args[1..]),
         "audit-probe" => probes::command(&args[1..]),
         "android" => android::command(&args[1..]),
-        "test-exec" => lisp_core::exec::run_cli(&args[1..]),
+        "test-exec" => lisp::exec::run_cli(&args[1..]),
         "gate-platforms" => android::platforms(&args[1..]),
         "generate-resources" => {
             if args.len() != 3 || args[1] != "--program" {

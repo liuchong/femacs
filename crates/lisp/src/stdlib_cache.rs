@@ -21,7 +21,7 @@ use crate::brand;
 use crate::error::Error;
 
 /// SHA-256 hex digest of the bundled `stdlib/` tree computed at build time.
-pub const STDLIB_SHA256: &str = env!("LISP_CORE_STDLIB_SHA256");
+pub const STDLIB_SHA256: &str = env!("LISP_STDLIB_SHA256");
 
 #[cfg(feature = "vm")]
 static STDLIB_BUNDLE_GZ: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/stdlib.bundle.gz"));
@@ -41,7 +41,7 @@ pub struct CacheLayout {
     pub pdmp_path: PathBuf,
 }
 
-/// Resolve the cache root directory, obeying `override_dir`, `LISP_CORE_CACHE_DIR`,
+/// Resolve the cache root directory, obeying `override_dir`, `LISP_CACHE_DIR`,
 /// `XDG_CACHE_HOME`, and platform defaults without requiring any external installation.
 pub fn resolve_cache_root(override_dir: Option<&Path>) -> PathBuf {
     if let Some(dir) = override_dir {
@@ -101,7 +101,7 @@ pub fn exe_pdmp_path(version_root: &Path) -> PathBuf {
         .ok()
         .and_then(|p| p.file_stem().map(|s| s.to_string_lossy().into_owned()))
         .filter(|s| !s.is_empty())
-        .unwrap_or_else(|| brand::CLI_NAME.to_string());
+        .unwrap_or_else(|| brand::DEFAULT_PROGRAM_NAME.to_string());
     version_root.join(format!("{stem}.pdmp"))
 }
 
@@ -397,7 +397,7 @@ mod tests {
         assert_eq!(resolve_cache_root(Some(&explicit)), explicit);
 
         let default_root = resolve_cache_root(None);
-        assert!(default_root.ends_with("lisp-core") || default_root.ends_with("lisp-core-cache"));
+        assert!(default_root.ends_with("lisp") || default_root.ends_with("lisp-cache"));
     }
 
     #[test]

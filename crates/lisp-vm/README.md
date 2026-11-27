@@ -11,9 +11,9 @@ By default, `lisp-vm` builds with **zero external C build or dynamic library dep
 ## Feature Isolation
 
 - `default = []`: Single-process static-global mode preserved for editor consumers.
-- `isolate_vm`: Opt-in per-isolate VM storage enabling multi-core `NoGil` execution (`Engine: Send` in `lisp-core`) without impacting editor single-VM targets.
+- `isolate_vm`: Opt-in per-isolate VM storage enabling multi-core `NoGil` execution (`Engine: Send` in `lisp`) without impacting editor single-VM targets.
 
-For high-level Rust embedding (`Engine`, `Value`, `Error`), embedded standard library caching, pure-Rust `std/*` batteries, and the standalone CLI, see [`lisp-core`](../lisp-core/README.md).
+For high-level Rust embedding (`Engine`, `Value`, `Error`, `prelude`, and `std/*`), see [`lisp`](../lisp/README.md). For the standalone CLI and interactive REPL, see [`elisp`](../elisp/README.md).
 
 ## Platform Support
 

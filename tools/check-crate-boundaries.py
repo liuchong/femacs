@@ -2,11 +2,11 @@
 """Verify crate isolation between editor targets and standalone language crates.
 
 Checks:
-1. Standalone language crates (`lisp-vm`, `lisp-core`, and `lisp-std` if present)
+1. Standalone language crates (`lisp-vm`, `lisp-std`, `lisp`, and `elisp`)
    never transitively pull `cc`, `cmake`, `pkg-config`, `bindgen`, C TLS/crypto (`ring`,
    `aws-lc-*`, `openssl-sys`), C SQLite (`rusqlite`, `libsqlite3-sys`), or other C `-sys` crates.
 2. Editor/tooling crates (`femacs-host`, `xtask`, `femacs`, `femacs-tools`) never
-   transitively pull standalone language batteries (`lisp-std`, `rustyline`, `ureq`,
+   transitively pull standalone language batteries (`elisp`, `lisp-std`, `rustyline`, `ureq`,
    `rustls`, `rustls-rustcrypto`, `webpki-roots`, `redb`).
 """
 
@@ -43,6 +43,7 @@ ALLOWED_FFI_BINDING_SYS_CRATES = frozenset({
 })
 
 FORBIDDEN_EDITOR_BATTERIES = frozenset({
+    "elisp",
     "lisp-std",
     "rustyline",
     "ureq",
@@ -98,11 +99,14 @@ def main() -> int:
 
     standalone_profiles: list[tuple[str, list[str]]] = [
         ("lisp-vm", []),
-        ("lisp-core", []),
-        ("lisp-core", ["--no-default-features", "--features", "vm"]),
+        ("lisp-std", []),
+        ("lisp", []),
+        ("lisp", ["--no-default-features", "--features", "vm"]),
+        ("lisp", ["--no-default-features", "--features", "vm,pkg"]),
+        ("lisp", ["--no-default-features"]),
+        ("elisp", []),
+        ("elisp", ["--no-default-features"]),
     ]
-    if "lisp-std" in existing:
-        standalone_profiles.append(("lisp-std", []))
 
     for pkg, args in standalone_profiles:
         if pkg not in existing:

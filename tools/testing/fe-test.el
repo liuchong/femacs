@@ -174,7 +174,7 @@
           ("--report-out" (setq report-out (pop rest)))
           ("--state-dir" (setq state-dir (pop rest)))
           ("--help"
-           (princ "Usage: lisp-core --batch -Q -L tools/testing -l fe-test.el -- [OPTIONS]\n")
+           (princ "Usage: elisp --batch -Q -L tools/testing -l fe-test.el -- [OPTIONS]\n")
            (princ "  --suite <fast|static|smoke|host|ert|self|all>\n")
            (princ "  --filter <REGEXP>  --rerun-failed  --keep-going  --changed\n")
            (princ "  --shard <I/N>      --no-cache      --verify-host --list\n")

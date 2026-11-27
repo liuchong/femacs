@@ -6,7 +6,7 @@ use std::fmt;
 #[cfg(feature = "vm")]
 use lisp_vm::host_runtime::VmHostError;
 
-/// Recoverable errors surfaced by `lisp-core` runtime initialization and evaluation.
+/// Recoverable errors surfaced by `lisp` runtime initialization and evaluation.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Error {
     AlreadyInitialized,
