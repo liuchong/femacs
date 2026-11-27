@@ -108,12 +108,13 @@ pub unsafe fn mpz_set_intmax (result: *mut __mpz_struct, v: intmax_t)
   let (i, overflow) = v.overflowing_add (0);
   if FASTER_BIGNUM != 0 && !overflow
     {
-      mpz_set_si (result, i);
+      if let Ok (si) = c_long::try_from (i)
+        {
+          mpz_set_si (result, si);
+          return;
+        }
     }
-  else
-    {
-      mpz_set_intmax_slow (result, v);
-    }
+  mpz_set_intmax_slow (result, v);
 
   }
 }
@@ -127,12 +128,13 @@ pub unsafe fn mpz_set_uintmax (result: *mut __mpz_struct, v: uintmax_t)
   let (i, overflow) = v.overflowing_add (0);
   if FASTER_BIGNUM != 0 && !overflow
     {
-      mpz_set_ui (result, i);
+      if let Ok (ui) = c_ulong::try_from (i)
+        {
+          mpz_set_ui (result, ui);
+          return;
+        }
     }
-  else
-    {
-      mpz_set_uintmax_slow (result, v);
-    }
+  mpz_set_uintmax_slow (result, v);
 
   }
 }

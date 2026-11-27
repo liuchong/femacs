@@ -4,8 +4,10 @@
 use std::ffi::OsString;
 use std::fs;
 use std::io::{self, Write};
+use std::net::TcpListener;
 use std::path::PathBuf;
 
+#[cfg(unix)]
 use lisp_vm::host_runtime::adopt_inherited_rpc_socket;
 
 use crate::brand;
@@ -17,7 +19,7 @@ use crate::pkg::{
     discover_project_tests, find_project_root,
 };
 use crate::repl;
-use crate::rpc::{DEFAULT_MAX_FRAME_BYTES, DEFAULT_RPC_ENTRY, serve_http_rpc};
+use crate::rpc::{DEFAULT_MAX_FRAME_BYTES, DEFAULT_RPC_ENTRY, RpcTransport, serve_http_rpc};
 use crate::stdlib_cache::{
     atomic_temp_dump_path, clean_cache, maybe_spawn_background_warm, repl_history_path,
     resolve_cache_root, try_acquire_warm_lock,
@@ -101,6 +103,7 @@ pub enum Command {
         handler: PathBuf,
         entry: String,
         fd: Option<i32>,
+        addr: Option<String>,
         max_frame_bytes: usize,
         options: CommonOptions,
         actions: Vec<BatchAction>,
@@ -215,6 +218,7 @@ pub fn parse_args(args: &[OsString]) -> Result<Command, (i32, String)> {
             || first.ends_with(".el")
             || first.ends_with(".lisp")
             || first.contains('/')
+            || first.contains('\\')
         {
             return Ok(Command::Run {
                 file: p,
@@ -751,6 +755,7 @@ fn parse_legacy_flags(args: &[OsString]) -> Result<Command, (i32, String)> {
     let mut rpc_handler: Option<PathBuf> = None;
     let mut rpc_entry = DEFAULT_RPC_ENTRY.to_string();
     let mut rpc_fd: Option<i32> = None;
+    let mut rpc_addr: Option<String> = None;
     let mut max_frame_bytes = DEFAULT_MAX_FRAME_BYTES;
 
     let mut idx = 0usize;
@@ -838,6 +843,9 @@ fn parse_legacy_flags(args: &[OsString]) -> Result<Command, (i32, String)> {
                     .map_err(|e| (2, format!("invalid --rpc-fd '{raw_fd}': {e}")))?;
                 rpc_fd = Some(parsed);
             }
+            "--rpc-addr" => {
+                rpc_addr = Some(take_str(args, &mut idx, "--rpc-addr")?);
+            }
             "--rpc-max-frame-bytes" => {
                 let raw_sz = take_str(args, &mut idx, "--rpc-max-frame-bytes")?;
                 let parsed = raw_sz
@@ -885,6 +893,7 @@ fn parse_legacy_flags(args: &[OsString]) -> Result<Command, (i32, String)> {
             handler,
             entry: rpc_entry,
             fd: rpc_fd,
+            addr: rpc_addr,
             max_frame_bytes,
             options,
             actions,
@@ -1447,14 +1456,47 @@ pub fn run_cli(raw_args: &[OsString]) -> i32 {
             handler,
             entry,
             fd,
+            addr,
             max_frame_bytes,
             options,
             actions,
         } => {
-            let stream = match adopt_inherited_rpc_socket(fd) {
-                Ok(s) => s,
-                Err(e) => {
-                    eprintln!("lisp-core: failed to adopt inherited RPC socketpair: {e}");
+            let transport = if let Some(bind_addr) = addr {
+                if fd.is_some() {
+                    eprintln!("lisp-core: --rpc-fd and --rpc-addr cannot be combined");
+                    return 2;
+                }
+                let listener = match TcpListener::bind(&bind_addr) {
+                    Ok(l) => l,
+                    Err(e) => {
+                        eprintln!("lisp-core: failed to bind RPC listener {bind_addr}: {e}");
+                        return 2;
+                    }
+                };
+                match listener.accept() {
+                    Ok((tcp_stream, _)) => RpcTransport::Tcp(tcp_stream),
+                    Err(e) => {
+                        eprintln!("lisp-core: failed to accept RPC client on {bind_addr}: {e}");
+                        return 2;
+                    }
+                }
+            } else {
+                #[cfg(unix)]
+                {
+                    match adopt_inherited_rpc_socket(fd) {
+                        Ok(s) => RpcTransport::Unix(s),
+                        Err(e) => {
+                            eprintln!("lisp-core: failed to adopt inherited RPC socketpair: {e}");
+                            return 2;
+                        }
+                    }
+                }
+                #[cfg(not(unix))]
+                {
+                    let _ = fd;
+                    eprintln!(
+                        "lisp-core: inherited Unix RPC socketpair (--rpc-fd) is unsupported on this OS; pass --rpc-addr 127.0.0.1:<PORT>"
+                    );
                     return 2;
                 }
             };
@@ -1489,7 +1531,7 @@ pub fn run_cli(raw_args: &[OsString]) -> i32 {
                     BatchAction::Funcall { .. } | BatchAction::Script { .. } | BatchAction::ExtraArg(_) => {}
                 }
             }
-            match serve_http_rpc(&mut engine, stream, &handler, &entry, max_frame_bytes) {
+            match serve_http_rpc(&mut engine, transport, &handler, &entry, max_frame_bytes) {
                 Ok(code) => code,
                 Err(msg) => {
                     eprintln!("lisp-core rpc error: {msg}");

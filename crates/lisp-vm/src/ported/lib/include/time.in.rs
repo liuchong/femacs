@@ -83,11 +83,20 @@ pub struct tm
   pub tm_zone: *const c_char,
 }
 
+#[cfg (not (target_os = "windows"))]
 const _: () = core::assert! (std::mem::size_of::<tm> () == 56);
 const _: () = core::assert! (std::mem::offset_of! (tm, tm_sec) == 0);
 const _: () = core::assert! (std::mem::offset_of! (tm, tm_isdst) == 32);
+#[cfg (not (target_os = "windows"))]
 const _: () = core::assert! (std::mem::offset_of! (tm, tm_gmtoff) == 40);
+#[cfg (not (target_os = "windows"))]
 const _: () = core::assert! (std::mem::offset_of! (tm, tm_zone) == 48);
+#[cfg (target_os = "windows")]
+const _: () = core::assert! (std::mem::size_of::<tm> () == 48);
+#[cfg (target_os = "windows")]
+const _: () = core::assert! (std::mem::offset_of! (tm, tm_gmtoff) == 36);
+#[cfg (target_os = "windows")]
+const _: () = core::assert! (std::mem::offset_of! (tm, tm_zone) == 40);
 
 /// `time.in.h` 494's `typedef struct tm_zone *timezone_t;` - the template only
 /// forward-declares `struct tm_zone` (its definition is `lib/time-internal.h`'s), so the

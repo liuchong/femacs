@@ -4,9 +4,18 @@
 use super::*;
 pub const __MINI_GMP_H__: bool = true;
 
+#[cfg (not (target_os = "windows"))]
 pub type mp_limb_t = c_ulong;
+#[cfg (not (target_os = "windows"))]
 pub type mp_size_t = c_long;
+#[cfg (not (target_os = "windows"))]
 pub type mp_bitcnt_t = c_ulong;
+#[cfg (target_os = "windows")]
+pub type mp_limb_t = u64;
+#[cfg (target_os = "windows")]
+pub type mp_size_t = isize;
+#[cfg (target_os = "windows")]
+pub type mp_bitcnt_t = u64;
 pub type mp_ptr = *mut mp_limb_t;
 pub type mp_srcptr = *const mp_limb_t;
 

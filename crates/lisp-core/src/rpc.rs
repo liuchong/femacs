@@ -5,6 +5,8 @@ use std::io::{self, BufRead, Write};
 #[cfg(feature = "vm")]
 use std::io::{BufReader, BufWriter};
 #[cfg(feature = "vm")]
+use std::net::TcpStream;
+#[cfg(all(feature = "vm", unix))]
 use std::os::unix::net::UnixStream;
 #[cfg(feature = "vm")]
 use std::path::Path;
@@ -255,10 +257,72 @@ pub fn has_complete_lisp_form(src: &str) -> bool {
 }
 
 #[cfg(feature = "vm")]
-/// Run the persistent JSON-RPC `http.handle` server over an inherited socketpair.
-pub fn serve_http_rpc(
+/// Platform-neutral JSON-RPC stream transport (Unix domain socket on Unix, TCP loopback on all OSes).
+pub enum RpcTransport {
+    #[cfg(unix)]
+    Unix(UnixStream),
+    Tcp(TcpStream),
+}
+
+#[cfg(all(feature = "vm", unix))]
+impl From<UnixStream> for RpcTransport {
+    fn from(stream: UnixStream) -> Self {
+        Self::Unix(stream)
+    }
+}
+
+#[cfg(feature = "vm")]
+impl From<TcpStream> for RpcTransport {
+    fn from(stream: TcpStream) -> Self {
+        Self::Tcp(stream)
+    }
+}
+
+#[cfg(feature = "vm")]
+/// Run the persistent JSON-RPC `http.handle` server over a bidirectional stream transport.
+pub fn serve_http_rpc<T: Into<RpcTransport>>(
     engine: &mut Engine,
-    stream: UnixStream,
+    transport: T,
+    handler: &Path,
+    entry: &str,
+    max_frame_bytes: usize,
+) -> Result<i32, String> {
+    match transport.into() {
+        #[cfg(unix)]
+        RpcTransport::Unix(stream) => {
+            let read_sock = stream
+                .try_clone()
+                .map_err(|e| format!("clone rpc socket: {e}"))?;
+            serve_http_rpc_io(
+                engine,
+                BufReader::new(read_sock),
+                BufWriter::new(stream),
+                handler,
+                entry,
+                max_frame_bytes,
+            )
+        }
+        RpcTransport::Tcp(stream) => {
+            let read_sock = stream
+                .try_clone()
+                .map_err(|e| format!("clone rpc socket: {e}"))?;
+            serve_http_rpc_io(
+                engine,
+                BufReader::new(read_sock),
+                BufWriter::new(stream),
+                handler,
+                entry,
+                max_frame_bytes,
+            )
+        }
+    }
+}
+
+#[cfg(feature = "vm")]
+fn serve_http_rpc_io<R: BufRead, W: Write>(
+    engine: &mut Engine,
+    mut reader: R,
+    mut writer: W,
     handler: &Path,
     entry: &str,
     max_frame_bytes: usize,
@@ -270,12 +334,6 @@ pub fn serve_http_rpc(
     engine
         .load_library(&handler_str)
         .map_err(|e| format!("failed to load --rpc-handler {}: {e}", handler.display()))?;
-
-    let read_sock = stream
-        .try_clone()
-        .map_err(|e| format!("clone rpc socket: {e}"))?;
-    let mut reader = BufReader::new(read_sock);
-    let mut writer = BufWriter::new(stream);
 
     loop {
         match read_bounded_line(&mut reader, max_frame_bytes) {

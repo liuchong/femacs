@@ -2,14 +2,18 @@
 
 use std::fs;
 use std::path::PathBuf;
+#[cfg(unix)]
 use std::process::{Command, Stdio};
+#[cfg(unix)]
 use std::time::{Duration, Instant};
 
 use super::{
     ProcIdentity, ProcRow, TrackedTree, compute_digest, compute_mem_tree, finalize_children_reaped,
-    proc_identity_for_row, reap_tracked_tree_with_ident, run_supervise, sample_pid_memories,
-    spawn_pipe_drain, verified_signal_targets,
+    proc_identity_for_row, reap_tracked_tree_with_ident, sample_pid_memories,
+    verified_signal_targets,
 };
+#[cfg(unix)]
+use super::{run_supervise, spawn_pipe_drain};
 
 struct TempTestDir {
     path: PathBuf,
@@ -31,6 +35,7 @@ impl Drop for TempTestDir {
     }
 }
 
+#[cfg(unix)]
 #[test]
 fn supervise_captures_stdout_stderr_and_nonzero_exit() {
     let args: Vec<String> = vec![
@@ -49,6 +54,7 @@ fn supervise_captures_stdout_stderr_and_nonzero_exit() {
     assert_eq!(receipt.stderr, "err-ok\n");
 }
 
+#[cfg(unix)]
 #[test]
 fn supervise_timeout_kills_process_group_and_grandchild() {
     let args: Vec<String> = vec![
@@ -80,6 +86,7 @@ fn supervise_timeout_kills_process_group_and_grandchild() {
     }
 }
 
+#[cfg(unix)]
 #[test]
 fn supervise_truncates_large_output_cleanly() {
     let args: Vec<String> = vec![
@@ -96,6 +103,7 @@ fn supervise_truncates_large_output_cleanly() {
     assert_eq!(receipt.stdout.len(), 128);
 }
 
+#[cfg(unix)]
 #[test]
 fn supervise_pty_captures_output() {
     let args: Vec<String> = vec![
@@ -141,6 +149,7 @@ fn digest_is_deterministic_and_sensitive_to_tree_changes() {
     assert_ne!(r1.digest, r3.digest);
 }
 
+#[cfg(unix)]
 fn assert_pid_dead(pid_str: &str) {
     let trimmed = pid_str.trim();
     assert!(!trimmed.is_empty(), "expected non-empty PID");
@@ -154,6 +163,7 @@ fn assert_pid_dead(pid_str: &str) {
     );
 }
 
+#[cfg(unix)]
 #[test]
 fn supervise_pty_timeout_reaps_independent_pgid_descendant() {
     let args: Vec<String> = vec![
@@ -186,6 +196,7 @@ fn supervise_pty_timeout_reaps_independent_pgid_descendant() {
     assert_pid_dead(grand_pid);
 }
 
+#[cfg(unix)]
 #[test]
 fn supervise_reaps_independent_pgid_descendant_holding_stdout_fd() {
     let script = concat!(
@@ -221,6 +232,7 @@ fn supervise_reaps_independent_pgid_descendant_holding_stdout_fd() {
     assert_pid_dead(detached_pid);
 }
 
+#[cfg(unix)]
 #[test]
 fn pipe_drain_times_out_when_writer_stays_open() {
     let mut child = Command::new("/bin/sh")

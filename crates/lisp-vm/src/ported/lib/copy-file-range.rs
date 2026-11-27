@@ -28,7 +28,7 @@ macro_rules! CHECK_LINUX_KERNEL_VERSION { () => { false } }
 /* C 44-98's `ssize_t copy_file_range (int infd, off_t *pinoff, int outfd, off_t *poutoff,
    size_t length, unsigned int flags)`; C 48's `#undef copy_file_range` restores the system
    declaration for the call in the dead arm, which the port keeps in a `system` module.  */
-#[cfg (not (target_os = "linux"))]
+#[cfg (not (any (target_os = "linux", target_os = "windows")))]
 mod system {
   use super::*;
 
@@ -38,8 +38,8 @@ mod system {
   }
 }
 
-/// On Linux we omit the gnulib `ENOSYS` stub so `copy_file_range(2)` resolves natively from glibc.
-#[cfg (not (target_os = "linux"))]
+/// On Linux and Windows we omit the gnulib `ENOSYS` stub.
+#[cfg (not (any (target_os = "linux", target_os = "windows")))]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn copy_file_range (infd: c_int, pinoff: *mut off_t, outfd: c_int,
                                           poutoff: *mut off_t, length: usize,

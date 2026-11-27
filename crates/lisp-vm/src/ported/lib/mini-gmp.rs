@@ -212,13 +212,13 @@ pub unsafe extern "C-unwind" fn mpz_clear(r: *mut __mpz_struct) {
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_set_si(r: *mut __mpz_struct, x: c_long) {
     // SAFETY: Caller passes valid writable `r`.
-    unsafe { write_mpz(r, Mpz::from_si(x)) };
+    unsafe { write_mpz(r, Mpz::from_si(i64::from(x))) };
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_set_ui(r: *mut __mpz_struct, x: c_ulong) {
     // SAFETY: Caller passes valid writable `r`.
-    unsafe { write_mpz(r, Mpz::from_ui(x)) };
+    unsafe { write_mpz(r, Mpz::from_ui(u64::from(x))) };
 }
 
 #[unsafe(no_mangle)]
@@ -245,13 +245,29 @@ pub unsafe extern "C-unwind" fn mpz_init_set_ui(r: *mut __mpz_struct, x: c_ulong
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_fits_slong_p(u: *const __mpz_struct) -> c_int {
     // SAFETY: Caller passes valid readable `u`.
-    unsafe { pure_gmp::mpz_fits_slong_p(read_mpz(u)) }
+    #[cfg(not(target_os = "windows"))]
+    unsafe {
+        pure_gmp::mpz_fits_slong_p(read_mpz(u))
+    }
+    #[cfg(target_os = "windows")]
+    // SAFETY: Windows `c_long` is 32-bit signed (`sint`).
+    unsafe {
+        pure_gmp::mpz_fits_sint_p(read_mpz(u))
+    }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_fits_ulong_p(u: *const __mpz_struct) -> c_int {
     // SAFETY: Caller passes valid readable `u`.
-    unsafe { pure_gmp::mpz_fits_ulong_p(read_mpz(u)) }
+    #[cfg(not(target_os = "windows"))]
+    unsafe {
+        pure_gmp::mpz_fits_ulong_p(read_mpz(u))
+    }
+    #[cfg(target_os = "windows")]
+    // SAFETY: Windows `c_ulong` is 32-bit unsigned (`uint`).
+    unsafe {
+        pure_gmp::mpz_fits_uint_p(read_mpz(u))
+    }
 }
 
 #[unsafe(no_mangle)]
@@ -263,13 +279,13 @@ pub unsafe extern "C-unwind" fn mpz_fits_sint_p(u: *const __mpz_struct) -> c_int
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_get_si(u: *const __mpz_struct) -> c_long {
     // SAFETY: Caller passes valid readable `u`.
-    unsafe { pure_gmp::mpz_get_si(read_mpz(u)) }
+    unsafe { pure_gmp::mpz_get_si(read_mpz(u)) as c_long }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_get_ui(u: *const __mpz_struct) -> c_ulong {
     // SAFETY: Caller passes valid readable `u`.
-    unsafe { pure_gmp::mpz_get_ui(read_mpz(u)) }
+    unsafe { pure_gmp::mpz_get_ui(read_mpz(u)) as c_ulong }
 }
 
 #[unsafe(no_mangle)]
@@ -354,7 +370,7 @@ pub unsafe extern "C-unwind" fn mpz_sgn(u: *const __mpz_struct) -> c_int {
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_cmp_ui(u: *const __mpz_struct, v: c_ulong) -> c_int {
     // SAFETY: Caller passes valid readable `u`.
-    unsafe { pure_gmp::mpz_cmp_ui(read_mpz(u), v) }
+    unsafe { pure_gmp::mpz_cmp_ui(read_mpz(u), u64::from(v)) }
 }
 
 #[unsafe(no_mangle)]
@@ -410,7 +426,7 @@ pub unsafe extern "C-unwind" fn mpz_add_ui(
 ) {
     // SAFETY: Caller passes valid `r` and `a` (may alias).
     unsafe {
-        let res = pure_gmp::mpz_add_ui(read_mpz(a), b);
+        let res = pure_gmp::mpz_add_ui(read_mpz(a), u64::from(b));
         write_mpz(r, res);
     }
 }
@@ -423,7 +439,7 @@ pub unsafe extern "C-unwind" fn mpz_sub_ui(
 ) {
     // SAFETY: Caller passes valid `r` and `a` (may alias).
     unsafe {
-        let res = pure_gmp::mpz_sub_ui(read_mpz(a), b);
+        let res = pure_gmp::mpz_sub_ui(read_mpz(a), u64::from(b));
         write_mpz(r, res);
     }
 }
@@ -462,7 +478,7 @@ pub unsafe extern "C-unwind" fn mpz_mul_ui(
 ) {
     // SAFETY: Caller passes valid `r` and `u` (may alias).
     unsafe {
-        let res = pure_gmp::mpz_mul_ui(read_mpz(u), v);
+        let res = pure_gmp::mpz_mul_ui(read_mpz(u), u64::from(v));
         write_mpz(r, res);
     }
 }
@@ -501,7 +517,7 @@ pub unsafe extern "C-unwind" fn mpz_addmul_ui(
 ) {
     // SAFETY: Caller passes valid `r` and `u` (may alias).
     unsafe {
-        let res = pure_gmp::mpz_addmul_ui(read_mpz(r.cast_const()), read_mpz(u), v);
+        let res = pure_gmp::mpz_addmul_ui(read_mpz(r.cast_const()), read_mpz(u), u64::from(v));
         write_mpz(r, res);
     }
 }
@@ -659,11 +675,12 @@ pub unsafe extern "C-unwind" fn mpz_fdiv_q_ui(
 ) -> c_ulong {
     // SAFETY: Caller passes valid `n` and optional/valid `q`.
     unsafe {
-        let (qv, _, rem) = pure_gmp::mpz_div_qr_ui(read_mpz(n), d, DivRoundMode::Floor, !q.is_null(), false);
+        let (qv, _, rem) =
+            pure_gmp::mpz_div_qr_ui(read_mpz(n), u64::from(d), DivRoundMode::Floor, !q.is_null(), false);
         if let Some(val) = qv {
             write_mpz(q, val);
         }
-        rem
+        rem as c_ulong
     }
 }
 
@@ -671,8 +688,9 @@ pub unsafe extern "C-unwind" fn mpz_fdiv_q_ui(
 pub unsafe extern "C-unwind" fn mpz_tdiv_ui(n: *const __mpz_struct, d: c_ulong) -> c_ulong {
     // SAFETY: Caller passes valid readable `n`.
     unsafe {
-        let (_, _, rem) = pure_gmp::mpz_div_qr_ui(read_mpz(n), d, DivRoundMode::Trunc, false, false);
-        rem
+        let (_, _, rem) =
+            pure_gmp::mpz_div_qr_ui(read_mpz(n), u64::from(d), DivRoundMode::Trunc, false, false);
+        rem as c_ulong
     }
 }
 
@@ -697,7 +715,7 @@ pub unsafe extern "C-unwind" fn mpz_pow_ui(
 ) {
     // SAFETY: Caller passes valid `r` and `b` (may alias).
     unsafe {
-        let res = pure_gmp::mpz_pow_ui(read_mpz(b), e);
+        let res = pure_gmp::mpz_pow_ui(read_mpz(b), u64::from(e));
         write_mpz(r, res);
     }
 }
@@ -705,7 +723,7 @@ pub unsafe extern "C-unwind" fn mpz_pow_ui(
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_ui_pow_ui(r: *mut __mpz_struct, blimb: c_ulong, e: c_ulong) {
     // SAFETY: Caller passes valid writable `r`.
-    unsafe { write_mpz(r, pure_gmp::mpz_ui_pow_ui(blimb, e)) };
+    unsafe { write_mpz(r, pure_gmp::mpz_ui_pow_ui(u64::from(blimb), u64::from(e))) };
 }
 
 #[unsafe(no_mangle)]

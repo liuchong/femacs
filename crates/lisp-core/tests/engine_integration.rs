@@ -4,6 +4,8 @@
 use std::env;
 use std::fs;
 use std::io::{BufRead, BufReader, Write};
+use std::net::{TcpListener, TcpStream};
+#[cfg(unix)]
 use std::os::unix::net::UnixStream;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -183,6 +185,7 @@ fn case_engine_corrupt_pdmp_fallback_corrupt_body() {
     let _ = fs::remove_file(&pdmp);
 }
 
+#[cfg(unix)]
 fn case_engine_rpc_unix_pair() {
     let cache_root = resolve_cache_root(None);
     let scratch = cache_root.join("rpc-scratch");
@@ -230,6 +233,59 @@ fn case_engine_rpc_unix_pair() {
     assert_eq!(parsed["id"], 9);
     assert_eq!(parsed["result"]["status"], 200);
     assert_eq!(parsed["result"]["body"], "GET:/ok");
+}
+
+fn case_engine_rpc_tcp_loopback() {
+    let cache_root = resolve_cache_root(None);
+    let scratch = cache_root.join("rpc-tcp-scratch");
+    fs::create_dir_all(&scratch).expect("create rpc tcp scratch");
+    let handler = scratch.join("handler.el");
+    fs::write(
+        &handler,
+        ";;; handler.el -*- lexical-binding: t -*-\n\
+         (defun test-tcp-http-entry (req)\n\
+           (list (cons 'status 200)\n\
+                 (cons 'headers '((\"x-rpc-transport\" . \"tcp\")))\n\
+                 (cons 'body (format \"%s:%s\" (alist-get 'method req) (alist-get 'path req)))))\n",
+    )
+    .expect("write rpc tcp handler");
+
+    let listener = TcpListener::bind("127.0.0.1:0").expect("bind tcp loopback");
+    let addr = listener.local_addr().expect("listener addr");
+
+    let client_thread = thread::spawn(move || {
+        let mut cli = TcpStream::connect(addr).expect("connect rpc tcp");
+        cli.write_all(
+            br#"{"jsonrpc":"2.0","id":11,"method":"http.handle","params":{"method":"POST","path":"/tcp","query":"","headers":[],"body":"","requestId":"r11"}}"#
+                .as_slice(),
+        )
+        .expect("write tcp rpc request");
+        cli.write_all(b"\n").expect("write newline");
+        cli.flush().expect("flush");
+        let _ = cli.shutdown(std::net::Shutdown::Write);
+        let mut line = String::new();
+        let mut reader = BufReader::new(&cli);
+        reader.read_line(&mut line).expect("read tcp rpc response");
+        line
+    });
+
+    let (srv, _) = listener.accept().expect("accept tcp rpc");
+    let mut engine = Engine::new().expect("init engine for tcp rpc");
+    let exit_code = serve_http_rpc(
+        &mut engine,
+        srv,
+        &handler,
+        "test-tcp-http-entry",
+        DEFAULT_MAX_FRAME_BYTES,
+    )
+    .expect("serve_http_rpc tcp returns cleanly");
+    assert_eq!(exit_code, 0);
+
+    let line = client_thread.join().expect("join client thread");
+    let parsed: serde_json::Value = serde_json::from_str(&line).expect("parse tcp rpc json");
+    assert_eq!(parsed["id"], 11);
+    assert_eq!(parsed["result"]["status"], 200);
+    assert_eq!(parsed["result"]["body"], "POST:/tcp");
 }
 
 fn run_cli_subcommands(bin: &Path, work_root: &Path, cache_dir: &Path) {
@@ -514,10 +570,17 @@ fn case_engine_nogil_std_task_chan_sync() {
 
 fn count_open_fds() -> usize {
     #[cfg(any(target_os = "macos", target_os = "freebsd"))]
-    let dir = "/dev/fd";
+    {
+        fs::read_dir("/dev/fd").map(|rd| rd.count()).unwrap_or(0)
+    }
     #[cfg(target_os = "linux")]
-    let dir = "/proc/self/fd";
-    fs::read_dir(dir).map(|rd| rd.count()).unwrap_or(0)
+    {
+        fs::read_dir("/proc/self/fd").map(|rd| rd.count()).unwrap_or(0)
+    }
+    #[cfg(not(any(target_os = "macos", target_os = "freebsd", target_os = "linux")))]
+    {
+        0
+    }
 }
 
 fn case_engine_nogil_lifecycle_no_fd_leak() {
@@ -576,7 +639,9 @@ fn main() {
             "engine_corrupt_pdmp_fallback_corrupt_body" => {
                 case_engine_corrupt_pdmp_fallback_corrupt_body()
             }
+            #[cfg(unix)]
             "engine_rpc_unix_pair" => case_engine_rpc_unix_pair(),
+            "engine_rpc_tcp_loopback" => case_engine_rpc_tcp_loopback(),
             "engine_nogil_multi_thread_parallel_and_gc_stress" => {
                 case_engine_nogil_multi_thread_parallel_and_gc_stress()
             }
@@ -603,7 +668,9 @@ fn main() {
         "engine_error_variants",
         "engine_corrupt_pdmp_fallback_bad_magic",
         "engine_corrupt_pdmp_fallback_corrupt_body",
+        #[cfg(unix)]
         "engine_rpc_unix_pair",
+        "engine_rpc_tcp_loopback",
         "engine_nogil_multi_thread_parallel_and_gc_stress",
         "engine_nogil_send_across_threads",
         "engine_nogil_std_task_chan_sync",
@@ -619,5 +686,5 @@ fn main() {
     run_cli_subcommands(&bin, &work_dir, &cache_dir);
 
     let _ = fs::remove_dir_all(&tmp_root);
-    println!("engine_integration: all 13 integration cases passed");
+    println!("engine_integration: all integration cases passed");
 }

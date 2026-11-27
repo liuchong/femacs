@@ -70,21 +70,21 @@ pub struct termios
   pub c_ospeed: speed_t,   /* 64 */
 }
 
-#[cfg (not (any (feature = "have_android", target_os = "linux")))]
+#[cfg (not (any (feature = "have_android", target_os = "linux", target_os = "windows")))]
 const _: () = core::assert! (std::mem::size_of::<termios> () == 72);
-#[cfg (not (any (feature = "have_android", target_os = "linux")))]
+#[cfg (not (any (feature = "have_android", target_os = "linux", target_os = "windows")))]
 const _: () = core::assert! (std::mem::offset_of! (termios, c_iflag) == 0);
-#[cfg (not (any (feature = "have_android", target_os = "linux")))]
+#[cfg (not (any (feature = "have_android", target_os = "linux", target_os = "windows")))]
 const _: () = core::assert! (std::mem::offset_of! (termios, c_oflag) == 8);
-#[cfg (not (any (feature = "have_android", target_os = "linux")))]
+#[cfg (not (any (feature = "have_android", target_os = "linux", target_os = "windows")))]
 const _: () = core::assert! (std::mem::offset_of! (termios, c_cflag) == 16);
-#[cfg (not (any (feature = "have_android", target_os = "linux")))]
+#[cfg (not (any (feature = "have_android", target_os = "linux", target_os = "windows")))]
 const _: () = core::assert! (std::mem::offset_of! (termios, c_lflag) == 24);
-#[cfg (not (any (feature = "have_android", target_os = "linux")))]
+#[cfg (not (any (feature = "have_android", target_os = "linux", target_os = "windows")))]
 const _: () = core::assert! (std::mem::offset_of! (termios, c_cc) == 32);
-#[cfg (not (any (feature = "have_android", target_os = "linux")))]
+#[cfg (not (any (feature = "have_android", target_os = "linux", target_os = "windows")))]
 const _: () = core::assert! (std::mem::offset_of! (termios, c_ispeed) == 56);
-#[cfg (not (any (feature = "have_android", target_os = "linux")))]
+#[cfg (not (any (feature = "have_android", target_os = "linux", target_os = "windows")))]
 const _: () = core::assert! (std::mem::offset_of! (termios, c_ospeed) == 64);
 
 /// glibc Linux `struct termios`: 60 bytes, `tcflag_t`/`speed_t` 4 bytes, `c_line` at 16,

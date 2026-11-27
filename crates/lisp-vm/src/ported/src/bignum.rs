@@ -279,10 +279,10 @@ pub unsafe extern "C-unwind" fn mpz_to_intmax (z: *const __mpz_struct, pi: *mut 
     {
       if mpz_fits_slong_p (z) != 0
 	{
-	  *pi = mpz_get_si (z);
+	  *pi = mpz_get_si (z) as intmax_t;
 	  return true;
 	}
-      if LONG_MIN <= INTMAX_MIN && INTMAX_MAX <= LONG_MAX
+      if (LONG_MIN as intmax_t) <= INTMAX_MIN && INTMAX_MAX <= (LONG_MAX as intmax_t)
 	{ return false; }
     }
 
@@ -403,8 +403,14 @@ pub const NLIMBS_LIMIT: c_int =
 
 // C's inner `min (PTRDIFF_MAX, SIZE_MAX)` is evaluated in size_t, so the port does that
 // level in `usize` (the signed form collapses the bound to 0 — review B's B-1, a P0).
+#[cfg (not (target_os = "windows"))]
 const _: () = core::assert! (GMP_NLIMBS_MAX == 2147483647);
+#[cfg (not (target_os = "windows"))]
 const _: () = core::assert! (NLIMBS_LIMIT == 2147483647);
+#[cfg (target_os = "windows")]
+const _: () = core::assert! (GMP_NLIMBS_MAX == 67108863);
+#[cfg (target_os = "windows")]
+const _: () = core::assert! (NLIMBS_LIMIT == 67108863);
 
 /* Like mpz_size, but tell the compiler the result is a nonnegative int.  */
 
@@ -639,7 +645,7 @@ fn get_random_limb () -> mp_limb_t
 {
   {
   if GMP_NUMB_BITS <= ULONG_WIDTH
-    { return get_random_ulong (); }
+    { return get_random_ulong () as mp_limb_t; }
 
   /* Work around GCC -Wshift-count-overflow false alarm.  */
   let shift: c_int = if GMP_NUMB_BITS <= ULONG_WIDTH { 0 } else { ULONG_WIDTH };
@@ -650,7 +656,7 @@ fn get_random_limb () -> mp_limb_t
   let mut i: c_int = 0;
   while i < GMP_NUMB_BITS
     {
-      r = (r << shift) | get_random_ulong ();
+      r = (r << shift) | (get_random_ulong () as mp_limb_t);
       i += ULONG_WIDTH;
     }
   return r;

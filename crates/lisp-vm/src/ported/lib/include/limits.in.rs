@@ -94,7 +94,10 @@ pub const WORD_BIT: c_int = 32;
 
 /* limits.in.h 94-101: `LONG_BIT` - C's `#if LONG_MAX == INT_MAX` is false here, so the
    template's value is 64 (the system header's own value as well).  */
+#[cfg (not (target_os = "windows"))]
 pub const LONG_BIT: c_int = 64;
+#[cfg (target_os = "windows")]
+pub const LONG_BIT: c_int = 32;
 
 /* limits.in.h 103-106: `#ifndef MB_LEN_MAX / # define MB_LEN_MAX 16`.  The template's 16 is
    dead text on the frozen target - the system header the template includes next (its C 40)

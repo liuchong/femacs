@@ -246,14 +246,29 @@ pub struct face
   pub ascii_face: *mut face,
 }
 
+#[cfg (not (target_os = "windows"))]
 const _: () = core::assert! (std::mem::size_of::<face> () == 280 + (if cfg! (feature = "have_window_system") { 16 } else { 0 }));
 const _: () = core::assert! (std::mem::align_of::<face> () == 8);
 const _: () = core::assert! (std::mem::offset_of! (face, id) == 160);
-const _: () = core::assert! (std::mem::offset_of! (face, foreground) == 168 + (if cfg! (feature = "have_window_system") { 16 } else { 0 }));
+const _: () = core::assert! (std::mem::offset_of! (face, foreground) == (if cfg! (target_os = "windows") { 164 } else { 168 }) + (if cfg! (feature = "have_window_system") { 16 + (if cfg! (target_os = "windows") { 4 } else { 0 }) } else { 0 }));
+#[cfg (not (target_os = "windows"))]
 const _: () = core::assert! (std::mem::offset_of! (face, font) == 216 + (if cfg! (feature = "have_window_system") { 16 } else { 0 }));
+#[cfg (not (target_os = "windows"))]
 const _: () = core::assert! (std::mem::offset_of! (face, bits) == 240 + (if cfg! (feature = "have_window_system") { 16 } else { 0 }));
+#[cfg (not (target_os = "windows"))]
 const _: () = core::assert! (std::mem::offset_of! (face, hash) == 248 + (if cfg! (feature = "have_window_system") { 16 } else { 0 }));
+#[cfg (not (target_os = "windows"))]
 const _: () = core::assert! (std::mem::offset_of! (face, ascii_face) == 272 + (if cfg! (feature = "have_window_system") { 16 } else { 0 }));
+#[cfg (target_os = "windows")]
+const _: () = core::assert! (std::mem::size_of::<face> () == 256 + (if cfg! (feature = "have_window_system") { 16 } else { 0 }));
+#[cfg (target_os = "windows")]
+const _: () = core::assert! (std::mem::offset_of! (face, font) == 192 + (if cfg! (feature = "have_window_system") { 16 } else { 0 }));
+#[cfg (target_os = "windows")]
+const _: () = core::assert! (std::mem::offset_of! (face, bits) == 216 + (if cfg! (feature = "have_window_system") { 16 } else { 0 }));
+#[cfg (target_os = "windows")]
+const _: () = core::assert! (std::mem::offset_of! (face, hash) == 224 + (if cfg! (feature = "have_window_system") { 16 } else { 0 }));
+#[cfg (target_os = "windows")]
+const _: () = core::assert! (std::mem::offset_of! (face, ascii_face) == 248 + (if cfg! (feature = "have_window_system") { 16 } else { 0 }));
 
 /* The `face_box_type`/`face_underline_type` members and the `bool_bf` bits of `struct
    face`, in C's declaration order (dispextern.h 1893-1935).  The port's readers/writers go

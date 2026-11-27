@@ -210,10 +210,10 @@
     },
     "crates/lisp-core/src/os_ffi.rs": {
       "boundary_class": "os_process_ffi",
-      "caller": "crates/lisp-core/src/exec.rs (process-group signaling, signal handlers, macOS proc_pid_rusage memory accounting)",
-      "invariant": "signal_process enforces pid > 1 and pid != self; signal_process_group enforces pgid > 1; current_pgid queries caller PGID; install_termination_handlers updates only AtomicBool; proc_pid_rusage receives valid RusageInfoV2 storage",
-      "ownership": "Caller-owned RusageInfoV2 stack struct and lock-free AtomicBool termination flag",
-      "failure_path": "Returns Err(errno), None, or default 0 PID/PGID without dereferencing invalid pointers"
+      "caller": "crates/lisp-core/src/exec.rs (process/group/Job-Object termination, signal handlers, Toolhelp32 process snapshot, macOS proc_pid_rusage / Linux procfs / Windows K32GetProcessMemoryInfo accounting)",
+      "invariant": "signal_process enforces pid > 1 and pid != self; signal_process_group enforces pgid > 1; current_pgid queries caller PGID/PID; install_termination_handlers updates only AtomicBool; macOS proc_pid_rusage and Windows K32GetProcessMemoryInfo/GetProcessTimes/Process32FirstW pass initialized cb/dwSize structs and close every Win32 HANDLE before return",
+      "ownership": "Caller-owned stack structs, lock-free AtomicBool termination flag, and RAII Win32 ProcessJob HANDLE closed once on Drop",
+      "failure_path": "Returns Err(errno/msg), None, or default 0 PID/PGID without dereferencing invalid pointers or leaking Win32 handles"
     },
     "crates/lisp-vm/src/host_runtime.rs": {
       "boundary_class": "process_bootstrap_abi",

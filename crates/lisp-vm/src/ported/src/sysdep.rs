@@ -171,11 +171,14 @@ pub struct rusage {
   pub ru_nivcsw: c_long,
 }
 
+#[cfg (not (target_os = "windows"))]
 const _: () = core::assert! (std::mem::size_of::<rusage> () == 144);
 const _: () = core::assert! (std::mem::offset_of! (rusage, ru_utime) == 0);
 const _: () = core::assert! (std::mem::offset_of! (rusage, ru_stime) == 16);
 const _: () = core::assert! (std::mem::offset_of! (rusage, ru_maxrss) == 32);
+#[cfg (not (target_os = "windows"))]
 const _: () = core::assert! (std::mem::offset_of! (rusage, ru_minflt) == 64);
+#[cfg (not (target_os = "windows"))]
 const _: () = core::assert! (std::mem::offset_of! (rusage, ru_majflt) == 72);
 
 /* systty.h 66-75: `struct emacs_tty { struct termios main; };` now comes from
@@ -4933,15 +4936,15 @@ pub struct speed_struct {
   pub internal: speed_t,
 }
 
-#[cfg (not (any (feature = "have_android", target_os = "linux")))]
+#[cfg (not (any (feature = "have_android", target_os = "linux", target_os = "windows")))]
 const _: () = core::assert! (std::mem::size_of::<speed_struct> () == 16);
-/* Two `speed_t`: 8 + 8 on the host, 4 + 4 on bionic / Linux. */
-#[cfg (any (feature = "have_android", target_os = "linux"))]
+/* Two `speed_t`: 8 + 8 on the host, 4 + 4 on bionic / Linux / Windows. */
+#[cfg (any (feature = "have_android", target_os = "linux", target_os = "windows"))]
 const _: () = core::assert! (std::mem::size_of::<speed_struct> () == 8);
 const _: () = core::assert! (std::mem::offset_of! (speed_struct, value) == 0);
-#[cfg (not (any (feature = "have_android", target_os = "linux")))]
+#[cfg (not (any (feature = "have_android", target_os = "linux", target_os = "windows")))]
 const _: () = core::assert! (std::mem::offset_of! (speed_struct, internal) == 8);
-#[cfg (any (feature = "have_android", target_os = "linux"))]
+#[cfg (any (feature = "have_android", target_os = "linux", target_os = "windows"))]
 const _: () = core::assert! (std::mem::offset_of! (speed_struct, internal) == 4);
 
 static speeds: [speed_struct; 21] =

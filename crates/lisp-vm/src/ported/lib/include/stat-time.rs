@@ -144,7 +144,7 @@ fn normalize_one_timespec(ts: &mut timespec) -> bool {
         q -= 1;
     }
     ts.tv_nsec = r;
-    let (sum, overflow) = q.overflowing_add(ts.tv_sec);
+    let (sum, overflow) = (q as time_t).overflowing_add(ts.tv_sec);
     ts.tv_sec = sum;
     !overflow
 }

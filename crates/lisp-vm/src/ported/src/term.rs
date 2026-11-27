@@ -316,6 +316,7 @@ pub struct face
 {
   pub _pad_lface: [u8; 160],            // 1789-1794: `Lisp_Object lface[LFACE_VECTOR_SIZE]`
   pub id: c_int,                        // 1795, offset 160
+  #[cfg (any (not (target_os = "windows"), feature = "have_window_system"))]
   pub _pad_id: [u8; 4],
   /* dispextern.h 1797-1811: `gc` and `stipple` exist in a window-system build and push every
      later member by sixteen bytes; Android has them (status 4.816).  */
@@ -323,7 +324,12 @@ pub struct face
   pub foreground: c_ulong,              // 1816, offset 168 (184 with the block)
   pub background: c_ulong,              // 1819, offset 176
   pub underline_color: c_ulong,         // 1823, offset 184
+  #[cfg (not (target_os = "windows"))]
   pub _pad_mid: [u8; 48],               // 1824-1839: overline/strike/box colours … box widths
+  #[cfg (all (target_os = "windows", not (feature = "have_window_system")))]
+  pub _pad_mid: [u8; 40],               // Windows LLP64 without window system: 176 .. 216
+  #[cfg (all (target_os = "windows", feature = "have_window_system"))]
+  pub _pad_mid: [u8; 36],               // Windows LLP64 with window system: 196 .. 232
   /// dispextern.h 2400-2402: `enum face_underline_type underline : 3` (bits 2-4 of the byte
   /// at 240) and the six `bool_bf` members of the bytes at 241-242.  This unit reads
   /// `underline`, `tty_bold_p`, `tty_italic_p`, `tty_reverse_p`, `tty_strike_through_p` and
@@ -347,11 +353,23 @@ pub fn face_underline (f: *const face) -> face_underline_type
 {
   unsafe { (((*f).bits [0] & FACE_UNDERLINE_MASK) >> FACE_UNDERLINE_SHIFT) as face_underline_type }
 }
+#[cfg (not (target_os = "windows"))]
 const _: () = core::assert! (std::mem::size_of::<face> () == 280 + (if cfg! (feature = "have_window_system") { 16 } else { 0 }));
-const _: () = core::assert! (std::mem::offset_of! (face, foreground) == 168 + (if cfg! (feature = "have_window_system") { 16 } else { 0 }));
+const _: () = core::assert! (std::mem::offset_of! (face, foreground) == (if cfg! (target_os = "windows") { 164 } else { 168 }) + (if cfg! (feature = "have_window_system") { 16 + (if cfg! (target_os = "windows") { 4 } else { 0 }) } else { 0 }));
+#[cfg (not (target_os = "windows"))]
 const _: () = core::assert! (std::mem::offset_of! (face, background) == 176 + (if cfg! (feature = "have_window_system") { 16 } else { 0 }));
+#[cfg (not (target_os = "windows"))]
 const _: () = core::assert! (std::mem::offset_of! (face, underline_color) == 184 + (if cfg! (feature = "have_window_system") { 16 } else { 0 }));
+#[cfg (not (target_os = "windows"))]
 const _: () = core::assert! (std::mem::offset_of! (face, bits) == 240 + (if cfg! (feature = "have_window_system") { 16 } else { 0 }));
+#[cfg (target_os = "windows")]
+const _: () = core::assert! (std::mem::size_of::<face> () == 256 + (if cfg! (feature = "have_window_system") { 16 } else { 0 }));
+#[cfg (target_os = "windows")]
+const _: () = core::assert! (std::mem::offset_of! (face, background) == 168 + (if cfg! (feature = "have_window_system") { 20 } else { 0 }));
+#[cfg (target_os = "windows")]
+const _: () = core::assert! (std::mem::offset_of! (face, underline_color) == 172 + (if cfg! (feature = "have_window_system") { 20 } else { 0 }));
+#[cfg (target_os = "windows")]
+const _: () = core::assert! (std::mem::offset_of! (face, bits) == 216 + (if cfg! (feature = "have_window_system") { 16 } else { 0 }));
 
 /* dispextern.h 1998-2010's `FACE_FROM_ID`/`FACE_FROM_ID_OR_NULL` (frame.h 1643-1666) and
    frame.h 1379's `FRAME_FACE_CACHE`.  */

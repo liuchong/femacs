@@ -41,7 +41,7 @@ pub struct emacs_tty
   pub main: termios,
 }
 
-#[cfg (not (any (feature = "have_android", target_os = "linux")))]
+#[cfg (not (any (feature = "have_android", target_os = "linux", target_os = "windows")))]
 const _: () = core::assert! (std::mem::size_of::<emacs_tty> () == 72);
 /* `emacs_tty` is C's `struct termios` alone: 36B bionic, 60B Linux glibc, 72B Darwin. */
 #[cfg (feature = "have_android")]

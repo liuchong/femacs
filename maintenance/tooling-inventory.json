@@ -8919,8 +8919,8 @@
     },
     {
       "path": "tools/unsafe-boundary-manifest.json",
-      "sha256": "8f2441226c54277fe86eec6933c26dfa6f94335a55c86f2617bf61efbfa5d986",
-      "bytes": 157519,
+      "sha256": "48c54756c4e3b357f28a249e7756ff8061d61048c7ef4dd69aa537200ec8d633",
+      "bytes": 157791,
       "family": "fixture",
       "decision": "retain",
       "replacement": null,

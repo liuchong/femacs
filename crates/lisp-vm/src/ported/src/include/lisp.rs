@@ -66,8 +66,14 @@ pub type intmax_t = i64;
 pub type uintmax_t = u64;
 // src/lisp.h 90-102 define these as enum members chosen from the integer widths;
 // on this target EMACS_INT is long long.
+#[cfg (not (target_os = "windows"))]
 pub const EMACS_INT_WIDTH: usize = LONG_WIDTH as usize;   // lisp.h 96 (the live branch)
+#[cfg (not (target_os = "windows"))]
 pub const EMACS_UINT_WIDTH: usize = ULONG_WIDTH as usize; // lisp.h 96
+#[cfg (target_os = "windows")]
+pub const EMACS_INT_WIDTH: usize = LLONG_WIDTH as usize;
+#[cfg (target_os = "windows")]
+pub const EMACS_UINT_WIDTH: usize = ULLONG_WIDTH as usize;
 pub const EMACS_INT_MAX: EMACS_INT = EMACS_INT::MAX;
 pub const EMACS_INT_MIN: EMACS_INT = EMACS_INT::MIN;
 
@@ -1151,18 +1157,20 @@ pub const BOOL_VECTOR_BITS_PER_CHAR: usize = 8;
    `sigsetjmp` write 68 bytes past it, into the statics that follow - `Vauto_save_timeout` is the
    next one in the linked layout, and the first GC then aborted on a value whose type tag is
    unused (status 4.789).  */
-#[cfg (not (any (feature = "have_android", target_os = "linux")))]
+#[cfg (not (any (feature = "have_android", target_os = "linux", target_os = "windows")))]
 pub type jmp_buf = [u8; 192];
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "windows"))]
 pub type jmp_buf = [u8; 256];
 #[cfg (all (target_os = "linux", target_arch = "aarch64"))]
 pub type jmp_buf = [u8; 312];
 #[cfg (all (target_os = "linux", target_arch = "x86_64"))]
 pub type jmp_buf = [u8; 200];
-#[cfg (not (any (feature = "have_android", target_os = "linux")))]
+#[cfg (not (any (feature = "have_android", target_os = "linux", target_os = "windows")))]
 pub type sigjmp_buf = [u8; 196];
 #[cfg (feature = "have_android")]
 pub type sigjmp_buf = [u8; 264];
+#[cfg (target_os = "windows")]
+pub type sigjmp_buf = [u8; 256];
 #[cfg (all (target_os = "linux", target_arch = "aarch64"))]
 pub type sigjmp_buf = [u8; 312];
 #[cfg (all (target_os = "linux", target_arch = "x86_64"))]
@@ -1170,15 +1178,17 @@ pub type sigjmp_buf = [u8; 200];
 
 /* The two records are read and written by the C library itself, so their sizes are the target's
    contract.  Measured with GCC/Clang `<setjmp.h>`: Darwin 192/196, bionic 256/264,
-   aarch64-linux-gnu 312/312, x86_64-linux-gnu 200/200.  */
-#[cfg (not (any (feature = "have_android", target_os = "linux")))]
+   aarch64-linux-gnu 312/312, x86_64-linux-gnu 200/200, Win64 _JUMP_BUFFER 256/256.  */
+#[cfg (not (any (feature = "have_android", target_os = "linux", target_os = "windows")))]
 const _: () = core::assert! (core::mem::size_of::<jmp_buf> () == 192);
-#[cfg (not (any (feature = "have_android", target_os = "linux")))]
+#[cfg (not (any (feature = "have_android", target_os = "linux", target_os = "windows")))]
 const _: () = core::assert! (core::mem::size_of::<sigjmp_buf> () == 196);
-#[cfg (feature = "have_android")]
+#[cfg (any (feature = "have_android", target_os = "windows"))]
 const _: () = core::assert! (core::mem::size_of::<jmp_buf> () == 256);
 #[cfg (feature = "have_android")]
 const _: () = core::assert! (core::mem::size_of::<sigjmp_buf> () == 264);
+#[cfg (target_os = "windows")]
+const _: () = core::assert! (core::mem::size_of::<sigjmp_buf> () == 256);
 #[cfg (all (target_os = "linux", target_arch = "aarch64"))]
 const _: () = core::assert! (core::mem::size_of::<jmp_buf> () == 312);
 #[cfg (all (target_os = "linux", target_arch = "aarch64"))]

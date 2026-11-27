@@ -172,8 +172,14 @@ macro_rules! UINT64_C { ($x:expr) => { $x as core::ffi::c_ulonglong }; }
 
 /* C 657-675: 7.18.4.2's greatest-width constants, C's `x##L` and `x##UL` (the frozen
    `intmax_t`/`uintmax_t` are `long`/`unsigned long`, measured).  */
+#[cfg (not (target_os = "windows"))]
 macro_rules! INTMAX_C { ($x:expr) => { $x as core::ffi::c_long }; }
+#[cfg (target_os = "windows")]
+macro_rules! INTMAX_C { ($x:expr) => { $x as core::ffi::c_longlong }; }
+#[cfg (not (target_os = "windows"))]
 macro_rules! UINTMAX_C { ($x:expr) => { $x as core::ffi::c_ulong }; }
+#[cfg (target_os = "windows")]
+macro_rules! UINTMAX_C { ($x:expr) => { $x as core::ffi::c_ulonglong }; }
 
 /* C 383-409: 7.18.2.1's exact-width limits.  Each minimum is C's `(~ MAX)`, and the types are
    the measured ones (`int`, `int`/`unsigned int`, `long long`/`unsigned long long`).  */
@@ -228,9 +234,18 @@ pub const UINT_FAST64_MAX: core::ffi::c_ulonglong = UINT64_MAX;
 /* C 506-508: 7.18.2.4's pointer-width limits.  `intptr_t` is `long` here (measured), so C's
    bodies are `LONG_MIN`/`LONG_MAX`, and `uintptr_t` is `unsigned long`, so `ULONG_MAX` - which
    the port's `usize` reads through one cast.  */
+#[cfg (not (target_os = "windows"))]
 pub const INTPTR_MIN: core::ffi::c_long = LONG_MIN;
+#[cfg (not (target_os = "windows"))]
 pub const INTPTR_MAX: core::ffi::c_long = LONG_MAX;
+#[cfg (not (target_os = "windows"))]
 pub const UINTPTR_MAX: uintptr_t = ULONG_MAX as uintptr_t;
+#[cfg (target_os = "windows")]
+pub const INTPTR_MIN: isize = isize::MIN;
+#[cfg (target_os = "windows")]
+pub const INTPTR_MAX: isize = isize::MAX;
+#[cfg (target_os = "windows")]
+pub const UINTPTR_MAX: uintptr_t = usize::MAX;
 
 /* C 519-528: 7.18.2.5's greatest-width limits.  The port's `intmax_t`/`uintmax_t` are `i64`/
    `u64` (PORTING.md 1.1); the frozen values are C's 64-bit `long`/`unsigned long` ones.  */

@@ -5,6 +5,7 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::fs::{self, File};
 use std::io::Read;
+#[cfg(unix)]
 use std::os::unix::process::{CommandExt, ExitStatusExt};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
@@ -301,6 +302,7 @@ fn spawn_pipe_drain<R: Read + Send + 'static>(
     PipeDrain { done_rx, snapshot }
 }
 
+#[cfg(unix)]
 fn snapshot_process_table() -> Result<Vec<ProcRow>, String> {
     let out = Command::new("ps")
         .args(["-o", "pid=,ppid=,pgid=,rss=,lstart=", "-ax"])
@@ -336,6 +338,21 @@ fn snapshot_process_table() -> Result<Vec<ProcRow>, String> {
         });
     }
     Ok(rows)
+}
+
+#[cfg(windows)]
+fn snapshot_process_table() -> Result<Vec<ProcRow>, String> {
+    let win_rows = os_ffi::snapshot_windows_processes()?;
+    Ok(win_rows
+        .into_iter()
+        .map(|row| ProcRow {
+            pid: row.pid,
+            ppid: row.ppid,
+            pgid: 0,
+            rss_bytes: 0,
+            lstart: String::new(),
+        })
+        .collect())
 }
 
 fn collect_tree_closure(rows: &[ProcRow], root_pid: u32) -> BTreeSet<u32> {
@@ -724,6 +741,7 @@ fn reap_tracked_tree(tree: &mut TrackedTree) -> bool {
     )
 }
 
+#[cfg(target_os = "linux")]
 fn shell_quote_posix(arg: &str) -> String {
     let mut out = String::with_capacity(arg.len() + 2);
     out.push('\'');
@@ -738,13 +756,26 @@ fn shell_quote_posix(arg: &str) -> String {
     out
 }
 
-fn build_child_command(spec: &SuperviseSpec) -> Command {
-    let mut cmd = if spec.pty && cfg!(target_os = "macos") {
+fn build_child_command(spec: &SuperviseSpec) -> Result<Command, String> {
+    #[cfg(windows)]
+    if spec.pty {
+        return Err("--pty supervision is not supported on Windows".to_string());
+    }
+
+    #[cfg(target_os = "macos")]
+    let mut cmd = if spec.pty {
         let mut c = Command::new("/usr/bin/script");
         c.args(["-q", "/dev/null", &spec.program]);
         c.args(&spec.program_args);
         c
-    } else if spec.pty && cfg!(target_os = "linux") {
+    } else {
+        let mut c = Command::new(&spec.program);
+        c.args(&spec.program_args);
+        c
+    };
+
+    #[cfg(target_os = "linux")]
+    let mut cmd = if spec.pty {
         let mut cmd_parts = Vec::with_capacity(1 + spec.program_args.len());
         cmd_parts.push(shell_quote_posix(&spec.program));
         for arg in &spec.program_args {
@@ -758,6 +789,14 @@ fn build_child_command(spec: &SuperviseSpec) -> Command {
         c.args(&spec.program_args);
         c
     };
+
+    #[cfg(not(any(target_os = "macos", target_os = "linux")))]
+    let mut cmd = {
+        let mut c = Command::new(&spec.program);
+        c.args(&spec.program_args);
+        c
+    };
+
     if let Some(dir) = &spec.cwd {
         cmd.current_dir(dir);
     }
@@ -770,19 +809,34 @@ fn build_child_command(spec: &SuperviseSpec) -> Command {
     cmd.stdin(Stdio::null());
     cmd.stdout(Stdio::piped());
     cmd.stderr(Stdio::piped());
+    #[cfg(unix)]
     cmd.process_group(0);
-    cmd
+    Ok(cmd)
+}
+
+fn exit_status_signal(status: &std::process::ExitStatus) -> Option<i32> {
+    #[cfg(unix)]
+    {
+        status.signal()
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = status;
+        None
+    }
 }
 
 fn run_supervise(args: &[String]) -> Result<SuperviseReceipt, String> {
     let spec = parse_supervise_args(args)?;
     os_ffi::install_termination_handlers();
-    let mut cmd = build_child_command(&spec);
+    let mut cmd = build_child_command(&spec)?;
     let started = Instant::now();
     let mut child = cmd
         .spawn()
         .map_err(|e| format!("failed to spawn {}: {e}", spec.program))?;
     let root_pid = child.id();
+    #[cfg(windows)]
+    let job = os_ffi::ProcessJob::create_for_pid(root_pid);
     let mut tree = TrackedTree::new(root_pid);
 
     let stdout_drain = spawn_pipe_drain(
@@ -803,6 +857,10 @@ fn run_supervise(args: &[String]) -> Result<SuperviseReceipt, String> {
 
     let status = loop {
         if os_ffi::termination_requested() {
+            #[cfg(windows)]
+            if let Some(ref j) = job {
+                j.terminate(1);
+            }
             terminate_tracked_tree(&mut child, &mut tree);
             let _ = child.wait();
             tree.drop_root_after_wait();
@@ -825,6 +883,10 @@ fn run_supervise(args: &[String]) -> Result<SuperviseReceipt, String> {
                 max_tree_pids = max_tree_pids.max(count);
                 if spec.memory_limit_bytes > 0 && acc > spec.memory_limit_bytes {
                     memory_exceeded = true;
+                    #[cfg(windows)]
+                    if let Some(ref j) = job {
+                        j.terminate(1);
+                    }
                     terminate_tracked_tree(&mut child, &mut tree);
                     break child.wait().map_err(|e| e.to_string())?;
                 }
@@ -838,6 +900,10 @@ fn run_supervise(args: &[String]) -> Result<SuperviseReceipt, String> {
         let elapsed_now = started.elapsed().as_millis() as u64;
         if spec.timeout_ms > 0 && elapsed_now >= spec.timeout_ms {
             timed_out = true;
+            #[cfg(windows)]
+            if let Some(ref j) = job {
+                j.terminate(1);
+            }
             terminate_tracked_tree(&mut child, &mut tree);
             break child.wait().map_err(|e| e.to_string())?;
         }
@@ -859,7 +925,7 @@ fn run_supervise(args: &[String]) -> Result<SuperviseReceipt, String> {
     Ok(SuperviseReceipt {
         schema: "femacs-test-exec-v1",
         exit_code: status.code(),
-        signal: status.signal(),
+        signal: exit_status_signal(&status),
         timed_out,
         memory_exceeded,
         elapsed_ms,

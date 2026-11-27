@@ -995,6 +995,7 @@ pub struct face
   pub id: c_int,                        // offset 160
   /* 164 … 168 in both arms: C aligns `foreground` to 8, and the window arm puts `gc`/`stipple`
      (168, 176) between it and `id`.  */
+  #[cfg (any (not (target_os = "windows"), feature = "have_window_system"))]
   _pad0: [u8; 4],
   /* C 1797-1811: the two members `#ifdef HAVE_WINDOW_SYSTEM` adds between `id` and `foreground`
      (`gc`@168, `stipple`@176), which move `foreground` to 184 and the record to 296
@@ -1010,11 +1011,16 @@ pub struct face
   /// C 1796-1826: the alignment hole after `id` and `foreground` (offset 164 … 176), then
   /// `background` — the one color member the round's `extend_face_to_end_of_line` reads
   /// (C 24448 and 24753's `face->background == FRAME_BACKGROUND_PIXEL (f)` test).
-  pub foreground: c_ulong,              // 168 frozen / 184 window
-  pub background: c_ulong,              // 176 frozen / 192 window
+  pub foreground: c_ulong,              // 168 frozen / 184 window (164 win64)
+  pub background: c_ulong,              // 176 frozen / 192 window (168 win64)
   /// C 1796-1826: `underline_color`, `overline_color`, `strike_through_color` and
   /// `box_color` (offset 184 … 216).  clang measures `id`@160 and `font`@216.
+  #[cfg (not (target_os = "windows"))]
   _pad0c: [u8; 32],                     // offset 184 … 216
+  #[cfg (all (target_os = "windows", not (feature = "have_window_system")))]
+  _pad0c: [u8; 20],                     // 4 * 4B colors + 4B alignment before `font`
+  #[cfg (all (target_os = "windows", feature = "have_window_system"))]
+  _pad0c: [u8; 16],                     // 4 * 4B colors before 8-aligned `font`
   /// The font used for this face.  (C 1828; `include/font.rs`'s `struct font`, clang: 216)
   pub font: *mut font,                  // offset 216
   /// C 1830-1832: `fontset` (offset 224 … 228).
@@ -1034,28 +1040,40 @@ pub struct face
   pub prev: *mut face,
   pub ascii_face: *mut face,
 }
-#[cfg (not (feature = "have_window_system"))]
+#[cfg (all (not (target_os = "windows"), not (feature = "have_window_system")))]
 const _: () = core::assert! (core::mem::size_of::<face> () == 280);
-#[cfg (feature = "have_window_system")]
+#[cfg (all (not (target_os = "windows"), feature = "have_window_system"))]
 const _: () = core::assert! (core::mem::size_of::<face> () == 296);
 const _: () = core::assert! (core::mem::align_of::<face> () == 8);
 const _: () = core::assert! (core::mem::offset_of! (face, id) == 160);
-#[cfg (not (feature = "have_window_system"))]
+#[cfg (all (not (target_os = "windows"), not (feature = "have_window_system")))]
 const _: () = core::assert! (core::mem::offset_of! (face, background) == 176);
-#[cfg (feature = "have_window_system")]
+#[cfg (all (not (target_os = "windows"), feature = "have_window_system"))]
 const _: () = core::assert! (core::mem::offset_of! (face, background) == 192);
-#[cfg (not (feature = "have_window_system"))]
+#[cfg (all (not (target_os = "windows"), not (feature = "have_window_system")))]
 const _: () = core::assert! (core::mem::offset_of! (face, font) == 216);
-#[cfg (feature = "have_window_system")]
+#[cfg (all (not (target_os = "windows"), feature = "have_window_system"))]
 const _: () = core::assert! (core::mem::offset_of! (face, font) == 232);
-#[cfg (not (feature = "have_window_system"))]
+#[cfg (all (not (target_os = "windows"), not (feature = "have_window_system")))]
 const _: () = core::assert! (core::mem::offset_of! (face, box_vertical_line_width) == 228);
-#[cfg (feature = "have_window_system")]
+#[cfg (all (not (target_os = "windows"), feature = "have_window_system"))]
 const _: () = core::assert! (core::mem::offset_of! (face, box_vertical_line_width) == 244);
-#[cfg (not (feature = "have_window_system"))]
+#[cfg (all (not (target_os = "windows"), not (feature = "have_window_system")))]
 const _: () = core::assert! (core::mem::offset_of! (face, bits) == 240);
-#[cfg (feature = "have_window_system")]
+#[cfg (all (not (target_os = "windows"), feature = "have_window_system"))]
 const _: () = core::assert! (core::mem::offset_of! (face, bits) == 256);
+#[cfg (all (target_os = "windows", not (feature = "have_window_system")))]
+const _: () = core::assert! (core::mem::size_of::<face> () == 256);
+#[cfg (all (target_os = "windows", feature = "have_window_system"))]
+const _: () = core::assert! (core::mem::size_of::<face> () == 272);
+#[cfg (all (target_os = "windows", not (feature = "have_window_system")))]
+const _: () = core::assert! (core::mem::offset_of! (face, background) == 168);
+#[cfg (all (target_os = "windows", not (feature = "have_window_system")))]
+const _: () = core::assert! (core::mem::offset_of! (face, font) == 192);
+#[cfg (all (target_os = "windows", not (feature = "have_window_system")))]
+const _: () = core::assert! (core::mem::offset_of! (face, box_vertical_line_width) == 204);
+#[cfg (all (target_os = "windows", not (feature = "have_window_system")))]
+const _: () = core::assert! (core::mem::offset_of! (face, bits) == 216);
 
 pub const FACE_BOX_SHIFT: u32 = 0;
 pub const FACE_BOX_MASK: u32 = 0x3;

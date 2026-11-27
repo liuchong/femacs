@@ -1166,11 +1166,23 @@ pub struct compile_stack_elt_t
   pub laststart_offset: pattern_offset_t,
   pub regnum: regnum_t,
 }
+#[cfg (not (target_os = "windows"))]
 const _: () = core::assert! (std::mem::size_of::<compile_stack_elt_t> () == 32);
 const _: () = core::assert! (std::mem::offset_of! (compile_stack_elt_t, begalt_offset) == 0);
+#[cfg (not (target_os = "windows"))]
 const _: () = core::assert! (std::mem::offset_of! (compile_stack_elt_t, fixup_alt_jump) == 8);
+#[cfg (not (target_os = "windows"))]
 const _: () = core::assert! (std::mem::offset_of! (compile_stack_elt_t, laststart_offset) == 16);
+#[cfg (not (target_os = "windows"))]
 const _: () = core::assert! (std::mem::offset_of! (compile_stack_elt_t, regnum) == 24);
+#[cfg (target_os = "windows")]
+const _: () = core::assert! (std::mem::size_of::<compile_stack_elt_t> () == 16);
+#[cfg (target_os = "windows")]
+const _: () = core::assert! (std::mem::offset_of! (compile_stack_elt_t, fixup_alt_jump) == 4);
+#[cfg (target_os = "windows")]
+const _: () = core::assert! (std::mem::offset_of! (compile_stack_elt_t, laststart_offset) == 8);
+#[cfg (target_os = "windows")]
+const _: () = core::assert! (std::mem::offset_of! (compile_stack_elt_t, regnum) == 12);
 
 #[repr(C)]
 #[derive(Clone, Copy)]

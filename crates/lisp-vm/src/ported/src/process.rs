@@ -8193,21 +8193,21 @@ pub struct termios
   pub c_ispeed: c_ulong,
   pub c_ospeed: c_ulong,
 }
-#[cfg (not (target_os = "linux"))]
+#[cfg (not (any (target_os = "linux", target_os = "windows")))]
 const _: () = core::assert! (std::mem::size_of::<termios> () == 72);
-#[cfg (not (target_os = "linux"))]
+#[cfg (not (any (target_os = "linux", target_os = "windows")))]
 const _: () = core::assert! (std::mem::offset_of! (termios, c_iflag) == 0);
-#[cfg (not (target_os = "linux"))]
+#[cfg (not (any (target_os = "linux", target_os = "windows")))]
 const _: () = core::assert! (std::mem::offset_of! (termios, c_oflag) == 8);
-#[cfg (not (target_os = "linux"))]
+#[cfg (not (any (target_os = "linux", target_os = "windows")))]
 const _: () = core::assert! (std::mem::offset_of! (termios, c_cflag) == 16);
-#[cfg (not (target_os = "linux"))]
+#[cfg (not (any (target_os = "linux", target_os = "windows")))]
 const _: () = core::assert! (std::mem::offset_of! (termios, c_lflag) == 24);
-#[cfg (not (target_os = "linux"))]
+#[cfg (not (any (target_os = "linux", target_os = "windows")))]
 const _: () = core::assert! (std::mem::offset_of! (termios, c_cc) == 32);
-#[cfg (not (target_os = "linux"))]
+#[cfg (not (any (target_os = "linux", target_os = "windows")))]
 const _: () = core::assert! (std::mem::offset_of! (termios, c_ispeed) == 56);
-#[cfg (not (target_os = "linux"))]
+#[cfg (not (any (target_os = "linux", target_os = "windows")))]
 const _: () = core::assert! (std::mem::offset_of! (termios, c_ospeed) == 64);
 /// C: `<termios.h>`'s `struct termios`, measured 60/4 on glibc Linux.
 #[cfg (target_os = "linux")]

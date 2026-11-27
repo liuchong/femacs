@@ -324,9 +324,9 @@ pub struct face
   pub ascii_face: *mut face,
 }
 
-#[cfg (not (feature = "have_window_system"))]
+#[cfg (all (not (target_os = "windows"), not (feature = "have_window_system")))]
 const _: () = core::assert! (std::mem::size_of::<face> () == 280);
-#[cfg (feature = "have_window_system")]
+#[cfg (all (not (target_os = "windows"), feature = "have_window_system"))]
 const _: () = core::assert! (std::mem::size_of::<face> () == 296);
 const _: () = core::assert! (std::mem::align_of::<face> () == 8);
 const _: () = core::assert! (std::mem::offset_of! (face, id) == 160);
@@ -335,53 +335,63 @@ const _: () = core::assert! (std::mem::offset_of! (face, gc) == 168);
 #[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (face, stipple) == 176);
 #[cfg (not (feature = "have_window_system"))]
-const _: () = core::assert! (std::mem::offset_of! (face, foreground) == 168);
+const _: () = core::assert! (std::mem::offset_of! (face, foreground) == (if cfg! (target_os = "windows") { 164 } else { 168 }));
 #[cfg (feature = "have_window_system")]
-const _: () = core::assert! (std::mem::offset_of! (face, foreground) == 184);
-#[cfg (not (feature = "have_window_system"))]
+const _: () = core::assert! (std::mem::offset_of! (face, foreground) == (if cfg! (target_os = "windows") { 184 } else { 184 }));
+#[cfg (all (not (target_os = "windows"), not (feature = "have_window_system")))]
 const _: () = core::assert! (std::mem::offset_of! (face, background) == 176);
-#[cfg (feature = "have_window_system")]
+#[cfg (all (not (target_os = "windows"), feature = "have_window_system"))]
 const _: () = core::assert! (std::mem::offset_of! (face, background) == 192);
-#[cfg (not (feature = "have_window_system"))]
+#[cfg (all (not (target_os = "windows"), not (feature = "have_window_system")))]
 const _: () = core::assert! (std::mem::offset_of! (face, underline_color) == 184);
-#[cfg (feature = "have_window_system")]
+#[cfg (all (not (target_os = "windows"), feature = "have_window_system"))]
 const _: () = core::assert! (std::mem::offset_of! (face, underline_color) == 200);
-#[cfg (not (feature = "have_window_system"))]
+#[cfg (all (not (target_os = "windows"), not (feature = "have_window_system")))]
 const _: () = core::assert! (std::mem::offset_of! (face, overline_color) == 192);
-#[cfg (feature = "have_window_system")]
+#[cfg (all (not (target_os = "windows"), feature = "have_window_system"))]
 const _: () = core::assert! (std::mem::offset_of! (face, overline_color) == 208);
-#[cfg (not (feature = "have_window_system"))]
+#[cfg (all (not (target_os = "windows"), not (feature = "have_window_system")))]
 const _: () = core::assert! (std::mem::offset_of! (face, strike_through_color) == 200);
-#[cfg (feature = "have_window_system")]
+#[cfg (all (not (target_os = "windows"), feature = "have_window_system"))]
 const _: () = core::assert! (std::mem::offset_of! (face, strike_through_color) == 216);
-#[cfg (not (feature = "have_window_system"))]
+#[cfg (all (not (target_os = "windows"), not (feature = "have_window_system")))]
 const _: () = core::assert! (std::mem::offset_of! (face, box_color) == 208);
-#[cfg (feature = "have_window_system")]
+#[cfg (all (not (target_os = "windows"), feature = "have_window_system"))]
 const _: () = core::assert! (std::mem::offset_of! (face, box_color) == 224);
-#[cfg (not (feature = "have_window_system"))]
+#[cfg (all (not (target_os = "windows"), not (feature = "have_window_system")))]
 const _: () = core::assert! (std::mem::offset_of! (face, font) == 216);
-#[cfg (feature = "have_window_system")]
+#[cfg (all (not (target_os = "windows"), feature = "have_window_system"))]
 const _: () = core::assert! (std::mem::offset_of! (face, font) == 232);
-#[cfg (not (feature = "have_window_system"))]
+#[cfg (all (not (target_os = "windows"), not (feature = "have_window_system")))]
 const _: () = core::assert! (std::mem::offset_of! (face, fontset) == 224);
-#[cfg (feature = "have_window_system")]
+#[cfg (all (not (target_os = "windows"), feature = "have_window_system"))]
 const _: () = core::assert! (std::mem::offset_of! (face, fontset) == 240);
-#[cfg (not (feature = "have_window_system"))]
+#[cfg (all (not (target_os = "windows"), not (feature = "have_window_system")))]
 const _: () = core::assert! (std::mem::offset_of! (face, bits) == 240);
-#[cfg (feature = "have_window_system")]
+#[cfg (all (not (target_os = "windows"), feature = "have_window_system"))]
 const _: () = core::assert! (std::mem::offset_of! (face, bits) == 256);
-#[cfg (not (feature = "have_window_system"))]
+#[cfg (all (not (target_os = "windows"), not (feature = "have_window_system")))]
 const _: () = core::assert! (std::mem::offset_of! (face, hash) == 248);
-#[cfg (feature = "have_window_system")]
+#[cfg (all (not (target_os = "windows"), feature = "have_window_system"))]
 const _: () = core::assert! (std::mem::offset_of! (face, hash) == 264);
-#[cfg (not (feature = "have_window_system"))]
+#[cfg (all (not (target_os = "windows"), not (feature = "have_window_system")))]
 const _: () = core::assert! (std::mem::offset_of! (face, next) == 256);
-#[cfg (feature = "have_window_system")]
+#[cfg (all (not (target_os = "windows"), feature = "have_window_system"))]
 const _: () = core::assert! (std::mem::offset_of! (face, next) == 272);
-#[cfg (not (feature = "have_window_system"))]
+#[cfg (all (not (target_os = "windows"), not (feature = "have_window_system")))]
 const _: () = core::assert! (std::mem::offset_of! (face, ascii_face) == 272);
-#[cfg (feature = "have_window_system")]
+#[cfg (all (not (target_os = "windows"), feature = "have_window_system"))]
 const _: () = core::assert! (std::mem::offset_of! (face, ascii_face) == 288);
+#[cfg (all (target_os = "windows", not (feature = "have_window_system")))]
+const _: () = core::assert! (std::mem::size_of::<face> () == 256);
+#[cfg (all (target_os = "windows", not (feature = "have_window_system")))]
+const _: () = core::assert! (std::mem::offset_of! (face, background) == 168);
+#[cfg (all (target_os = "windows", not (feature = "have_window_system")))]
+const _: () = core::assert! (std::mem::offset_of! (face, font) == 192);
+#[cfg (all (target_os = "windows", not (feature = "have_window_system")))]
+const _: () = core::assert! (std::mem::offset_of! (face, bits) == 216);
+#[cfg (all (target_os = "windows", not (feature = "have_window_system")))]
+const _: () = core::assert! (std::mem::offset_of! (face, ascii_face) == 248);
 
 /* `struct font` (font.h 275-418) comes from `include/font.rs` now; this unit reads `props`,
    `pixel_size` and `average_width` of it (docs/ports/include-font.md).  */

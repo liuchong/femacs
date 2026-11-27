@@ -50,10 +50,16 @@ const _: () = ();
 /// unit that hands it to `sys_setjmp` spells the cast then.
 #[repr(C, align(4))]
 #[derive(Clone, Copy)]
-#[cfg (not (any (feature = "have_android", target_os = "linux")))]
+#[cfg (not (any (feature = "have_android", target_os = "linux", target_os = "windows")))]
 pub struct sys_jmp_buf { pub bytes: [u8; 192] }
-#[cfg (not (any (feature = "have_android", target_os = "linux")))]
+#[cfg (not (any (feature = "have_android", target_os = "linux", target_os = "windows")))]
 const _: () = core::assert! (std::mem::size_of::<sys_jmp_buf> () == 192);
+#[cfg (target_os = "windows")]
+#[derive(Copy, Clone)]
+#[repr(C, align(8))]
+pub struct sys_jmp_buf { pub bytes: [u8; 256] }
+#[cfg (target_os = "windows")]
+const _: () = core::assert! (std::mem::size_of::<sys_jmp_buf> () == 256);
 /* bionic's `sigjmp_buf` is 256 on aarch64.  */
 #[cfg (feature = "have_android")]
 #[derive (Copy, Clone)]
@@ -73,10 +79,10 @@ const _: () = core::assert! (std::mem::size_of::<sys_jmp_buf> () == 312);
 pub struct sys_jmp_buf { pub bytes: [u8; 200] }
 #[cfg (all (target_os = "linux", target_arch = "x86_64"))]
 const _: () = core::assert! (std::mem::size_of::<sys_jmp_buf> () == 200);
-#[cfg (not (any (feature = "have_android", target_os = "linux")))]
+#[cfg (not (any (feature = "have_android", target_os = "linux", target_os = "windows")))]
 const _: () = core::assert! (std::mem::align_of::<sys_jmp_buf> () == 4);
-/* `_Alignof(sys_jmp_buf)` is 8 on android and glibc Linux.  */
-#[cfg (any (feature = "have_android", target_os = "linux"))]
+/* `_Alignof(sys_jmp_buf)` is 8 on android, glibc Linux, and Win64 isolate host.  */
+#[cfg (any (feature = "have_android", target_os = "linux", target_os = "windows"))]
 const _: () = core::assert! (std::mem::align_of::<sys_jmp_buf> () == 8);
 
 /* Byte-code interpreter thread state.  */
@@ -178,8 +184,10 @@ pub struct thread_state
    472).  `docs/baseline/android-layout-probe.md`.  */
 #[cfg (feature = "have_android")]
 const _: () = core::assert! (std::mem::size_of::<thread_state> () == 592);
-#[cfg (all (not (feature = "have_android"), not (target_os = "linux"), not (feature = "threads_enabled")))]
+#[cfg (all (not (feature = "have_android"), not (target_os = "linux"), not (target_os = "windows"), not (feature = "threads_enabled")))]
 const _: () = core::assert! (std::mem::size_of::<thread_state> () == 472);
+#[cfg (all (target_os = "windows", not (feature = "threads_enabled")))]
+const _: () = core::assert! (std::mem::size_of::<thread_state> () == 536);
 #[cfg (all (target_os = "linux", target_arch = "aarch64", not (feature = "threads_enabled")))]
 const _: () = core::assert! (std::mem::size_of::<thread_state> () == 592);
 #[cfg (all (target_os = "linux", target_arch = "x86_64", not (feature = "threads_enabled")))]
@@ -198,8 +206,10 @@ const _: () = core::assert! (std::mem::offset_of! (thread_state, m_getcjmp) == 2
 const _: () = core::assert! (std::mem::offset_of! (thread_state, m_getcjmp) == 216);
 #[cfg (feature = "have_android")]
 const _: () = core::assert! (std::mem::offset_of! (thread_state, thread_id) == 480);
-#[cfg (all (not (feature = "have_android"), not (target_os = "linux")))]
+#[cfg (all (not (feature = "have_android"), not (target_os = "linux"), not (target_os = "windows")))]
 const _: () = core::assert! (std::mem::offset_of! (thread_state, thread_id) == 408);
+#[cfg (target_os = "windows")]
+const _: () = core::assert! (std::mem::offset_of! (thread_state, thread_id) == 472);
 #[cfg (all (target_os = "linux", target_arch = "aarch64"))]
 const _: () = core::assert! (std::mem::offset_of! (thread_state, thread_id) == 528);
 #[cfg (all (target_os = "linux", target_arch = "x86_64"))]
@@ -207,8 +217,10 @@ const _: () = core::assert! (std::mem::offset_of! (thread_state, thread_id) == 4
 /* The Android arm has a different shape.  */
 #[cfg (feature = "have_android")]
 const _: () = core::assert! (std::mem::offset_of! (thread_state, not_holding_lock) == 552);
-#[cfg (all (not (feature = "have_android"), not (target_os = "linux"), not (feature = "threads_enabled")))]
+#[cfg (all (not (feature = "have_android"), not (target_os = "linux"), not (target_os = "windows"), not (feature = "threads_enabled")))]
 const _: () = core::assert! (std::mem::offset_of! (thread_state, not_holding_lock) == 432);
+#[cfg (all (target_os = "windows", not (feature = "threads_enabled")))]
+const _: () = core::assert! (std::mem::offset_of! (thread_state, not_holding_lock) == 496);
 #[cfg (all (target_os = "linux", target_arch = "aarch64", not (feature = "threads_enabled")))]
 const _: () = core::assert! (std::mem::offset_of! (thread_state, not_holding_lock) == 552);
 #[cfg (all (target_os = "linux", target_arch = "x86_64", not (feature = "threads_enabled")))]
@@ -218,8 +230,10 @@ const _: () = core::assert! (std::mem::offset_of! (thread_state, not_holding_loc
 /* The Android arm has a different shape.  */
 #[cfg (feature = "have_android")]
 const _: () = core::assert! (std::mem::offset_of! (thread_state, bc) == 568);
-#[cfg (all (not (feature = "have_android"), not (target_os = "linux"), not (feature = "threads_enabled")))]
+#[cfg (all (not (feature = "have_android"), not (target_os = "linux"), not (target_os = "windows"), not (feature = "threads_enabled")))]
 const _: () = core::assert! (std::mem::offset_of! (thread_state, bc) == 448);
+#[cfg (all (target_os = "windows", not (feature = "threads_enabled")))]
+const _: () = core::assert! (std::mem::offset_of! (thread_state, bc) == 512);
 #[cfg (all (target_os = "linux", target_arch = "aarch64", not (feature = "threads_enabled")))]
 const _: () = core::assert! (std::mem::offset_of! (thread_state, bc) == 568);
 #[cfg (all (target_os = "linux", target_arch = "x86_64", not (feature = "threads_enabled")))]

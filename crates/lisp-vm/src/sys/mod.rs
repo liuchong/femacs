@@ -1,5 +1,6 @@
 pub mod bitops;
 pub mod c_ctype;
+#[cfg(unix)]
 pub mod client_os;
 pub mod filemode;
 pub mod filevercmp;

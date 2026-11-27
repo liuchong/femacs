@@ -16,28 +16,30 @@ pub const fn make_timespec(s: time_t, ns: c_long) -> timespec {
 
 #[inline(always)]
 pub const fn timespec_cmp(a: timespec, b: timespec) -> c_int {
-    crate::sys::timespec::timespec_cmp(a.tv_sec, a.tv_nsec, b.tv_sec, b.tv_nsec)
+    crate::sys::timespec::timespec_cmp(a.tv_sec, a.tv_nsec as i64, b.tv_sec, b.tv_nsec as i64)
 }
 
 #[inline(always)]
 pub const fn timespec_sign(a: timespec) -> c_int {
-    crate::sys::timespec::timespec_sign(a.tv_sec, a.tv_nsec)
+    crate::sys::timespec::timespec_sign(a.tv_sec, a.tv_nsec as i64)
 }
 
 #[inline(always)]
 pub fn timespectod(a: timespec) -> c_double {
-    crate::sys::timespec::timespectod(a.tv_sec, a.tv_nsec)
+    crate::sys::timespec::timespectod(a.tv_sec, a.tv_nsec as i64)
 }
 
 #[inline(always)]
 pub fn timespec_add(a: timespec, b: timespec) -> timespec {
-    let (s, ns) = crate::sys::timespec::timespec_add(a.tv_sec, a.tv_nsec, b.tv_sec, b.tv_nsec);
+    let (s, ns) =
+        crate::sys::timespec::timespec_add(a.tv_sec, a.tv_nsec as i64, b.tv_sec, b.tv_nsec as i64);
     make_timespec(s, ns as c_long)
 }
 
 #[inline(always)]
 pub fn timespec_sub(a: timespec, b: timespec) -> timespec {
-    let (s, ns) = crate::sys::timespec::timespec_sub(a.tv_sec, a.tv_nsec, b.tv_sec, b.tv_nsec);
+    let (s, ns) =
+        crate::sys::timespec::timespec_sub(a.tv_sec, a.tv_nsec as i64, b.tv_sec, b.tv_nsec as i64);
     make_timespec(s, ns as c_long)
 }
 

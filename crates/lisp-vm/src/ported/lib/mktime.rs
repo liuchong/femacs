@@ -89,10 +89,12 @@ macro_rules! static_assert { ($cond:expr) => { const _: () = core::assert! ($con
    spelling (the mirror's body parenthesises the value, this unit's local copy did not - the
    expansion is the same assignment either way).  */
 
-/* C 124-128: `# if INT_MAX <= LONG_MAX / 4 / 366 / 24 / 60 / 60` holds on this target
-   (a 64-bit `long`), so `long_int` is C's `long int`; the `#else` arm (`long long int`)
-   is dead.  */
+/* C 124-128: `# if INT_MAX <= LONG_MAX / 4 / 366 / 24 / 60 / 60` holds on LP64 POSIX
+   (64-bit `long`), whereas on LLP64 Windows (`LONG_MAX == INT_MAX`) C selects `long long int`.  */
+#[cfg (not (target_os = "windows"))]
 pub type long_int = c_long;
+#[cfg (target_os = "windows")]
+pub type long_int = c_longlong;
 /* C 129.  */
 static_assert! ((INT_MAX as long_int) <= TYPE_MAXIMUM! (long_int) / 4 / 366 / 24 / 60 / 60);
 

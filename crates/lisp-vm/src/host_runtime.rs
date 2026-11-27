@@ -13,7 +13,9 @@ use core::marker::PhantomData;
 use std::collections::HashMap;
 use std::ffi::{CString, OsString};
 use std::io;
+#[cfg(unix)]
 use std::os::fd::{AsRawFd, FromRawFd, OwnedFd};
+#[cfg(unix)]
 use std::os::unix::net::UnixStream;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicU8, AtomicUsize, Ordering};
@@ -157,17 +159,20 @@ fn hr_pending_host_exit() -> &'static AtomicU64 {
     &PENDING_HOST_EXIT
 }
 
-#[cfg(target_os = "macos")]
+#[cfg(all(unix, target_os = "macos"))]
 const SYS_SOL_SOCKET: c_int = 0xffff;
-#[cfg(target_os = "macos")]
+#[cfg(all(unix, target_os = "macos"))]
 const SYS_SO_TYPE: c_int = 0x1008;
-#[cfg(not(target_os = "macos"))]
+#[cfg(all(unix, not(target_os = "macos")))]
 const SYS_SOL_SOCKET: c_int = 1;
-#[cfg(not(target_os = "macos"))]
+#[cfg(all(unix, not(target_os = "macos")))]
 const SYS_SO_TYPE: c_int = 3;
+#[cfg(unix)]
 const SYS_SOCK_STREAM: c_int = 1;
+#[cfg(unix)]
 const SYS_AF_UNIX: u16 = 1;
 
+#[cfg(unix)]
 #[repr(C)]
 struct RawSockaddrStorageHeader {
     first: u8,
@@ -175,6 +180,7 @@ struct RawSockaddrStorageHeader {
     _rest: [u8; 126],
 }
 
+#[cfg(unix)]
 impl RawSockaddrStorageHeader {
     fn zeroed() -> Self {
         Self {
@@ -197,6 +203,7 @@ impl RawSockaddrStorageHeader {
     }
 }
 
+#[cfg(unix)]
 unsafe extern "C" {
     fn getsockopt(
         socket: c_int,
@@ -2402,6 +2409,7 @@ impl Drop for HeadlessVm {
     }
 }
 
+#[cfg(unix)]
 /// Validate and adopt an inherited `AF_UNIX` `SOCK_STREAM` socket descriptor for internal RPC,
 /// moving stdio descriptors (`<= 2`) onto a dedicated `FD_CLOEXEC` descriptor `>= 3` and
 /// replacing the stdio slot with `/dev/null` so Lisp code or child processes never see the pipe.
@@ -2494,6 +2502,7 @@ pub fn adopt_inherited_rpc_socket(explicit_fd: Option<i32>) -> io::Result<UnixSt
     Ok(UnixStream::from(owned))
 }
 
+#[cfg(unix)]
 /// Inspect whether `stream`'s underlying descriptor has `FD_CLOEXEC` enabled.
 pub fn stream_has_cloexec(stream: &UnixStream) -> io::Result<bool> {
     let fd = stream.as_raw_fd();

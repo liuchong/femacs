@@ -1,20 +1,29 @@
-//! Minimal OS/process FFI boundary for `lisp-core` (termination signals, process-group
-//! signaling, serialized test env helpers, and macOS `proc_pid_rusage` memory accounting).
+//! Minimal OS/process FFI boundary for `lisp-core` (termination signals, process-group /
+//! Job-Object supervision, process enumeration, and memory accounting).
 #![deny(static_mut_refs, unsafe_op_in_unsafe_fn)]
 
 use std::sync::atomic::{AtomicBool, Ordering};
 
+#[cfg(unix)]
 pub const SIGINT: i32 = 2;
 pub const SIGKILL: i32 = 9;
 pub const SIGTERM: i32 = 15;
 
 static TERMINATION_REQUESTED: AtomicBool = AtomicBool::new(false);
 
+#[cfg(unix)]
 extern "C" fn on_termination_signal(_sig: i32) {
     TERMINATION_REQUESTED.store(true, Ordering::Release);
 }
 
-/// Register async-signal-safe `SIGINT`/`SIGTERM` handlers for clean supervisor teardown.
+#[cfg(windows)]
+unsafe extern "system" fn on_console_ctrl(_ctrl_type: u32) -> i32 {
+    TERMINATION_REQUESTED.store(true, Ordering::Release);
+    1
+}
+
+/// Register async-signal-safe termination handlers for clean supervisor teardown.
+#[cfg(unix)]
 pub fn install_termination_handlers() {
     unsafe extern "C" {
         fn signal(sig: i32, handler: extern "C" fn(i32)) -> usize;
@@ -26,11 +35,23 @@ pub fn install_termination_handlers() {
     }
 }
 
+/// Register a Windows console control handler setting `TERMINATION_REQUESTED`.
+#[cfg(windows)]
+pub fn install_termination_handlers() {
+    use windows_sys::Win32::System::Console::SetConsoleCtrlHandler;
+
+    // SAFETY: `on_console_ctrl` performs only a single atomic release store and returns TRUE (`1`).
+    unsafe {
+        let _ = SetConsoleCtrlHandler(Some(on_console_ctrl), 1);
+    }
+}
+
 pub fn termination_requested() -> bool {
     TERMINATION_REQUESTED.load(Ordering::Acquire)
 }
 
-/// Return the current process group ID.
+/// Return the current process group ID on Unix (or current PID on Windows).
+#[cfg(unix)]
 pub fn current_pgid() -> u32 {
     unsafe extern "C" {
         fn getpgrp() -> i32;
@@ -40,7 +61,13 @@ pub fn current_pgid() -> u32 {
     u32::try_from(pg).unwrap_or(0)
 }
 
+#[cfg(windows)]
+pub fn current_pgid() -> u32 {
+    std::process::id()
+}
+
 /// Send `sig` to a single process `pid` (`pid > 1` and never `self`).
+#[cfg(unix)]
 pub fn signal_process(pid: i32, sig: i32) -> Result<(), i32> {
     let self_pid = i32::try_from(std::process::id()).unwrap_or(0);
     if pid <= 1 || pid == self_pid {
@@ -58,7 +85,39 @@ pub fn signal_process(pid: i32, sig: i32) -> Result<(), i32> {
     }
 }
 
+#[cfg(windows)]
+pub fn signal_process(pid: i32, _sig: i32) -> Result<(), i32> {
+    use windows_sys::Win32::Foundation::CloseHandle;
+    use windows_sys::Win32::System::Threading::{
+        OpenProcess, PROCESS_TERMINATE, TerminateProcess,
+    };
+
+    let self_pid = i32::try_from(std::process::id()).unwrap_or(0);
+    if pid <= 1 || pid == self_pid {
+        return Err(22);
+    }
+    // SAFETY: `OpenProcess` is called for a validated descendant PID and the handle is closed immediately.
+    unsafe {
+        let handle = OpenProcess(PROCESS_TERMINATE, 0, pid as u32);
+        if handle.is_null() {
+            return Err(std::io::Error::last_os_error().raw_os_error().unwrap_or(1));
+        }
+        let ok = TerminateProcess(handle, 1);
+        let err = if ok == 0 {
+            Some(std::io::Error::last_os_error().raw_os_error().unwrap_or(1))
+        } else {
+            None
+        };
+        let _ = CloseHandle(handle);
+        match err {
+            Some(code) => Err(code),
+            None => Ok(()),
+        }
+    }
+}
+
 /// Send `sig` to every process in Unix process group `pgid` (`pgid > 1`).
+#[cfg(unix)]
 pub fn signal_process_group(pgid: i32, sig: i32) -> Result<(), i32> {
     if pgid <= 1 {
         return Err(22);
@@ -72,6 +131,140 @@ pub fn signal_process_group(pgid: i32, sig: i32) -> Result<(), i32> {
         Ok(())
     } else {
         Err(std::io::Error::last_os_error().raw_os_error().unwrap_or(1))
+    }
+}
+
+#[cfg(windows)]
+pub fn signal_process_group(pgid: i32, sig: i32) -> Result<(), i32> {
+    if pgid <= 1 {
+        return Err(22);
+    }
+    signal_process(pgid, sig)
+}
+
+/// Minimal Windows Toolhelp process row (`pid`, `ppid`).
+#[cfg(windows)]
+#[derive(Clone, Copy, Debug)]
+pub struct WinProcessRow {
+    pub pid: u32,
+    pub ppid: u32,
+}
+
+/// Enumerate active Windows processes via `CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS)`.
+#[cfg(windows)]
+pub fn snapshot_windows_processes() -> Result<Vec<WinProcessRow>, String> {
+    use windows_sys::Win32::Foundation::{CloseHandle, INVALID_HANDLE_VALUE};
+    use windows_sys::Win32::System::Diagnostics::ToolHelp::{
+        CreateToolhelp32Snapshot, PROCESSENTRY32W, Process32FirstW, Process32NextW,
+        TH32CS_SNAPPROCESS,
+    };
+
+    // SAFETY: `CreateToolhelp32Snapshot` returns a valid snapshot handle or `INVALID_HANDLE_VALUE`;
+    // `PROCESSENTRY32W` has `dwSize` initialized before calling `Process32FirstW`/`Process32NextW`.
+    unsafe {
+        let snap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+        if snap == INVALID_HANDLE_VALUE {
+            return Err(format!(
+                "CreateToolhelp32Snapshot failed: {}",
+                std::io::Error::last_os_error()
+            ));
+        }
+        let mut entry = PROCESSENTRY32W::default();
+        entry.dwSize = core::mem::size_of::<PROCESSENTRY32W>() as u32;
+        let mut rows = Vec::new();
+        if Process32FirstW(snap, &raw mut entry) != 0 {
+            loop {
+                rows.push(WinProcessRow {
+                    pid: entry.th32ProcessID,
+                    ppid: entry.th32ParentProcessID,
+                });
+                if Process32NextW(snap, &raw mut entry) == 0 {
+                    break;
+                }
+            }
+        }
+        let _ = CloseHandle(snap);
+        Ok(rows)
+    }
+}
+
+/// RAII Win32 Job Object configured with `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`.
+#[cfg(windows)]
+pub struct ProcessJob {
+    handle: windows_sys::Win32::Foundation::HANDLE,
+}
+
+#[cfg(windows)]
+impl ProcessJob {
+    /// Create a Job Object configured to kill all members on close and assign `pid` to it.
+    pub fn create_for_pid(pid: u32) -> Option<Self> {
+        use core::ptr::{null, null_mut};
+        use windows_sys::Win32::Foundation::CloseHandle;
+        use windows_sys::Win32::System::JobObjects::{
+            AssignProcessToJobObject, CreateJobObjectW, JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
+            JOBOBJECT_EXTENDED_LIMIT_INFORMATION, JobObjectExtendedLimitInformation,
+            SetInformationJobObject,
+        };
+        use windows_sys::Win32::System::Threading::{
+            OpenProcess, PROCESS_SET_QUOTA, PROCESS_TERMINATE,
+        };
+
+        // SAFETY: Allocates an anonymous Win32 Job Object handle, configures valid
+        // `JOBOBJECT_EXTENDED_LIMIT_INFORMATION` storage, assigns `pid`, and closes temporary handles.
+        unsafe {
+            let job = CreateJobObjectW(null(), null());
+            if job.is_null() {
+                return None;
+            }
+            let mut info = JOBOBJECT_EXTENDED_LIMIT_INFORMATION::default();
+            info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+            let info_len = core::mem::size_of::<JOBOBJECT_EXTENDED_LIMIT_INFORMATION>() as u32;
+            if SetInformationJobObject(
+                job,
+                JobObjectExtendedLimitInformation,
+                (&raw const info).cast(),
+                info_len,
+            ) == 0
+            {
+                let _ = CloseHandle(job);
+                return None;
+            }
+            let proc_handle = OpenProcess(PROCESS_SET_QUOTA | PROCESS_TERMINATE, 0, pid);
+            if proc_handle.is_null() {
+                let _ = CloseHandle(job);
+                return None;
+            }
+            let assigned = AssignProcessToJobObject(job, proc_handle);
+            let _ = CloseHandle(proc_handle);
+            if assigned == 0 {
+                let _ = CloseHandle(job);
+                return None;
+            }
+            let _ = null_mut::<core::ffi::c_void>();
+            Some(Self { handle: job })
+        }
+    }
+
+    /// Terminate every process currently assigned to this Job Object.
+    pub fn terminate(&self, exit_code: u32) {
+        use windows_sys::Win32::System::JobObjects::TerminateJobObject;
+
+        // SAFETY: `self.handle` is an open Win32 Job Object handle owned until `Drop`.
+        unsafe {
+            let _ = TerminateJobObject(self.handle, exit_code);
+        }
+    }
+}
+
+#[cfg(windows)]
+impl Drop for ProcessJob {
+    fn drop(&mut self) {
+        use windows_sys::Win32::Foundation::CloseHandle;
+
+        // SAFETY: `self.handle` is uniquely owned by this `ProcessJob` and closed once on drop.
+        unsafe {
+            let _ = CloseHandle(self.handle);
+        }
     }
 }
 
@@ -170,12 +363,65 @@ pub fn pid_rusage_info(pid: i32) -> Option<(u64, u64, u64)> {
     Some((rss, footprint, start_ticks))
 }
 
-#[cfg(not(any(target_os = "macos", target_os = "linux")))]
+#[cfg(windows)]
+pub fn pid_rusage_info(pid: i32) -> Option<(u64, u64, u64)> {
+    use windows_sys::Win32::Foundation::{CloseHandle, FILETIME};
+    use windows_sys::Win32::System::ProcessStatus::{
+        K32GetProcessMemoryInfo, PROCESS_MEMORY_COUNTERS, PROCESS_MEMORY_COUNTERS_EX,
+    };
+    use windows_sys::Win32::System::Threading::{
+        GetProcessTimes, OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION,
+    };
+
+    if pid <= 0 {
+        return None;
+    }
+    // SAFETY: Queries `K32GetProcessMemoryInfo` and `GetProcessTimes` into initialized stack
+    // structs for a validated handle, then always closes the handle.
+    unsafe {
+        let handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid as u32);
+        if handle.is_null() {
+            return None;
+        }
+        let mut counters = PROCESS_MEMORY_COUNTERS_EX::default();
+        counters.cb = core::mem::size_of::<PROCESS_MEMORY_COUNTERS_EX>() as u32;
+        let mem_ok = K32GetProcessMemoryInfo(
+            handle,
+            (&raw mut counters).cast::<PROCESS_MEMORY_COUNTERS>(),
+            counters.cb,
+        );
+        let mut creation = FILETIME::default();
+        let mut exit = FILETIME::default();
+        let mut kernel = FILETIME::default();
+        let mut user = FILETIME::default();
+        let times_ok = GetProcessTimes(
+            handle,
+            &raw mut creation,
+            &raw mut exit,
+            &raw mut kernel,
+            &raw mut user,
+        );
+        let _ = CloseHandle(handle);
+        if mem_ok == 0 {
+            return None;
+        }
+        let rss = counters.WorkingSetSize as u64;
+        let footprint = (counters.PrivateUsage as u64).max(rss);
+        let start_ticks = if times_ok != 0 {
+            (u64::from(creation.dwHighDateTime) << 32) | u64::from(creation.dwLowDateTime)
+        } else {
+            0
+        };
+        Some((rss, footprint, start_ticks))
+    }
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "linux", windows)))]
 pub fn pid_rusage_info(_pid: i32) -> Option<(u64, u64, u64)> {
     None
 }
 
-/// Query `(resident_bytes, phys_footprint_bytes)` for `pid` on macOS via `proc_pid_rusage`.
+/// Query `(resident_bytes, phys_footprint_bytes)` for `pid`.
 pub fn pid_rusage_memory(pid: i32) -> Option<(u64, u64)> {
     pid_rusage_info(pid).map(|(rss, fp, _)| (rss, fp))
 }

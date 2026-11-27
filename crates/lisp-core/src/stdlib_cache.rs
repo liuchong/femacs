@@ -57,6 +57,21 @@ pub fn resolve_cache_root(override_dir: Option<&Path>) -> PathBuf {
             return PathBuf::from(xdg).join(brand::CACHE_APP_DIR);
         }
     }
+    #[cfg(windows)]
+    {
+        if let Some(local) = std::env::var_os("LOCALAPPDATA") {
+            if !local.is_empty() {
+                return PathBuf::from(local).join(brand::CACHE_APP_DIR);
+            }
+        }
+        if let Some(profile) = std::env::var_os("USERPROFILE") {
+            if !profile.is_empty() {
+                return PathBuf::from(profile)
+                    .join(".cache")
+                    .join(brand::CACHE_APP_DIR);
+            }
+        }
+    }
     if let Some(home) = std::env::var_os("HOME") {
         if !home.is_empty() {
             let home_path = PathBuf::from(home);
