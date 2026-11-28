@@ -119,8 +119,10 @@ const NPM_PACKAGE_JSON: &str = "packaging/npm/femacs/package.json";
 const NPM_MANIFEST_JSON: &str = "packaging/npm/femacs/manifest.json";
 const NPM_README: &str = "packaging/npm/femacs/README.md";
 const NPM_LICENSE: &str = "packaging/npm/femacs/LICENSE";
+const HOMEBREW_ELISP_FORMULA: &str = "packaging/homebrew/elisp.rb";
 const HOMEBREW_FORMULA: &str = "packaging/homebrew/femacs.rb";
 const INSTALL_SH: &str = "docs/install.sh";
+const CRATE_BOUNDARIES_SCRIPT: &str = "tools/check-crate-boundaries.el";
 
 /// Validate strict `MAJOR.MINOR.PATCH` (with optional `-prerelease`) SemVer string.
 pub(crate) fn is_valid_semver(version: &str) -> bool {
@@ -416,8 +418,7 @@ fn find_target_sha<'a>(
     checksums.get(&archive).map(String::as_str)
 }
 
-/// Deterministically render `packaging/homebrew/femacs.rb` from `SHA256SUMS.txt`.
-pub(crate) fn render_homebrew_formula(
+fn render_homebrew_target_blocks(
     version: &str,
     checksums: &BTreeMap<String, String>,
 ) -> Result<String, String> {
@@ -433,14 +434,7 @@ pub(crate) fn render_homebrew_formula(
         ));
     }
 
-    let mut body = format!(
-        "class Femacs < Formula\n\
-         \x20 desc \"Standalone No-GIL Elisp-compatible CLI (elisp) and Fe editor CLI launchers\"\n\
-         \x20 homepage \"{EXPECTED_HOMEPAGE}\"\n\
-         \x20 version \"{version}\"\n\
-         \x20 license \"GPL-3.0-or-later\"\n"
-    );
-
+    let mut body = String::new();
     if darwin_arm.is_some() || darwin_x64.is_some() {
         body.push_str("\n  on_macos do\n");
         if let Some(sha) = darwin_arm {
@@ -489,18 +483,58 @@ pub(crate) fn render_homebrew_formula(
         body.push_str("  end\n");
     }
 
-    body.push_str(
-        "\n  def install\n\
-         \x20   bin.install \"elisp\", \"femacs\", \"fe\"\n\
-         \x20 end\n\
-         \n  test do\n\
-         \x20   assert_match \"elisp #{version}\", shell_output(\"#{bin}/elisp --version\")\n\
-         \x20   assert_equal \"42\", shell_output(\"#{bin}/elisp --no-auto-warm eval '(+ 20 22)'\").strip\n\
-         \x20 end\n\
-         end\n",
-    );
-
     Ok(body)
+}
+
+/// Deterministically render `packaging/homebrew/elisp.rb` from `SHA256SUMS.txt`.
+pub(crate) fn render_homebrew_elisp_formula(
+    version: &str,
+    checksums: &BTreeMap<String, String>,
+) -> Result<String, String> {
+    let blocks = render_homebrew_target_blocks(version, checksums)?;
+    Ok(format!(
+        "class Elisp < Formula\n\
+         \x20 desc \"Standalone zero-C-dependency, No-GIL Elisp-compatible CLI and interactive REPL\"\n\
+         \x20 homepage \"{EXPECTED_HOMEPAGE}pages/lisp.html\"\n\
+         \x20 version \"{version}\"\n\
+         \x20 license \"GPL-3.0-or-later\"\n\
+         {blocks}\n\
+         \x20 def install\n\
+         \x20   bin.install \"elisp\"\n\
+         \x20 end\n\
+         \n\
+         \x20 test do\n\
+         \x20   assert_match \"elisp #{{version}}\", shell_output(\"#{{bin}}/elisp --version\")\n\
+         \x20   assert_equal \"42\", shell_output(\"#{{bin}}/elisp --no-auto-warm eval '(+ 20 22)'\").strip\n\
+         \x20 end\n\
+         end\n"
+    ))
+}
+
+/// Deterministically render `packaging/homebrew/femacs.rb` from `SHA256SUMS.txt`.
+pub(crate) fn render_homebrew_formula(
+    version: &str,
+    checksums: &BTreeMap<String, String>,
+) -> Result<String, String> {
+    let blocks = render_homebrew_target_blocks(version, checksums)?;
+    Ok(format!(
+        "class Femacs < Formula\n\
+         \x20 desc \"Command-line launchers (femacs, fe) for the Fe editor on macOS\"\n\
+         \x20 homepage \"{EXPECTED_HOMEPAGE}\"\n\
+         \x20 version \"{version}\"\n\
+         \x20 license \"GPL-3.0-or-later\"\n\
+         {blocks}\n\
+         \x20 def install\n\
+         \x20   bin.install \"femacs\", \"fe\"\n\
+         \x20 end\n\
+         \n\
+         \x20 test do\n\
+         \x20   assert_predicate bin/\"femacs\", :executable?\n\
+         \x20   assert_predicate bin/\"fe\", :executable?\n\
+         \x20   assert_match(/Usage: fe|requires macOS|Fe\\.app|Femacs\\.app/, shell_output(\"#{{bin}}/fe --help 2>&1\", 0))\n\
+         \x20 end\n\
+         end\n"
+    ))
 }
 
 /// Read the `[package]` version string of a manifest path.
@@ -587,18 +621,19 @@ Unified workspace release `v{version}` spanning all five crates (`elisp`, `lisp`
 | Crate / Channel | Version | Reference / Docs | Role |
 | --- | --- | --- | --- |
 {rows}| [`femacs` (npm)](https://www.npmjs.com/package/femacs) | `{version}` | Zero runtime dependencies | Prebuilt binary launcher exposing `elisp`, `femacs`, and `fe` |
-| [`liuchong/homebrew-tap`](https://github.com/liuchong/homebrew-tap) | `{version}` | `brew install liuchong/tap/femacs` | Homebrew Formula for macOS & Linux (`elisp`, `femacs`, `fe`) |
+| [`liuchong/homebrew-tap`](https://github.com/liuchong/homebrew-tap) | `{version}` | `brew install liuchong/tap/elisp` / `femacs` | Split Homebrew Formulae for standalone `elisp` and editor launchers (`femacs`, `fe`) |
 
 ### Quickstart
 
 ```sh
-# 1. Homebrew (macOS & Linux)
-brew install liuchong/tap/femacs
+# 1. Homebrew (macOS & Linux — separate formulae)
+brew install liuchong/tap/elisp    # standalone Lisp CLI & REPL
+brew install liuchong/tap/femacs   # macOS Fe editor launchers (femacs, fe)
 
-# 2. npm (zero runtime dependencies)
+# 2. npm (zero runtime dependencies; includes elisp, femacs, fe)
 npm install -g femacs
 
-# 3. Shell installer (macOS & Linux, SHA-256 verified)
+# 3. Shell installer (macOS & Linux, SHA-256 verified; supports --only elisp|femacs)
 curl -fsSL https://femacs.com/install.sh | sh
 
 # 4. Cargo from source (all platforms; macOS launcher CLI needs Fe.app / Femacs.app)
@@ -833,11 +868,14 @@ fn cmd_plan(args: &[String]) -> Result<(), String> {
             println!("  6. {:<9} manifest={}  version={}", "npm", NPM_PACKAGE_JSON, ver);
         }
     }
+    if Path::new(HOMEBREW_ELISP_FORMULA).exists() {
+        println!("  7. {:<9} formula={}", "homebrew", HOMEBREW_ELISP_FORMULA);
+    }
     if Path::new(HOMEBREW_FORMULA).exists() {
-        println!("  7. {:<9} formula={}", "homebrew", HOMEBREW_FORMULA);
+        println!("  8. {:<9} formula={}", "homebrew", HOMEBREW_FORMULA);
     }
     if Path::new(INSTALL_SH).exists() {
-        println!("  8. {:<9} script={}", "install", INSTALL_SH);
+        println!("  9. {:<9} script={}", "install", INSTALL_SH);
     }
     Ok(())
 }
@@ -892,12 +930,17 @@ fn sync_dist_files(version: &str, checksums_path: &Path) -> Result<(), String> {
         .map_err(|e| format!("{}: {e}", checksums_path.display()))?;
     let checksums = parse_checksums(&raw)?;
     let manifest_text = render_npm_manifest_json(version, &checksums)?;
-    let formula_text = render_homebrew_formula(version, &checksums)?;
+    let elisp_formula_text = render_homebrew_elisp_formula(version, &checksums)?;
+    let femacs_formula_text = render_homebrew_formula(version, &checksums)?;
     fs::write(NPM_MANIFEST_JSON, manifest_text)
         .map_err(|e| format!("write {NPM_MANIFEST_JSON}: {e}"))?;
-    fs::write(HOMEBREW_FORMULA, formula_text)
+    fs::write(HOMEBREW_ELISP_FORMULA, elisp_formula_text)
+        .map_err(|e| format!("write {HOMEBREW_ELISP_FORMULA}: {e}"))?;
+    fs::write(HOMEBREW_FORMULA, femacs_formula_text)
         .map_err(|e| format!("write {HOMEBREW_FORMULA}: {e}"))?;
-    println!("synced {NPM_MANIFEST_JSON} and {HOMEBREW_FORMULA} for v{version}");
+    println!(
+        "synced {NPM_MANIFEST_JSON}, {HOMEBREW_ELISP_FORMULA}, and {HOMEBREW_FORMULA} for v{version}"
+    );
     Ok(())
 }
 
@@ -1064,20 +1107,22 @@ pub(crate) fn verify_distribution_artifacts(version: &str) -> Result<(), String>
         }
     }
 
-    // 4. Homebrew formula
-    let formula =
-        fs::read_to_string(HOMEBREW_FORMULA).map_err(|e| format!("{HOMEBREW_FORMULA}: {e}"))?;
-    if !formula.contains(&format!("version \"{version}\"")) {
-        return Err(format!(
-            "{HOMEBREW_FORMULA}: expected `version \"{version}\"`"
-        ));
+    // 4. Homebrew formulae (elisp + femacs)
+    for formula_path in [HOMEBREW_ELISP_FORMULA, HOMEBREW_FORMULA] {
+        let formula =
+            fs::read_to_string(formula_path).map_err(|e| format!("{formula_path}: {e}"))?;
+        if !formula.contains(&format!("version \"{version}\"")) {
+            return Err(format!(
+                "{formula_path}: expected `version \"{version}\"`"
+            ));
+        }
+        if !formula.contains(&format!("femacs-v{version}-")) {
+            return Err(format!(
+                "{formula_path}: missing archive URL for v{version}"
+            ));
+        }
+        run_checked("ruby", &["-c", formula_path])?;
     }
-    if !formula.contains(&format!("femacs-v{version}-")) {
-        return Err(format!(
-            "{HOMEBREW_FORMULA}: missing archive URL for v{version}"
-        ));
-    }
-    run_checked("ruby", &["-c", HOMEBREW_FORMULA])?;
 
     // 5. Shell installer
     let install_sh = fs::read_to_string(INSTALL_SH).map_err(|e| format!("{INSTALL_SH}: {e}"))?;
@@ -1088,6 +1133,18 @@ pub(crate) fn verify_distribution_artifacts(version: &str) -> Result<(), String>
     run_checked("sh", &["-n", INSTALL_SH])?;
 
     Ok(())
+}
+
+fn run_crate_boundaries_check() -> Result<(), String> {
+    let elisp_bin = std::env::var_os("FEMACS_ELISP")
+        .filter(|v| !v.is_empty())
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from("elisp"));
+    let elisp_str = elisp_bin.to_str().ok_or("non-utf8 FEMACS_ELISP path")?;
+    run_checked(
+        elisp_str,
+        &["--batch", "-Q", "--script", CRATE_BOUNDARIES_SCRIPT],
+    )
 }
 
 fn cmd_check(args: &[String]) -> Result<(), String> {
@@ -1111,7 +1168,7 @@ fn cmd_check(args: &[String]) -> Result<(), String> {
     }
 
     run_checked("python3", &["tools/check-own-voice.py"])?;
-    run_checked("python3", &["tools/check-crate-boundaries.py"])?;
+    run_crate_boundaries_check()?;
 
     if !skip_package {
         for leaf in ["lisp-vm", "lisp-std", "femacs"] {
@@ -1284,7 +1341,7 @@ fn cmd_publish(args: &[String]) -> Result<(), String> {
         }
         if let Some(ref tap_dir) = homebrew_tap_dir {
             println!(
-                "  - sync {HOMEBREW_FORMULA} -> {}/Formula/femacs.rb, git commit -S & push",
+                "  - sync {HOMEBREW_ELISP_FORMULA} & {HOMEBREW_FORMULA} -> {}/Formula/{{elisp,femacs}}.rb, git commit -S & push",
                 tap_dir.display()
             );
         }
@@ -1391,15 +1448,24 @@ fn cmd_publish(args: &[String]) -> Result<(), String> {
                     tap_dir.display()
                 ));
             }
-            let dest_formula = tap_dir.join("Formula/femacs.rb");
-            if let Some(parent) = dest_formula.parent() {
-                fs::create_dir_all(parent).map_err(|e| format!("{}: {e}", parent.display()))?;
+            for (src, rel_dest) in [
+                (HOMEBREW_ELISP_FORMULA, "Formula/elisp.rb"),
+                (HOMEBREW_FORMULA, "Formula/femacs.rb"),
+            ] {
+                let dest_formula = tap_dir.join(rel_dest);
+                if let Some(parent) = dest_formula.parent() {
+                    fs::create_dir_all(parent).map_err(|e| format!("{}: {e}", parent.display()))?;
+                }
+                fs::copy(src, &dest_formula)
+                    .map_err(|e| format!("copy formula to {}: {e}", dest_formula.display()))?;
             }
-            fs::copy(HOMEBREW_FORMULA, &dest_formula)
-                .map_err(|e| format!("copy formula to {}: {e}", dest_formula.display()))?;
-            run_checked_in(tap_dir, "git", &["add", "Formula/femacs.rb"])?;
+            run_checked_in(
+                tap_dir,
+                "git",
+                &["add", "Formula/elisp.rb", "Formula/femacs.rb"],
+            )?;
             if !git_status_clean_in(tap_dir)? {
-                let commit_msg = format!("feat(femacs): bump formula to v{version}\n");
+                let commit_msg = format!("feat(femacs): bump elisp & femacs formulae to v{version}\n");
                 let msg_path = Path::new(TMP_REL_DIR).join("tap-commit.txt");
                 fs::write(&msg_path, commit_msg).map_err(|e| format!("write tap msg: {e}"))?;
                 let abs_msg = fs::canonicalize(&msg_path)
@@ -1422,7 +1488,7 @@ fn print_usage() {
          Subcommands:\n\
          \x20 plan      --version <X.Y.Z>                       Show crate & package versions + crates.io status\n\
          \x20 bump      --version <X.Y.Z> [--dry-run]           Bump 5 Cargo manifests + npm package.json + docs/install.sh\n\
-         \x20 sync-dist --version <X.Y.Z> --checksums <FILE>    Regenerate npm manifest.json & Homebrew femacs.rb\n\
+         \x20 sync-dist --version <X.Y.Z> --checksums <FILE>    Regenerate npm manifest.json & Homebrew elisp/femacs formulae\n\
          \x20 check     --version <X.Y.Z> [--allow-dirty] [--skip-package]\n\
          \x20 notes     --version <X.Y.Z> [--out <FILE>] [--already-published a,b]\n\
          \x20 publish   --version <X.Y.Z> [--execute] [--skip-already-published] [--skip-tag] [--skip-github] [--assets-dir <DIR>] [--with-npm] [--homebrew-tap-dir <DIR>] [--notes-file <FILE>] [--wait-timeout-secs N]"

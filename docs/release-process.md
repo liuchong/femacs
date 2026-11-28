@@ -13,8 +13,9 @@ All public workspace crates, prebuilt release archives, the zero-dependency npm 
 | `elisp` | [Cargo.toml](../crates/elisp/Cargo.toml) | Rust `[[bin]]` (Tier 3) | Standalone general-purpose CLI, package manager & TTY REPL (depends on `lisp`) |
 | Prebuilt archives | GitHub Release (`SHA256SUMS.txt`) | `.tar.gz` (`elisp`, `femacs`, `fe`) | `aarch64-apple-darwin`, `x86_64-apple-darwin`, `aarch64-unknown-linux-gnu`, `x86_64-unknown-linux-gnu` |
 | `femacs` (npm) | [packaging/npm/femacs/](../packaging/npm/femacs/package.json) | Eliscript `.eli` -> ESM wrapper | Zero runtime deps; bundles in `prepack`, downloads SHA-256 verified release archives lazily |
-| `liuchong/tap/femacs` | [packaging/homebrew/femacs.rb](../packaging/homebrew/femacs.rb) | Homebrew Formula | Installs `elisp`, `femacs`, `fe` via `liuchong/homebrew-tap` |
-| `install.sh` | [docs/install.sh](../docs/install.sh) | POSIX shell (`femacs.com/install.sh`) | One-line download & SHA-256 verified install into `~/.local/bin` |
+| `liuchong/tap/elisp` | [packaging/homebrew/elisp.rb](../packaging/homebrew/elisp.rb) | Homebrew Formula | Installs standalone `elisp` CLI & REPL via `liuchong/homebrew-tap` |
+| `liuchong/tap/femacs` | [packaging/homebrew/femacs.rb](../packaging/homebrew/femacs.rb) | Homebrew Formula | Installs macOS Fe editor launchers (`femacs`, `fe`) via `liuchong/homebrew-tap` |
+| `install.sh` | [docs/install.sh](../docs/install.sh) | POSIX shell (`femacs.com/install.sh`) | One-line SHA-256 verified install into `~/.local/bin` (`--only elisp|femacs`) |
 
 ### `v0.0.1` Bootstrap Note
 
@@ -52,7 +53,7 @@ Build `--release -p elisp -p femacs` for each target (`aarch64-apple-darwin`, `x
 cargo run -p xtask -- release sync-dist --version 0.0.2 --checksums build/release-assets/SHA256SUMS.txt
 ```
 
-`sync-dist` deterministically regenerates `packaging/npm/femacs/manifest.json` and `packaging/homebrew/femacs.rb` from `SHA256SUMS.txt`.
+`sync-dist` deterministically regenerates `packaging/npm/femacs/manifest.json`, `packaging/homebrew/elisp.rb`, and `packaging/homebrew/femacs.rb` from `SHA256SUMS.txt`.
 
 ### Step C — Refresh Docs, Test Packaging & Run Release Gates
 
@@ -65,7 +66,7 @@ cargo run -p xtask -- release check --version 0.0.2 --allow-dirty
 cargo test -p xtask --bin xtask
 ```
 
-`xtask release check` enforces Cargo metadata, npm `package.json`/`manifest.json`/`README.md`/`LICENSE` (0 runtime deps, 0 tracked `.js`/`.mjs`), Homebrew `ruby -c`, `sh -n docs/install.sh`, `check-own-voice.py`, `check-crate-boundaries.py`, and multi-crate `cargo package` size limits (`< 10 MiB`).
+`xtask release check` enforces Cargo metadata, npm `package.json`/`manifest.json`/`README.md`/`LICENSE` (0 runtime deps, 0 tracked `.js`/`.mjs`), Homebrew `ruby -c`, `sh -n docs/install.sh`, `check-own-voice.py`, `check-crate-boundaries.el`, and multi-crate `cargo package` size limits (`< 10 MiB`).
 
 Commit and GPG-sign push to `origin/master` (`[skip ci]`).
 

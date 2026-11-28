@@ -91,9 +91,11 @@ const code = await runBinary("elisp", ["--no-auto-warm", "eval", "(+ 20 22)"]);
 
 ## Other Install Channels
 
-- **Homebrew (macOS & Linux)**: `brew install liuchong/tap/femacs`
-- **Shell installer (macOS & Linux)**: `curl -fsSL https://femacs.com/install.sh | sh`
-- **Cargo (from source, all targets)**: `cargo install elisp && cargo install femacs --locked`
+- **Homebrew (macOS & Linux — separate packages)**:
+  - Standalone Lisp runtime & REPL: `brew install liuchong/tap/elisp`
+  - macOS Fe editor launchers (`femacs`, `fe`): `brew install liuchong/tap/femacs`
+- **Shell installer (macOS & Linux)**: `curl -fsSL https://femacs.com/install.sh | sh` (pass `--only elisp` or `--only femacs` to install a subset)
+- **Cargo (from source, all targets)**: `cargo install elisp` and `cargo install femacs --locked`
 - **Embed in Rust (`Cargo.toml`)**: `lisp = "0.0.1"` (`lisp-vm`, `lisp-std`, `lisp`, `elisp` on [crates.io](https://crates.io/crates/lisp))
 
 ## Links

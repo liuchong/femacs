@@ -4,6 +4,45 @@ set -eu
 FEMACS_VERSION="${FEMACS_VERSION:-0.0.1}"
 FEMACS_INSTALL_DIR="${FEMACS_INSTALL_DIR:-$HOME/.local/bin}"
 FEMACS_DOWNLOAD_BASE_URL="${FEMACS_DOWNLOAD_BASE_URL:-https://github.com/liuchong/femacs/releases/download/v${FEMACS_VERSION}}"
+FEMACS_ONLY="${FEMACS_ONLY:-all}"
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --only)
+      [ "$#" -ge 2 ] || { echo "femacs install: --only requires elisp, femacs, or all" >&2; exit 2; }
+      FEMACS_ONLY="$2"
+      shift 2
+      ;;
+    --only=*)
+      FEMACS_ONLY="${1#--only=}"
+      shift
+      ;;
+    -h|--help)
+      echo "Usage: install.sh [--only elisp|femacs|all]"
+      exit 0
+      ;;
+    *)
+      echo "femacs install: unknown option: $1" >&2
+      exit 2
+      ;;
+  esac
+done
+
+case "$FEMACS_ONLY" in
+  all)
+    install_bins="elisp femacs fe"
+    ;;
+  elisp)
+    install_bins="elisp"
+    ;;
+  femacs)
+    install_bins="femacs fe"
+    ;;
+  *)
+    echo "femacs install: invalid --only value '$FEMACS_ONLY' (expected elisp, femacs, or all)" >&2
+    exit 2
+    ;;
+esac
 
 need_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -97,7 +136,7 @@ fi
 mkdir -p "$tmpdir/unpack" "$FEMACS_INSTALL_DIR"
 tar -xzf "$tmpdir/$archive" -C "$tmpdir/unpack"
 
-for bin_name in elisp femacs fe; do
+for bin_name in $install_bins; do
   if [ ! -f "$tmpdir/unpack/$bin_name" ]; then
     echo "femacs install: archive ${archive} missing binary ${bin_name}" >&2
     exit 1
@@ -108,7 +147,7 @@ for bin_name in elisp femacs fe; do
   mv -f "$stage_bin" "$FEMACS_INSTALL_DIR/$bin_name"
 done
 
-echo "Installed elisp, femacs, fe (v${FEMACS_VERSION}, ${target}) into ${FEMACS_INSTALL_DIR}"
+echo "Installed ${install_bins} (v${FEMACS_VERSION}, ${target}) into ${FEMACS_INSTALL_DIR}"
 case ":${PATH}:" in
   *":${FEMACS_INSTALL_DIR}:"*) ;;
   *)

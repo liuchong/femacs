@@ -123,14 +123,14 @@ fe -R -nw notes.org</code></pre>
     </section>
     <section class="section reading" id="standalone-elisp" aria-labelledby="standalone-elisp-title">
       <h2 id="standalone-elisp-title">Install standalone <code>elisp</code> CLI (v0.0.1)</h2>
-      <p>To run scripts, use an interactive REPL, or embed No-GIL Lisp in Rust without building the Cocoa editor, install via Homebrew (<code>brew install liuchong/tap/femacs</code>), <a href="https://www.npmjs.com/package/femacs">npm</a> (<code>npm install -g femacs</code>), <a href="https://femacs.com/install.sh"><code>install.sh</code></a>, or Cargo (<a href="https://crates.io/crates/elisp"><code>elisp</code></a> / <a href="https://crates.io/crates/lisp"><code>lisp</code></a>).</p>
+      <p>To run scripts, use an interactive REPL, or embed No-GIL Lisp in Rust without building the Cocoa editor, install via Homebrew (<code>brew install liuchong/tap/elisp</code>), <a href="https://www.npmjs.com/package/femacs">npm</a> (<code>npm install -g femacs</code>), <a href="https://femacs.com/install.sh"><code>install.sh</code></a>, or Cargo (<a href="https://crates.io/crates/elisp"><code>elisp</code></a> / <a href="https://crates.io/crates/lisp"><code>lisp</code></a>).</p>
       <article class="command-panel">
         <div class="command-heading">
           <h3>Standalone Lisp CLI</h3>
           <button type="button" class="copy-button" data-copy-target="#code-standalone-elisp" data-eli-control disabled>Copy</button>
         </div>
-        <pre tabindex="0"><code id="code-standalone-elisp">curl -fsSL https://femacs.com/install.sh | sh
-# or: npm install -g femacs  |  brew install liuchong/tap/femacs  |  cargo install elisp
+        <pre tabindex="0"><code id="code-standalone-elisp">curl -fsSL https://femacs.com/install.sh | sh -s -- --only elisp
+# or: brew install liuchong/tap/elisp  |  npm install -g femacs  |  cargo install elisp
 elisp eval '(+ 20 22)'
 elisp repl</code></pre>
       </article>

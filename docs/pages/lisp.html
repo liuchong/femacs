@@ -68,10 +68,10 @@
             <div><h3>Install and run the standalone binary</h3><p>Prebuilt macOS &amp; Linux binaries via Homebrew, npm, or shell installer (or build from source via Cargo); silent cold boot with background atomic <code>.pdmp</code> cache.</p></div>
             <button type="button" class="copy-button" data-copy-target="#code-elisp-cli" data-eli-control disabled>Copy</button>
           </div>
-          <pre tabindex="0"><code id="code-elisp-cli"># Prebuilt binaries (elisp, femacs, fe) for macOS &amp; Linux
-brew install liuchong/tap/femacs
+          <pre tabindex="0"><code id="code-elisp-cli"># Prebuilt standalone elisp for macOS &amp; Linux
+brew install liuchong/tap/elisp
 npm install -g femacs
-curl -fsSL https://femacs.com/install.sh | sh
+curl -fsSL https://femacs.com/install.sh | sh -s -- --only elisp
 
 # Or build from source (all platforms)
 cargo install elisp

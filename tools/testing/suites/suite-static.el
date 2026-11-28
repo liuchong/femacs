@@ -78,30 +78,30 @@
    :cache-inputs '("tools/check-ledger-ticks.py" "docs/ports" "docs/port-map.md" "lib" "src")
    :tags '("static" "fast"))
 
-  (fe-test-register-case
-   :id "static/crate-boundaries"
-   :suite "static"
-   :title "Editor/standalone crate boundary & zero-C check"
-   :command '("python3" "tools/check-crate-boundaries.py")
-   :env py-env
-   :timeout-ms 45000
-   :cache-inputs '("tools/check-crate-boundaries.py"
-                   "Cargo.toml"
-                   "crates/lisp-vm/Cargo.toml"
-                   "crates/lisp-std/Cargo.toml"
-                   "crates/lisp/Cargo.toml"
-                   "crates/elisp/Cargo.toml"
-                   "crates/femacs-host/Cargo.toml"
-                   "xtask/Cargo.toml")
-   :tags '("static" "fast")))
+  (let ((elisp-bin (or (fe-test-find-elisp)
+                       (plist-get (fe-test-targets) :lisp-host)
+                       "elisp")))
+    (fe-test-register-case
+     :id "static/crate-boundaries"
+     :suite "static"
+     :title "Editor/standalone crate boundary & zero-C check"
+     :command (list elisp-bin "--batch" "-Q" "--script" "tools/check-crate-boundaries.el")
+     :timeout-ms 45000
+     :cache-inputs '("tools/check-crate-boundaries.el"
+                     "Cargo.toml"
+                     "crates/lisp-vm/Cargo.toml"
+                     "crates/lisp-std/Cargo.toml"
+                     "crates/lisp/Cargo.toml"
+                     "crates/elisp/Cargo.toml"
+                     "crates/femacs-host/Cargo.toml"
+                     "xtask/Cargo.toml")
+     :tags '("static" "fast"))
 
-(let ((lisp-host (plist-get (fe-test-targets) :lisp-host)))
-  (when lisp-host
     (fe-test-register-case
      :id "static/fe-test-byte-compile"
      :suite "static"
      :title "Strict zero-warning byte-compile of tools/testing/**/*.el"
-     :command (list lisp-host "--batch" "-Q"
+     :command (list elisp-bin "--batch" "-Q"
                     "-L" "tools/testing"
                     "-L" "tools/testing/suites"
                     "--eval"

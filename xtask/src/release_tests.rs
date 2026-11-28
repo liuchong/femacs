@@ -115,7 +115,15 @@ f42a8fddfe5fbd81b90c5146c7824cdd27c7b4af41f8f389ce4103d214d37700  femacs-v0.0.2-
         Some("d341fdca2c411fc1583243ba965d3f360fb74ebdbf25860a5fd7fa843da0c6b0")
     );
 
+    let elisp_formula = render_homebrew_elisp_formula("0.0.2", &checksums).expect("elisp formula");
+    assert!(elisp_formula.contains("class Elisp < Formula"));
+    assert!(elisp_formula.contains("bin.install \"elisp\""));
+    assert!(elisp_formula.contains("version \"0.0.2\""));
+    assert!(elisp_formula.contains("femacs-v0.0.2-aarch64-apple-darwin.tar.gz"));
+
     let formula = render_homebrew_formula("0.0.2", &checksums).expect("formula");
+    assert!(formula.contains("class Femacs < Formula"));
+    assert!(formula.contains("bin.install \"femacs\", \"fe\""));
     assert!(formula.contains("version \"0.0.2\""));
     assert!(formula.contains("femacs-v0.0.2-aarch64-apple-darwin.tar.gz"));
     assert!(formula.contains("femacs-v0.0.2-x86_64-apple-darwin.tar.gz"));
@@ -132,6 +140,7 @@ fn release_notes_include_all_channels_and_windows_disclosure() {
         "lisp-std",
         "lisp-vm",
         "femacs",
+        "brew install liuchong/tap/elisp",
         "brew install liuchong/tap/femacs",
         "npm install -g femacs",
         "https://femacs.com/install.sh",

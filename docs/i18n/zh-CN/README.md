@@ -41,10 +41,11 @@ Rust 内核及原生 Swift macOS 界面已有可运行实现；功能验收与�
 - **[`lisp-vm`](../../../crates/lisp-vm/README.md)**（`[lib]`，`0.0.1`）：无头 Lisp 虚拟机、GC、字节码引擎、`HostExtFn` 回调、`.pdmp` 热启动镜像及可选 `isolate_vm` 多核隔离。
 
 ```sh
-# 预编译多平台分发（含 elisp / femacs / fe）
-brew install liuchong/tap/femacs
-npm install -g femacs
-curl -fsSL https://femacs.com/install.sh | sh
+# 预编译多平台分发（Homebrew 拆分为两个独立 Formula，按需安装）
+brew install liuchong/tap/elisp    # 仅安装独立 Elisp 运行时与 REPL (`elisp`)
+brew install liuchong/tap/femacs   # 安装 macOS 编辑器命令行启动器 (`femacs`, `fe`)
+npm install -g femacs              # 含 `elisp`, `femacs`, `fe`
+curl -fsSL https://femacs.com/install.sh | sh   # 支持 `--only elisp|femacs`
 
 # 或使用 Cargo 从源码构建
 cargo install elisp

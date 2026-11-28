@@ -1,7 +1,8 @@
 ;;; fe-test.el --- Main CLI and suite orchestrator for fe-test -*- lexical-binding: t; -*-
 
 ;;; Commentary:
-;; Native Lisp test framework entrypoint run by `dist/lisp/bin/femacs-lisp'.
+;; Native Lisp test framework entrypoint run by published `elisp' (with fallback
+;; to workspace `dist/lisp/bin/femacs-lisp').
 ;; Parses CLI flags, loads registered test suites, invokes memory-aware LPT
 ;; execution, updates persistent EWMA/failure/report JSON files, and exits cleanly.
 

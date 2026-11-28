@@ -4734,20 +4734,36 @@
       "uncertainty": null
     },
     {
-      "path": "tools/check-crate-boundaries.py",
-      "sha256": "b6f812e1802689fa187b717bf8e20b8e15b8c1f4b85007993c20d7b2f8e49694",
-      "bytes": 4193,
+      "path": "tools/check-crate-boundaries.el",
+      "sha256": "499de95363418680b7e263cd11c356b1692bcc3425cc1370fefb9e0d6851c65f",
+      "bytes": 8704,
       "family": "comparison-gate",
       "decision": "retain",
       "replacement": null,
-      "reason": "verify editor/standalone crate isolation and zero C compiler dependencies",
+      "reason": "verify editor/standalone crate isolation and zero C compiler dependencies using published elisp (CLN321)",
       "readers": [
         {
           "path": "tools/testing/suites/suite-static.el",
           "anchor": "static/crate-boundaries",
           "kind": "fe-test-static-case"
+        },
+        {
+          "path": "xtask/src/release.rs",
+          "anchor": "CRATE_BOUNDARIES_SCRIPT",
+          "kind": "current explicit dispatch/import/documented invocation"
         }
       ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/check-crate-boundaries.py",
+      "sha256": "b6f812e1802689fa187b717bf8e20b8e15b8c1f4b85007993c20d7b2f8e49694",
+      "bytes": 4193,
+      "family": "comparison-gate",
+      "decision": "retire",
+      "replacement": "tools/check-crate-boundaries.el",
+      "reason": "retired Python gate replaced by pure Lisp tools/check-crate-boundaries.el executed via published elisp (CLN321)",
+      "readers": [],
       "uncertainty": null
     },
     {
@@ -8607,8 +8623,8 @@
     },
     {
       "path": "tools/testing/fe-test-dsl.el",
-      "sha256": "6f0665e51aa6e71f626ed6bd0190f5afe25407f6f8573009c16959ba8c0065ee",
-      "bytes": 14756,
+      "sha256": "6348d69c4b59e2b8e9aaffffa5ddcc429f24227ac88e98a6c100a174013245bf",
+      "bytes": 15097,
       "family": "test",
       "decision": "retain",
       "replacement": null,
@@ -8626,8 +8642,8 @@
         }
       ],
       "uncertainty": null,
-      "current_sha256": "6f0665e51aa6e71f626ed6bd0190f5afe25407f6f8573009c16959ba8c0065ee",
-      "current_bytes": 14756
+      "current_sha256": "6348d69c4b59e2b8e9aaffffa5ddcc429f24227ac88e98a6c100a174013245bf",
+      "current_bytes": 15097
     },
     {
       "path": "tools/testing/fe-test-profile.el",
@@ -8701,8 +8717,8 @@
     },
     {
       "path": "tools/testing/fe-test.el",
-      "sha256": "3f0cfd8e775bc62abb4a34f3ec82a52619117dd6e28ed385f7946c0a87cfd197",
-      "bytes": 12572,
+      "sha256": "14254aa54014e8ffa694136bc4fb42af2a1bb5dd0d6f6c8386fd2db17f90f3b3",
+      "bytes": 12622,
       "family": "test",
       "decision": "retain",
       "replacement": null,
@@ -8795,8 +8811,8 @@
     },
     {
       "path": "tools/testing/suites/suite-static.el",
-      "sha256": "358f761fb200df959ca24c792476e0d72ce2718dd17753ee4380b8627670062e",
-      "bytes": 5150,
+      "sha256": "a38522b8cc757bb288ac20eb36fd378b30bb72dda7c2e065e9b2b33b9cbeedfd",
+      "bytes": 5258,
       "family": "test",
       "decision": "retain",
       "replacement": null,

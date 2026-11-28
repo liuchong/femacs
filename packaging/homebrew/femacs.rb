@@ -1,5 +1,5 @@
 class Femacs < Formula
-  desc "Standalone No-GIL Elisp-compatible CLI (elisp) and Fe editor CLI launchers"
+  desc "Command-line launchers (femacs, fe) for the Fe editor on macOS"
   homepage "https://femacs.com/"
   version "0.0.1"
   license "GPL-3.0-or-later"
@@ -29,11 +29,12 @@ class Femacs < Formula
   end
 
   def install
-    bin.install "elisp", "femacs", "fe"
+    bin.install "femacs", "fe"
   end
 
   test do
-    assert_match "elisp #{version}", shell_output("#{bin}/elisp --version")
-    assert_equal "42", shell_output("#{bin}/elisp --no-auto-warm eval '(+ 20 22)'").strip
+    assert_predicate bin/"femacs", :executable?
+    assert_predicate bin/"fe", :executable?
+    assert_match(/Usage: fe|requires macOS|Fe\.app|Femacs\.app/, shell_output("#{bin}/fe --help 2>&1", 0))
   end
 end

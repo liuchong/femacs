@@ -52,10 +52,11 @@ multi-core Elisp-compatible Lisp runtime across four crates:
 - **[`lisp-vm`](crates/lisp-vm/README.md)** (`[lib]`, `v0.0.1`): Low-level headless VM, GC, bytecode engine, `HostExtFn` callbacks, `.pdmp` dump/restore, and opt-in `isolate_vm` multi-core isolation.
 
 ```sh
-# Install prebuilt binaries (elisp, femacs, fe) via Homebrew, npm, or shell
-brew install liuchong/tap/femacs
-npm install -g femacs
-curl -fsSL https://femacs.com/install.sh | sh
+# Install prebuilt binaries via Homebrew (separate formulae), npm, or shell
+brew install liuchong/tap/elisp    # standalone Lisp CLI & REPL (`elisp`)
+brew install liuchong/tap/femacs   # macOS Fe editor launchers (`femacs`, `fe`)
+npm install -g femacs              # installs `elisp`, `femacs`, and `fe`
+curl -fsSL https://femacs.com/install.sh | sh   # supports `--only elisp|femacs`
 
 # Or build from source with Cargo
 cargo install elisp

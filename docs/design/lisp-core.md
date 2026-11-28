@@ -92,7 +92,7 @@ See [docs/release-process.md](../release-process.md) for the full programmatic 5
 
 ### Release Verification Gates
 - `cargo package -p lisp-vm && cargo package -p lisp-std && cargo package -p lisp-vm -p lisp-std -p lisp -p elisp --no-verify` (archive size `< 10 MiB`, `LICENSE` + independent `README.md` without `../` links, `0` path escapes, and isolated extraction `release` rebuild of `elisp` passing `--version`, `--help`, `eval`, and `std/*`).
-- `python3 tools/check-crate-boundaries.py`, `python3 tools/check-own-voice.py`, and `fe-test --suite all --no-cache`.
+- `elisp --batch -Q --script tools/check-crate-boundaries.el`, `python3 tools/check-own-voice.py`, and `fe-test --suite all --no-cache`.
 - GPG-signed tag `v0.0.1` (`git tag -s v0.0.1`) and GitHub Release publishing the `0.0.1` crates.io & platform verification notes.
 
 ### Platform Support Disclosure

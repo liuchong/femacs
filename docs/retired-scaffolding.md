@@ -110,3 +110,11 @@ G4 Android historical diagnostic stages: `back`, kernel-wchan-only `threads`, te
 | `tools/pgo_pipeline.py`（旧 `xtask build-units` 与 `/tmp/xt-cargo` 接线） | Cargo 统一前在 `o2`/`generate`/`use` 阶段先调用已退役 `xtask build-units` 并写 `/tmp/xt-cargo` 的旧 PGO 驱动体（`8,386` B，SHA-256 `1120174dca974890dff08fe8f5d8d4c7622c72e9d7e976869fef73b4ae902f40`） | 同路径直接走 `xtask gate-load`（`cargo_build::link_temacs` 内置 `FEMACS_PGO`）+ 受管 `xt-cargo` 目录；旧体可由 `git show bf09d0fc:tools/pgo_pipeline.py` 恢复 | 2026-11-22 |
 | `tools/test-u5-au5-integration.py` | `U5` 扩展为八阶段（`U1–U8`）前编写的早期集中整合脚本（`58,666` B，SHA-256 `b5fa636478b746e46ff156b1c4c05aba0fbeba65d88395d8f0472415c9799c08`），硬编码 `build/runtime/u4-native` 且未纳入 `U6–U8` 零 `static mut`/`143` `forbid` 闭合门 | `tools/test-u8-au8-integration.py`（显式 `--native-runtime-root`、`--require-zero-static-mut`、`--min-forbid-files 143`、`--u1-baseline` 棘轮与隔离 `TMPDIR`）；可由 `git show ea54f868:tools/test-u5-au5-integration.py` 恢复 | 2026-11-22 |
 | `crates/femacs-pure/`（`Cargo.toml`、`src/lib.rs` 及旧杂凑 crate 壳） | 历史拼装 crate：`Cargo.toml`（`142` B，SHA-256 `93cc7fb8a01d56121d54a46824ca3a6f55624251148a23e482842a047c4808e1`）与 `src/lib.rs`（`12,790` B，SHA-256 `df02d9ddfee4b3f417369eb9ed8c193c9ebfe8bb036072e7b46376245cac1f4f`），实为 `femacs-sys` (`lib/`) 安全算法与 `src/include/macuvs.rs` 的混合拼盘且在 `femacs-tools` 零消费 | 按 P-489 解散：14 个 `#![forbid(unsafe_code)]` 模块直接归位至 `crates/femacs-sys/src/`，`src/include/macuvs.rs` 归位至 `crates/femacs-vm/src/lib.rs`；可由 `git show 16f84217:crates/femacs-pure` 恢复 | 2026-11-27 |
+
+## 九、工具脚本迁移至 `elisp 0.0.1` 第一批退役（2026-11-28）
+
+使用已发布的独立 `elisp 0.0.1` 替代仓库内首批可直接以 Lisp 实现的静态门与测试驱动入口（见 `CLN321`）：
+
+| 路径 / 入口 | 原用途 / 退役依据 | 取代者 / 恢复依据 | 日期 |
+| --- | --- | --- | --- |
+| `tools/check-crate-boundaries.py` | 校验编辑器/独立 crate 隔离与零 C 编译器依赖的 Python 检查脚本（`4,193` B，SHA-256 `b6f812e1802689fa187b717bf8e20b8e15b8c1f4b85007993c20d7b2f8e49694`）；已重写为纯 Lisp 实现并通过等价逻辑与自测 | `tools/check-crate-boundaries.el`（由已发布 `elisp 0.0.1` 执行，`xtask release check` 与 `static/crate-boundaries` 唯一调用）；可由 `git show 07f77fb0:tools/check-crate-boundaries.py` 恢复 | 2026-11-28 |

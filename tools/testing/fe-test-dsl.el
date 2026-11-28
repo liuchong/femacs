@@ -117,9 +117,10 @@
   "Build RUNNER-BIN subcommand argv prefixing `test-exec' or `exec' before ARGS."
   (cons (fe-test--exec-subcommand runner-bin) args))
 
-(defun fe-test-find-exec-runner (&optional override)
-  "Locate the built `elisp' or `xtask' exec runner."
-  (let* ((self-exe (when (and (boundp 'invocation-directory)
+(defun fe-test-find-elisp (&optional override)
+  "Locate the standalone `elisp' CLI executable (FEMACS_ELISP or PATH)."
+  (let* ((env-bin (getenv "FEMACS_ELISP"))
+         (self-exe (when (and (boundp 'invocation-directory)
                               (boundp 'invocation-name)
                               (stringp invocation-directory)
                               (stringp invocation-name)
@@ -127,18 +128,26 @@
                                               (file-name-nondirectory invocation-name)))
                      (expand-file-name invocation-name invocation-directory)))
          (cand (or override
+                   (and env-bin (> (length env-bin) 0) env-bin)
+                   self-exe
+                   (executable-find "elisp"))))
+    (when (and cand (file-executable-p cand))
+      (expand-file-name cand))))
+
+(defun fe-test-find-exec-runner (&optional override)
+  "Locate the built `elisp' or `xtask' exec runner."
+  (let* ((cand (or override
                    fe-test-exec-override
                    fe-test-xtask-override
+                   (fe-test-find-elisp)
                    (cl-find-if
                     (lambda (p) (and p (file-executable-p p)))
-                    (list self-exe
-                          (fe-test-path "build/cargo/release/elisp")
+                    (list (fe-test-path "build/cargo/release/elisp")
                           (fe-test-path "build/cargo/debug/elisp")
                           (fe-test-path "build/cargo/release/xtask")
-                          (fe-test-path "build/cargo/debug/xtask")
-                          (executable-find "elisp"))))))
+                          (fe-test-path "build/cargo/debug/xtask"))))))
     (unless (and cand (file-executable-p cand))
-      (error "No exec runner found; build `elisp' with `cargo build -p elisp --target-dir build/cargo'"))
+      (error "No exec runner found; install `elisp' on PATH or set FEMACS_ELISP"))
     (expand-file-name cand)))
 
 (defun fe-test-find-xtask (&optional override)
