@@ -1,0 +1,6 @@
+;; CLI wrapper entry for `fe` (compiled from Eliscript -> dist/bin/fe.mjs).
+
+(module femacs.npm.bin.fe
+  (import "../index.mjs" runCli)
+
+  (runCli "fe"))

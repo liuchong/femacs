@@ -1,0 +1,6 @@
+;; CLI wrapper entry for `elisp` (compiled from Eliscript -> dist/bin/elisp.mjs).
+
+(module femacs.npm.bin.elisp
+  (import "../index.mjs" runCli)
+
+  (runCli "elisp"))

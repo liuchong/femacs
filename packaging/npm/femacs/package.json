@@ -1,0 +1,51 @@
+{
+  "name": "femacs",
+  "version": "0.0.1",
+  "description": "Prebuilt FEmacs & standalone Elisp CLI binaries (elisp, femacs, fe) distributed as a zero-dependency launcher.",
+  "type": "module",
+  "main": "./dist/index.mjs",
+  "types": "./types/index.d.ts",
+  "bin": {
+    "femacs": "dist/bin/femacs.mjs",
+    "fe": "dist/bin/fe.mjs",
+    "elisp": "dist/bin/elisp.mjs"
+  },
+  "files": [
+    "dist/",
+    "types/",
+    "manifest.json",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "sh ./scripts/build.sh",
+    "prepack": "sh ./scripts/build.sh",
+    "postinstall": "node -e \"Promise.all([import('node:fs'),import('node:url')]).then(([fs,url])=>{if(fs.existsSync('./dist/postinstall.mjs'))return import(url.pathToFileURL('./dist/postinstall.mjs').href)})\"",
+    "test": "sh ./scripts/test.sh"
+  },
+  "devDependencies": {
+    "eliscript": "^0.1.4"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/liuchong/femacs.git",
+    "directory": "packaging/npm/femacs"
+  },
+  "homepage": "https://femacs.com/",
+  "bugs": {
+    "url": "https://github.com/liuchong/femacs/issues"
+  },
+  "license": "GPL-3.0-or-later",
+  "keywords": [
+    "femacs",
+    "fe",
+    "elisp",
+    "lisp",
+    "editor",
+    "cli",
+    "repl"
+  ]
+}

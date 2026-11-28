@@ -11,6 +11,7 @@
 [![crates.io lisp](https://img.shields.io/crates/v/lisp?logo=rust&label=lisp)](https://crates.io/crates/lisp)
 [![crates.io lisp-std](https://img.shields.io/crates/v/lisp-std?logo=rust&label=lisp-std)](https://crates.io/crates/lisp-std)
 [![crates.io lisp-vm](https://img.shields.io/crates/v/lisp-vm?logo=rust&label=lisp-vm)](https://crates.io/crates/lisp-vm)
+[![npm femacs](https://img.shields.io/npm/v/femacs?logo=npm&label=npm)](https://www.npmjs.com/package/femacs)
 [![许可证：GPL-3.0-or-later](https://img.shields.io/badge/license-GPL--3.0--or--later-blue)](../../../LICENSE)
 [![项目文档](https://img.shields.io/badge/docs-femacs.com-blue)](https://femacs.com/)
 
@@ -40,13 +41,18 @@ Rust 内核及原生 Swift macOS 界面已有可运行实现；功能验收与�
 - **[`lisp-vm`](../../../crates/lisp-vm/README.md)**（`[lib]`，`0.0.1`）：无头 Lisp 虚拟机、GC、字节码引擎、`HostExtFn` 回调、`.pdmp` 热启动镜像及可选 `isolate_vm` 多核隔离。
 
 ```sh
-# 安装独立命令行工具与 REPL
+# 预编译多平台分发（含 elisp / femacs / fe）
+brew install liuchong/tap/femacs
+npm install -g femacs
+curl -fsSL https://femacs.com/install.sh | sh
+
+# 或使用 Cargo 从源码构建
 cargo install elisp
 elisp eval '(+ 20 22)'
 elisp repl
 ```
 
-平台验证边界（`v0.0.1`）：已在 Apple Silicon macOS 真机与 Linux（Debian 12 `aarch64` 虚拟机，`x86_64` 交叉编译）验证；Windows（`x86_64-pc-windows-msvc` / `x86_64-pc-windows-gnu`）**仅完成交叉编译架构验证，未在物理 Windows 主机上执行运行态测试**。详见 [支持矩阵](../../support-matrix.md)。
+平台验证与预编译边界（`v0.0.1`）：Apple Silicon macOS（`aarch64-apple-darwin`）与 Linux `aarch64`（Debian 12 虚拟机实测 + Zig 交叉发布包）已完成运行态验证；`x86_64-apple-darwin`（已完成 `--release` Mach-O 与 `otool -L` 仅系统库检查，本机无 Rosetta/Intel 实机运行）与 `x86_64-unknown-linux-gnu`（已完成 Zig 交叉 `--release` ELF 与 `cargo check`）提供 GitHub Release 预编译压缩包（`SHA256SUMS.txt`）；Windows（`x86_64-pc-windows-msvc` / `x86_64-pc-windows-gnu`）**仅完成交叉编译架构验证，未在物理 Windows 主机上执行运行态测试**，暂不提供预编译包。详见[支持矩阵](../../support-matrix.md)与 [npm 包说明](../../../packaging/npm/femacs/README.md)。
 
 ## 构建与试用 Fe 编辑器
 
@@ -76,9 +82,9 @@ dist/macos/Femacs.app/Contents/MacOS/Femacs -Q
 
 ## 文档
 
-- [项目主页（femacs.com）](https://femacs.com/)（[源码](../../index.html) · [独立 Lisp 专页](https://femacs.com/pages/lisp.html)）
+- [项目主页（femacs.com）](https://femacs.com/)（[源码](../../index.html) · [独立 Lisp 专页](https://femacs.com/pages/lisp.html) · [Shell 安装脚本](../../install.sh)）
 - [独立 Lisp 运行时架构设计](../../design/lisp-core.md)
-- [五包统一发布流程（`xtask release`）](../../release-process.md) — 覆盖 `lisp-vm`、`lisp-std`、`femacs`、`lisp`、`elisp` 的程序化发布（已发布的 `femacs 0.0.1` 一并计入 `v0.0.1`，后续统一一次性发版）
+- [多渠道统一发布流程（`xtask release`）](../../release-process.md) — 覆盖 5 个 Cargo crate、预编译压缩包、[npm `femacs`](../../../packaging/npm/femacs/README.md)、[Homebrew Tap](../../../packaging/homebrew/femacs.rb) 与 `install.sh`
 - [平台支持与验证边界矩阵](../../support-matrix.md)
 - [docs/i18n](../../i18n/README.md)（语言索引）：其他语言的译文统一放在 `docs/i18n/<locale>/` 下，路径与英文原文一一对应。
 

@@ -1,0 +1,210 @@
+;; Mock-HTTP + SHA-256 + atomic cache lifecycle tests for `packaging/npm/femacs` (Eliscript).
+
+(module femacs.npm.test
+  (import "node:assert/strict" strict)
+  (import "node:child_process" spawnSync)
+  (import "node:crypto" createHash)
+  (import "node:fs" chmodSync existsSync mkdirSync mkdtempSync readFileSync rmSync writeFileSync)
+  (import "node:http" createServer)
+  (import "node:os" tmpdir)
+  (import "node:path" join)
+  (import "./index.mjs"
+          binaryPath
+          cacheDir
+          currentPlatformKey
+          ensureInstalled
+          loadManifest
+          resolveTarget
+          runBinary)
+
+  (defun assert-ok (cond msg)
+    (js-call strict :ok cond msg))
+
+  (defun assert-equal (actual expected msg)
+    (js-call strict :equal actual expected msg))
+
+  (defun make-mock-tarball (workDir archiveName)
+    (let ((srcDir (join workDir "payload"))
+          (tarPath (join workDir archiveName)))
+      (mkdirSync srcDir (js-object :recursive t))
+      (let ((bins (js-array "elisp" "femacs" "fe"))
+            (idx 0))
+        (while (< idx (js-length bins))
+          (let* ((name (aref bins idx))
+                 (filePath (join srcDir name))
+                 (body (str "#!/bin/sh\nif [ \"${1:-}\" = \"--fail\" ]; then exit 42; fi\necho \"mock-" name ":$*\"\n")))
+            (writeFileSync filePath body "utf8")
+            (chmodSync filePath 493))
+          (setq idx (1+ idx))))
+      (writeFileSync (join srcDir "LICENSE") "GPL-3.0-or-later\n" "utf8")
+      (let ((res (spawnSync "tar" (js-array "-czf" tarPath "-C" srcDir "elisp" "femacs" "fe" "LICENSE")
+                            (js-object :encoding "utf8"))))
+        (assert-equal (get res :status) 0 "tar creation failed"))
+      (let* ((buf (readFileSync tarPath))
+             (h (createHash "sha256")))
+        (js-call h :update buf)
+        (js-object :buffer buf :sha256 (js-call h :digest "hex")))))
+
+  (defasync run-tests ()
+    (let* ((tmpRoot (mkdtempSync (join (tmpdir) "femacs-npm-test-")))
+           (manifest (loadManifest))
+           (archiveName "femacs-v0.0.1-test-target.tar.gz")
+           (tarball (make-mock-tarball tmpRoot archiveName))
+           (requestCount 0)
+           (server nil))
+      (try
+        ;; 1. Manifest + platform resolution checks
+        (assert-equal (get manifest :version) "0.0.1" "manifest version")
+        (assert-ok (resolveTarget manifest "darwin-arm64") "darwin-arm64 supported")
+        (assert-ok (resolveTarget manifest "darwin-x64") "darwin-x64 supported")
+        (assert-ok (resolveTarget manifest "linux-arm64") "linux-arm64 supported")
+        (assert-ok (resolveTarget manifest "linux-x64") "linux-x64 supported")
+        (assert-equal (resolveTarget manifest "win32-x64") nil "win32-x64 unsupported")
+        (assert-equal (currentPlatformKey (js-object :platform "linux" :arch "x64"))
+                      "linux-x64" "platform key override")
+
+        ;; 2. Cache directory honors FEMACS_NPM_CACHE_DIR
+        (let ((customCache (join tmpRoot "custom-cache")))
+          (assert-equal (cacheDir (js-object :FEMACS_NPM_CACHE_DIR customCache))
+                        customCache "custom cache dir"))
+
+        ;; 3. Start local HTTP mock server
+        (setq server
+          (createServer
+            (lambda (req res)
+              (setq requestCount (1+ requestCount))
+              (if (= (get req :url) (str "/" archiveName))
+                  (progn
+                    (js-call res :writeHead 200 (js-object :Content-Type "application/gzip"))
+                    (js-call res :end (get tarball :buffer)))
+                (progn
+                  (js-call res :writeHead 404)
+                  (js-call res :end "not found"))))))
+        (await (new globalThis.Promise
+                    (lambda (resolvePromise)
+                      (js-call server :listen 0 "127.0.0.1" resolvePromise))))
+        (let* ((port (get (js-call server :address) :port))
+               (baseUrl (str "http://127.0.0.1:" port))
+               (testManifest
+                 (js-object
+                   :version "0.0.1"
+                   :tag "v0.0.1"
+                   :releaseBaseUrl baseUrl
+                   :binaries (js-array "elisp" "femacs" "fe")
+                   :targets (js-object
+                              :test-target (js-object
+                                             :triple "test-unknown-target"
+                                             :archive archiveName
+                                             :format "tar.gz"
+                                             :sha256 (get tarball :sha256)
+                                             :bins (js-object :elisp "elisp" :femacs "femacs" :fe "fe"))
+                              :bad-sha-target (js-object
+                                                :triple "bad-unknown-target"
+                                                :archive archiveName
+                                                :format "tar.gz"
+                                                :sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+                                                :bins (js-object :elisp "elisp" :femacs "femacs" :fe "fe")))))
+               (cacheA (join tmpRoot "cache-a"))
+               (envA (js-object :FEMACS_NPM_CACHE_DIR cacheA)))
+
+          ;; 4. First download + extract + verify cache miss -> hit
+          (let ((firstInstall (await (ensureInstalled
+                                       (js-object
+                                         :manifest testManifest
+                                         :platformKey "test-target"
+                                         :env envA)))))
+            (assert-equal (get firstInstall :cached) false "first install downloads")
+            (assert-equal requestCount 1 "single HTTP fetch on cold install")
+            (assert-ok (existsSync (join (get firstInstall :installDir) "elisp")) "elisp cached"))
+
+          (let ((secondInstall (await (ensureInstalled
+                                        (js-object
+                                          :manifest testManifest
+                                          :platformKey "test-target"
+                                          :env envA)))))
+            (assert-equal (get secondInstall :cached) t "second install hits cache")
+            (assert-equal requestCount 1 "no extra HTTP fetch on cache hit"))
+
+          ;; 5. Run cached binary and verify exit code forwarding
+          (let ((exe (await (binaryPath "elisp"
+                                        (js-object
+                                          :manifest testManifest
+                                          :platformKey "test-target"
+                                          :env envA))))
+                (okCode (await (runBinary "elisp" (js-array "--version")
+                                          (js-object
+                                            :manifest testManifest
+                                            :platformKey "test-target"
+                                            :env envA))))
+                (failCode (await (runBinary "fe" (js-array "--fail")
+                                            (js-object
+                                              :manifest testManifest
+                                              :platformKey "test-target"
+                                              :env envA)))))
+            (assert-ok (existsSync exe) "binaryPath exists")
+            (assert-equal okCode 0 "runBinary zero exit")
+            (assert-equal failCode 42 "runBinary forwards non-zero exit"))
+
+          ;; 6. SHA-256 mismatch rejects and does NOT populate cache
+          (let* ((cacheBad (join tmpRoot "cache-bad"))
+                 (envBad (js-object :FEMACS_NPM_CACHE_DIR cacheBad))
+                 (rejected false))
+            (try
+              (await (ensureInstalled
+                       (js-object
+                         :manifest testManifest
+                         :platformKey "bad-sha-target"
+                         :env envBad)))
+              (catch err
+                (setq rejected t)
+                (assert-ok (js-call (get err :message) :includes "SHA-256 verification failed")
+                           "sha mismatch message")))
+            (assert-ok rejected "bad sha rejected")
+            (assert-equal (existsSync (join cacheBad "v0.0.1" "bad-unknown-target"))
+                          false "corrupted archive never committed to cache"))
+
+          ;; 7. Unsupported platform explains Cargo fallback
+          (let ((unsupportedThrew false))
+            (try
+              (await (ensureInstalled
+                       (js-object
+                         :manifest testManifest
+                         :platformKey "win32-x64"
+                         :env envA)))
+              (catch err
+                (setq unsupportedThrew t)
+                (assert-ok (js-call (get err :message) :includes "cargo install elisp femacs")
+                           "unsupported error includes cargo fallback")))
+            (assert-ok unsupportedThrew "unsupported throws"))
+
+          ;; 8. Postinstall skips cleanly with FEMACS_SKIP_DOWNLOAD=1
+          (let ((postRes (spawnSync "node" (js-array "./dist/postinstall.mjs")
+                                    (js-object
+                                      :encoding "utf8"
+                                      :env (Object/assign (js-object) (get globalThis.process :env)
+                                                          (js-object :FEMACS_SKIP_DOWNLOAD "1"))))))
+            (assert-equal (get postRes :status) 0 "postinstall skip exits 0"))
+
+          ;; 9. dist/bin/elisp.mjs resolves manifest.json from depth-2 directory (`dist/bin/`)
+          (let ((cliUnsupported
+                  (spawnSync "node" (js-array "./dist/bin/elisp.mjs" "--version")
+                             (js-object
+                               :encoding "utf8"
+                               :env (Object/assign (js-object) (get globalThis.process :env)
+                                                   (js-object
+                                                     :FEMACS_NPM_CACHE_DIR (join tmpRoot "empty-cache")
+                                                     :FEMACS_DOWNLOAD_BASE_URL "http://127.0.0.1:9"))))))
+            (assert-equal (js-call (or (get cliUnsupported :stderr) "") :includes "ENOENT")
+                          false "dist/bin/elisp.mjs locates manifest.json without ENOENT"))
+
+          (js-call globalThis.console :log "FEMACS_NPM_ELISCRIPT_TESTS_OK (9 cases)"))
+        (catch err
+          (when server
+            (try (js-call server :close) (catch closeErr nil)))
+          (rmSync tmpRoot (js-object :recursive t :force t))
+          (throw err)))
+      (when server
+        (js-call server :close))
+      (rmSync tmpRoot (js-object :recursive t :force t))))
+
+  (run-tests))

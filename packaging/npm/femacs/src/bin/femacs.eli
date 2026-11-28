@@ -1,0 +1,6 @@
+;; CLI wrapper entry for `femacs` (compiled from Eliscript -> dist/bin/femacs.mjs).
+
+(module femacs.npm.bin.femacs
+  (import "../index.mjs" runCli)
+
+  (runCli "femacs"))

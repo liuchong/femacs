@@ -105,14 +105,16 @@ build/terminal/port/src/emacs -Q -nw</code></pre>
     </section>
     <section class="section reading" id="command-line" aria-labelledby="command-line-title">
       <h2 id="command-line-title">Use the command-line launchers</h2>
-      <p>After building or installing the Cocoa app, install the launchers from <a href="https://crates.io/crates/femacs">crates.io</a>. They use the app bundle in an Applications folder or the bundle selected by <code>FEMACS_APP</code>.</p>
+      <p>After building or installing the Cocoa app, install the prebuilt launchers via <a href="https://www.npmjs.com/package/femacs">npm</a>, Homebrew (<code>liuchong/tap/femacs</code>), <a href="https://femacs.com/install.sh"><code>install.sh</code></a>, or from <a href="https://crates.io/crates/femacs">crates.io</a>. They use the app bundle in an Applications folder or the bundle selected by <code>FEMACS_APP</code>.</p>
       <p><code>femacs</code> passes all arguments directly to Fe. <code>fe</code> starts with a clean terminal preset. Use <code>-1</code> for one file per session or <code>-R</code> to discard earlier arguments and the preset. <code>fe --help</code> lists these options before the macOS editor help, which shows the installed executable path.</p>
       <article class="command-panel">
         <div class="command-heading">
           <h3>Install and try</h3>
           <button type="button" class="copy-button" data-copy-target="#code-launchers" data-eli-control disabled>Copy</button>
         </div>
-        <pre tabindex="0"><code id="code-launchers">cargo install femacs --locked
+        <pre tabindex="0"><code id="code-launchers">brew install liuchong/tap/femacs
+# or: npm install -g femacs
+# or: cargo install femacs --locked
 femacs notes.org
 fe -1 a.txt b.txt
 fe -R -nw notes.org</code></pre>
@@ -121,13 +123,14 @@ fe -R -nw notes.org</code></pre>
     </section>
     <section class="section reading" id="standalone-elisp" aria-labelledby="standalone-elisp-title">
       <h2 id="standalone-elisp-title">Install standalone <code>elisp</code> CLI (v0.0.1)</h2>
-      <p>To run scripts, use an interactive REPL, or embed No-GIL Lisp in Rust without building the Cocoa editor, install <a href="https://crates.io/crates/elisp"><code>elisp</code></a> or add <a href="https://crates.io/crates/lisp"><code>lisp</code></a> from crates.io.</p>
+      <p>To run scripts, use an interactive REPL, or embed No-GIL Lisp in Rust without building the Cocoa editor, install via Homebrew (<code>brew install liuchong/tap/femacs</code>), <a href="https://www.npmjs.com/package/femacs">npm</a> (<code>npm install -g femacs</code>), <a href="https://femacs.com/install.sh"><code>install.sh</code></a>, or Cargo (<a href="https://crates.io/crates/elisp"><code>elisp</code></a> / <a href="https://crates.io/crates/lisp"><code>lisp</code></a>).</p>
       <article class="command-panel">
         <div class="command-heading">
           <h3>Standalone Lisp CLI</h3>
           <button type="button" class="copy-button" data-copy-target="#code-standalone-elisp" data-eli-control disabled>Copy</button>
         </div>
-        <pre tabindex="0"><code id="code-standalone-elisp">cargo install elisp
+        <pre tabindex="0"><code id="code-standalone-elisp">curl -fsSL https://femacs.com/install.sh | sh
+# or: npm install -g femacs  |  brew install liuchong/tap/femacs  |  cargo install elisp
 elisp eval '(+ 20 22)'
 elisp repl</code></pre>
       </article>

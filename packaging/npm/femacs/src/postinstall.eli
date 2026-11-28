@@ -1,0 +1,29 @@
+;; Best-effort postinstall hook compiled via Eliscript and bundled into `dist/`.
+;; Never fails `npm install` on offline or unsupported hosts; first binary run retries.
+
+(module femacs.npm.postinstall
+  (import "./index.mjs" currentPlatformKey ensureInstalled loadManifest resolveTarget)
+
+  (defasync runPostinstall ()
+    (let* ((env (get globalThis.process :env))
+           (skip (get env :FEMACS_SKIP_DOWNLOAD)))
+      (if (= skip "1")
+          nil
+        (try
+          (let* ((manifest (loadManifest))
+                 (key (currentPlatformKey))
+                 (resolved (resolveTarget manifest key)))
+            (if (or (nil? resolved) (undefined? resolved))
+                (js-call globalThis.console :warn
+                         (str "femacs postinstall: no prebuilt binaries for `" key
+                              "`; run `cargo install elisp femacs` to build from source."))
+              (await (ensureInstalled (js-object :manifest manifest :platformKey key)))))
+          (catch err
+            (let ((msg (if (and (not (nil? err)) (not (undefined? err)) (get err :message))
+                           (get err :message)
+                         (str err))))
+              (js-call globalThis.console :warn
+                       (str "femacs postinstall: skipped download cache warm-up (" msg
+                            "); will retry on first run."))))))))
+
+  (runPostinstall))

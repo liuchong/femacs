@@ -11,6 +11,7 @@ An editor project that rewrites and accelerates Emacs in Rust.
 [![lisp crate on crates.io](https://img.shields.io/crates/v/lisp?logo=rust&label=lisp)](https://crates.io/crates/lisp)
 [![lisp-std crate on crates.io](https://img.shields.io/crates/v/lisp-std?logo=rust&label=lisp-std)](https://crates.io/crates/lisp-std)
 [![lisp-vm crate on crates.io](https://img.shields.io/crates/v/lisp-vm?logo=rust&label=lisp-vm)](https://crates.io/crates/lisp-vm)
+[![femacs on npm](https://img.shields.io/npm/v/femacs?logo=npm&label=npm)](https://www.npmjs.com/package/femacs)
 [![License: GPL-3.0-or-later](https://img.shields.io/badge/license-GPL--3.0--or--later-blue)](LICENSE)
 [![Project documentation](https://img.shields.io/badge/docs-femacs.com-blue)](https://femacs.com/)
 
@@ -51,7 +52,12 @@ multi-core Elisp-compatible Lisp runtime across four crates:
 - **[`lisp-vm`](crates/lisp-vm/README.md)** (`[lib]`, `v0.0.1`): Low-level headless VM, GC, bytecode engine, `HostExtFn` callbacks, `.pdmp` dump/restore, and opt-in `isolate_vm` multi-core isolation.
 
 ```sh
-# Install the standalone CLI & REPL
+# Install prebuilt binaries (elisp, femacs, fe) via Homebrew, npm, or shell
+brew install liuchong/tap/femacs
+npm install -g femacs
+curl -fsSL https://femacs.com/install.sh | sh
+
+# Or build from source with Cargo
 cargo install elisp
 elisp eval '(+ 20 22)'
 elisp repl
@@ -66,11 +72,7 @@ let val = engine.eval(r#"(progn (require 'std/json) (std-json-stringify (list (c
 assert_eq!(val.as_str(), Some("[[\"ok\",true]]"));
 ```
 
-Runtime platform scope for the standalone crates (`v0.0.1`): verified on macOS (`aarch64`) and
-Linux (`aarch64` Debian 12 Lima VM; `x86_64` cross-checked); Windows (`x86_64-pc-windows-msvc` /
-`x86_64-pc-windows-gnu`) is **cross-compile architecture verified ONLY** with **no physical
-Windows host runtime verification**. See [crates/lisp/README.md](crates/lisp/README.md) and
-[docs/support-matrix.md](docs/support-matrix.md).
+Runtime & prebuilt platform scope (`v0.0.1`): verified on real Apple Silicon macOS (`aarch64-apple-darwin`) and Linux (`aarch64` Debian 12 Lima VM + Zig-linked release ELF); `x86_64-apple-darwin` (Mach-O + `otool -L` system dylibs inspected, no physical Intel/Rosetta run) and `x86_64-unknown-linux-gnu` (Zig-linked release ELF + `cargo check`) have prebuilt archives (`SHA256SUMS.txt`); Windows (`x86_64-pc-windows-msvc` / `x86_64-pc-windows-gnu`) is **cross-compile architecture verified ONLY** with **no physical Windows host runtime verification** and no prebuilt Windows archive. See [crates/lisp/README.md](crates/lisp/README.md), [packaging/npm/femacs/README.md](packaging/npm/femacs/README.md), and [docs/support-matrix.md](docs/support-matrix.md).
 
 ## Build and try
 
@@ -144,9 +146,9 @@ Differential ERT remains an optional audit: `check-ert.py` is strict by default 
 
 ## Documentation
 
-- [Project website](https://femacs.com/) ([source](docs/index.html) · [Standalone Lisp page](https://femacs.com/pages/lisp.html)) — overview, standalone `elisp` / `lisp` guide, macOS build guide, architecture, and documentation hub.
+- [Project website](https://femacs.com/) ([source](docs/index.html) · [Standalone Lisp page](https://femacs.com/pages/lisp.html) · [Shell installer](docs/install.sh)) — overview, standalone `elisp` / `lisp` guide, macOS build guide, architecture, and documentation hub.
 - [Standalone Lisp & `elisp` architecture](docs/design/lisp-core.md) — 4-crate design, `isolate_vm` No-GIL model, pure-Rust `lisp-std`, and release checklist.
-- [Unified 5-crate release process](docs/release-process.md) — `xtask release` programmatic workflow covering `lisp-vm`, `lisp-std`, `femacs`, `lisp`, and `elisp` (counting previously published `femacs 0.0.1` into `v0.0.1`).
+- [Multi-channel release process](docs/release-process.md) — `xtask release` programmatic workflow covering `lisp-vm`, `lisp-std`, `femacs`, `lisp`, `elisp`, prebuilt GitHub Release archives, [npm `femacs`](packaging/npm/femacs/README.md), [Homebrew tap](packaging/homebrew/femacs.rb), and `install.sh`.
 - [Support matrix](docs/support-matrix.md) — verified runtime and cross-compile boundaries across platforms.
 - [docs/i18n](docs/i18n/README.md) — language index. Translated documents live under
   `docs/i18n/<locale>/`, mirroring the paths of their English originals.

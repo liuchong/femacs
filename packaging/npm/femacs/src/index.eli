@@ -1,0 +1,266 @@
+;; Zero-dependency Eliscript core for the `femacs` npm launcher package.
+;; Compiled to `.tmp/*.mjs` via `eliscript` and bundled into `dist/` in `prepack`.
+
+(module femacs.npm.index
+  (import "node:child_process" spawnSync)
+  (import "node:crypto" createHash)
+  (import "node:fs" existsSync mkdirSync readFileSync realpathSync)
+  (import "node:fs/promises" chmod mkdir rename rm writeFile)
+  (import "node:os" arch homedir platform)
+  (import "node:path" dirname join resolve)
+  (import "node:url" fileURLToPath)
+
+  (defun present? (value)
+    (and (not (nil? value)) (not (undefined? value))))
+
+  (defun packageRoot ()
+    ;; Walk upward from the real module path so `dist/index.mjs`, `dist/bin/*.mjs`
+    ;; (including symlinks under `node_modules/.bin`), and `.tmp/*.mjs` all find `manifest.json`.
+    (let* ((here (realpathSync (fileURLToPath (js* "import.meta.url"))))
+           (dir (dirname here))
+           (found nil))
+      (while (nil? found)
+        (if (and (existsSync (join dir "manifest.json"))
+                 (existsSync (join dir "package.json")))
+            (setq found dir)
+          (let ((parent (dirname dir)))
+            (if (= parent dir)
+                (setq found (resolve (dirname here) ".."))
+              (setq dir parent)))))
+      found))
+
+  (defun manifestPath ()
+    (join (packageRoot) "manifest.json"))
+
+  (defun loadManifest (&optional customPath)
+    (let* ((file (if (present? customPath) customPath (manifestPath)))
+           (raw (readFileSync file "utf8")))
+      (JSON/parse raw)))
+
+  (defun currentPlatformKey (&optional overrides)
+    (let* ((hasOverrides (present? overrides))
+           (plat (if (and hasOverrides (present? (get overrides :platform)))
+                     (get overrides :platform)
+                   (platform)))
+           (cpu (if (and hasOverrides (present? (get overrides :arch)))
+                    (get overrides :arch)
+                  (arch))))
+      (str plat "-" cpu)))
+
+  (defun resolveTarget (manifest &optional platformKey)
+    (let* ((key (if (present? platformKey) platformKey (currentPlatformKey)))
+           (targets (if (present? manifest) (get manifest :targets) nil))
+           (entry (if (present? targets) (get targets key) nil)))
+      (if (present? entry)
+          (js-object :key key :target entry)
+        nil)))
+
+  (defun cacheDir (&optional envObj)
+    (let* ((env (if (present? envObj) envObj (get globalThis.process :env)))
+           (explicit (get env :FEMACS_NPM_CACHE_DIR)))
+      (if (and (present? explicit) (> (js-length (js-call (str explicit) :trim)) 0))
+          (resolve explicit)
+        (let ((sys (platform))
+              (home (homedir)))
+          (cond
+            ((= sys "darwin")
+             (join home "Library" "Caches" "femacs-npm"))
+            ((= sys "win32")
+             (let ((localApp (get env :LOCALAPPDATA)))
+               (join (if (present? localApp) localApp (join home "AppData" "Local"))
+                     "femacs-npm")))
+            (t
+             (let ((xdg (get env :XDG_CACHE_HOME)))
+               (join (if (and (present? xdg) (> (js-length (js-call (str xdg) :trim)) 0))
+                         xdg
+                       (join home ".cache"))
+                     "femacs-npm"))))))))
+
+  (defun installDirForTarget (version triple &optional envObj)
+    (join (cacheDir envObj) (str "v" version) triple))
+
+  (defun binaryFileName (targetEntry binaryName)
+    (let* ((bins (get targetEntry :bins))
+           (mapped (if (present? bins) (get bins binaryName) nil)))
+      (if (present? mapped) mapped binaryName)))
+
+  (defun allBinariesPresent (installDir manifest targetEntry)
+    (let* ((names (let ((declared (get manifest :binaries)))
+                    (if (and (present? declared) (> (js-length declared) 0))
+                        declared
+                      (js-array "elisp" "femacs" "fe"))))
+           (idx 0)
+           (ok t))
+      (while (and ok (< idx (js-length names)))
+        (let* ((name (aref names idx))
+               (rel (binaryFileName targetEntry name)))
+          (unless (existsSync (join installDir rel))
+            (setq ok false)))
+        (setq idx (1+ idx)))
+      ok))
+
+  (defun sha256Hex (buffer)
+    (let ((hash (createHash "sha256")))
+      (js-call hash :update buffer)
+      (js-call hash :digest "hex")))
+
+  (defun trimTrailingSlashes (urlText)
+    (let ((text (str urlText)))
+      (while (and (> (js-length text) 0) (js-call text :endsWith "/"))
+        (setq text (js-call text :slice 0 (1- (js-length text)))))
+      text))
+
+  (defun extractTarGz (archivePath destDir)
+    (let ((res (spawnSync "tar" (js-array "-xzf" archivePath "-C" destDir)
+                          (js-object :encoding "utf8"))))
+      (when (present? (get res :error))
+        (throw (new globalThis.Error
+                    (str "failed to run `tar` to extract " archivePath ": "
+                         (get (get res :error) :message)))))
+      (unless (= (get res :status) 0)
+        (let ((errOut (or (get res :stderr) "")))
+          (throw (new globalThis.Error
+                      (str "`tar -xzf` failed with exit code " (get res :status)
+                           (if (> (js-length errOut) 0) (str ": " errOut) ""))))))))
+
+  (defun unsupportedMessage (manifest platformKey)
+    (str "femacs: no prebuilt release archive for platform `" platformKey "` in v"
+         (get manifest :version) ".\n"
+         "Install from source with Cargo:\n"
+         "  cargo install elisp femacs\n"
+         "Or see https://femacs.com/pages/lisp.html for supported targets."))
+
+  (defasync downloadVerifiedArchive (url expectedSha archivePath)
+    (let ((resp (await (globalThis.fetch url))))
+      (unless (get resp :ok)
+        (throw (new globalThis.Error
+                    (str "failed to download " url " (HTTP " (get resp :status) ")"))))
+      (let* ((ab (await (js-call resp :arrayBuffer)))
+             (buf (globalThis.Buffer/from ab))
+             (actualSha (sha256Hex buf)))
+        (unless (= actualSha expectedSha)
+          (throw (new globalThis.Error
+                      (str "SHA-256 verification failed for " url
+                           "\n  expected: " expectedSha
+                           "\n  actual:   " actualSha))))
+        (await (writeFile archivePath buf))
+        actualSha)))
+
+  (defasync ensureInstalled (&optional options)
+    (let* ((opts (if (present? options) options (js-object)))
+           (env (if (present? (get opts :env)) (get opts :env) (get globalThis.process :env)))
+           (manifest (if (present? (get opts :manifest))
+                         (get opts :manifest)
+                       (loadManifest (get opts :manifestPath))))
+           (platformKey (if (present? (get opts :platformKey))
+                            (get opts :platformKey)
+                          (currentPlatformKey (get opts :platformOverride))))
+           (resolved (resolveTarget manifest platformKey)))
+      (unless (present? resolved)
+        (throw (new globalThis.Error (unsupportedMessage manifest platformKey))))
+      (let* ((target (get resolved :target))
+             (version (get manifest :version))
+             (triple (get target :triple))
+             (installDir (installDirForTarget version triple env)))
+        (if (and (not (get opts :force)) (allBinariesPresent installDir manifest target))
+            (js-object
+              :cached t
+              :platformKey platformKey
+              :triple triple
+              :version version
+              :installDir installDir)
+          (let* ((baseRaw (cond
+                            ((present? (get opts :baseUrl)) (get opts :baseUrl))
+                            ((present? (get env :FEMACS_DOWNLOAD_BASE_URL)) (get env :FEMACS_DOWNLOAD_BASE_URL))
+                            (t (get manifest :releaseBaseUrl))))
+                 (baseUrl (trimTrailingSlashes baseRaw))
+                 (archiveName (get target :archive))
+                 (url (str baseUrl "/" archiveName))
+                 (versionRoot (join (cacheDir env) (str "v" version)))
+                 (nonce (str (get globalThis.process :pid) "-" (Date/now) "-"
+                             (Math/floor (* (Math/random) 1000000))))
+                 (stageRoot (join versionRoot (str ".staging-" nonce)))
+                 (stageArchive (join stageRoot archiveName))
+                 (stageUnpack (join stageRoot "unpack")))
+            (mkdirSync versionRoot (js-object :recursive t))
+            (try
+              (await (mkdir stageUnpack (js-object :recursive t)))
+              (await (downloadVerifiedArchive url (get target :sha256) stageArchive))
+              (extractTarGz stageArchive stageUnpack)
+              (let ((names (let ((declared (get manifest :binaries)))
+                             (if (and (present? declared) (> (js-length declared) 0))
+                                 declared
+                               (js-array "elisp" "femacs" "fe"))))
+                    (idx 0))
+                (while (< idx (js-length names))
+                  (let* ((binName (aref names idx))
+                         (rel (binaryFileName target binName))
+                         (binFile (join stageUnpack rel)))
+                    (unless (existsSync binFile)
+                      (throw (new globalThis.Error
+                                  (str "archive " archiveName " did not contain binary `" rel "`"))))
+                    (await (chmod binFile 493)))
+                  (setq idx (1+ idx))))
+              (await (mkdir (dirname installDir) (js-object :recursive t)))
+              (try
+                (await (rename stageUnpack installDir))
+                (catch err
+                  (unless (allBinariesPresent installDir manifest target)
+                    (throw err))))
+              (await (rm stageRoot (js-object :recursive t :force t)))
+              (js-object
+                :cached false
+                :platformKey platformKey
+                :triple triple
+                :version version
+                :installDir installDir)
+              (catch err
+                (try
+                  (await (rm stageRoot (js-object :recursive t :force t)))
+                  (catch cleanupErr nil))
+                (throw err))))))))
+
+  (defasync binaryPath (binaryName &optional options)
+    (let* ((opts (if (present? options) options (js-object)))
+           (manifest (if (present? (get opts :manifest))
+                         (get opts :manifest)
+                       (loadManifest (get opts :manifestPath))))
+           (info (await (ensureInstalled (Object/assign (js-object) opts (js-object :manifest manifest)))))
+           (resolved (resolveTarget manifest (get info :platformKey)))
+           (target (get resolved :target))
+           (rel (binaryFileName target binaryName)))
+      (join (get info :installDir) rel)))
+
+  (defasync runBinary (binaryName argv &optional options)
+    (let ((exePath (await (binaryPath binaryName options))))
+      (let ((res (spawnSync exePath argv (js-object :stdio "inherit"))))
+        (when (present? (get res :error))
+          (throw (new globalThis.Error
+                      (str "failed to execute `" exePath "`: " (get (get res :error) :message)))))
+        (if (present? (get res :status))
+            (get res :status)
+          (if (present? (get res :signal))
+              128
+            1)))))
+
+  (defasync runCli (binaryName)
+    (try
+      (let* ((args (js-call (get globalThis.process :argv) :slice 2))
+             (code (await (runBinary binaryName args))))
+        (js-call globalThis.process :exit code))
+      (catch err
+        (let ((msg (if (and (present? err) (present? (get err :message)))
+                       (get err :message)
+                     (str err))))
+          (js-call globalThis.console :error msg)
+          (js-call globalThis.process :exit 1)))))
+
+  (export
+    loadManifest
+    currentPlatformKey
+    resolveTarget
+    cacheDir
+    binaryPath
+    ensureInstalled
+    runBinary
+    runCli))

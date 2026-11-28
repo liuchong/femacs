@@ -65,14 +65,20 @@
 
         <article class="command-panel" id="panel-cli" role="tabpanel" aria-labelledby="tab-cli" data-workflow-panel="cli">
           <div class="command-heading">
-            <div><h3>Install and run the standalone binary</h3><p>Silent cold boot by default with background atomic <code>.pdmp</code> warm caching.</p></div>
+            <div><h3>Install and run the standalone binary</h3><p>Prebuilt macOS &amp; Linux binaries via Homebrew, npm, or shell installer (or build from source via Cargo); silent cold boot with background atomic <code>.pdmp</code> cache.</p></div>
             <button type="button" class="copy-button" data-copy-target="#code-elisp-cli" data-eli-control disabled>Copy</button>
           </div>
-          <pre tabindex="0"><code id="code-elisp-cli">cargo install elisp
+          <pre tabindex="0"><code id="code-elisp-cli"># Prebuilt binaries (elisp, femacs, fe) for macOS &amp; Linux
+brew install liuchong/tap/femacs
+npm install -g femacs
+curl -fsSL https://femacs.com/install.sh | sh
+
+# Or build from source (all platforms)
+cargo install elisp
+
 elisp eval '(+ 20 22)'
 elisp repl
-elisp --concurrency=no-gil eval '(progn (require (quote std/json)) (std-json-stringify (list (cons "ok" t))))'
-elisp init my-app &amp;&amp; cd my-app &amp;&amp; elisp run</code></pre>
+elisp --concurrency=no-gil eval '(progn (require (quote std/json)) (std-json-stringify (list (cons "ok" t))))'</code></pre>
         </article>
 
         <article class="command-panel" id="panel-embed" role="tabpanel" aria-labelledby="tab-embed" data-workflow-panel="embed">
@@ -158,9 +164,10 @@ cargo install elisp --no-default-features --features repl-tty</code></pre>
             <tr><th>Target</th><th>Status</th><th>Verification Scope</th></tr>
           </thead>
           <tbody>
-            <tr><td><strong>macOS (<code>aarch64-apple-darwin</code>)</strong></td><td>Verified (real host)</td><td>Full feature matrix, unit/integration tests, TTY REPL, <code>otool -L</code> (<code>libiconv.2</code> &amp; <code>libSystem.B</code> only), isolated 4-crate rebuild, <code>fe-test</code></td></tr>
-            <tr><td><strong>Linux (<code>aarch64</code> / <code>x86_64</code>)</strong></td><td>Verified (Debian 12 VM + x86_64 check)</td><td>Real Debian 12 <code>aarch64</code> Lima VM runtime, glibc-only <code>ldd</code>, <code>.pdmp</code> warm cache, 4-worker <code>NoGil</code> speedup, <code>init</code>/<code>pkg</code>; clean <code>x86_64</code> cross-check</td></tr>
-            <tr><td><strong>Windows (<code>x86_64-pc-windows-msvc</code> / <code>gnu</code>)</strong></td><td><strong>Cross-compile ONLY</strong></td><td>Architecture verified via clean <code>cargo check</code> (<code>windows-sys</code> Job Objects, Toolhelp32, TCP loopback RPC); <strong>no physical Windows host runtime verification</strong></td></tr>
+            <tr><td><strong>macOS (<code>aarch64-apple-darwin</code>)</strong></td><td>Verified (real host)</td><td>Full feature matrix, unit/integration tests, TTY REPL, <code>otool -L</code> (<code>libiconv.2</code> &amp; <code>libSystem.B</code> only), isolated 4-crate rebuild, <code>fe-test</code>, and real-network npm / <code>install.sh</code> smoke tests</td></tr>
+            <tr><td><strong>macOS (<code>x86_64-apple-darwin</code>)</strong></td><td>Cross-compile + Mach-O</td><td>Prebuilt <code>v0.0.1</code> archive verified via clean <code>--release</code> build + <code>otool -L</code> system dylibs only (no physical Intel Mac / Rosetta test)</td></tr>
+            <tr><td><strong>Linux (<code>aarch64</code> / <code>x86_64</code>)</strong></td><td>VM runtime + Zig ELF</td><td>Real Debian 12 <code>aarch64</code> Lima VM runtime + 4-worker <code>NoGil</code> speedup; prebuilt <code>aarch64</code> &amp; <code>x86_64</code> archives compiled via Zig (<code>glibc &gt;= 2.31</code>)</td></tr>
+            <tr><td><strong>Windows (<code>x86_64-pc-windows-msvc</code> / <code>gnu</code>)</strong></td><td><strong>Cross-compile ONLY</strong></td><td>Architecture verified via clean <code>cargo check</code> (<code>windows-sys</code> Job Objects, Toolhelp32, TCP loopback RPC); <strong>no physical Windows host runtime verification</strong> (no prebuilt Windows binary)</td></tr>
           </tbody>
         </table>
       </div>

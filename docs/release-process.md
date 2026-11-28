@@ -1,85 +1,102 @@
-# Unified 5-Crate Release Process (`xtask release`)
+# Unified Multi-Channel Release Process (`xtask release`)
 
-All public crates in this workspace are versioned and released together under a single tagged release (`vX.Y.Z`) orchestrated by `cargo run -p xtask -- release`.
+All public workspace crates, prebuilt release archives, the zero-dependency npm launcher, the Homebrew tap, and the shell installer are versioned and released together under a single signed tag (`vX.Y.Z`) orchestrated by `cargo run -p xtask -- release`.
 
-## 1. Crate Inventory & Publish Order (3-Tier DAG)
+## 1. Distribution & Crate Inventory
 
-| Tier | Crate | Manifest | Type | Role |
-| --- | --- | --- | --- | --- |
-| 1 | `lisp-vm` | [Cargo.toml](../crates/lisp-vm/Cargo.toml) | `[lib]` | Low-level Elisp-compatible VM, GC, bytecode engine & `isolate_vm` |
-| 1 | `lisp-std` | [Cargo.toml](../crates/lisp-std/Cargo.toml) | `[lib]` | 100% pure-Rust (`#![forbid(unsafe_code)]`) standard library batteries |
-| 1 | `femacs` | [Cargo.toml](../cli/Cargo.toml) | `[[bin]]` (`femacs`, `fe`) | macOS Fe editor CLI launchers |
-| 2 | `lisp` | [Cargo.toml](../crates/lisp/Cargo.toml) | `[lib]` | High-level embeddable No-GIL Lisp runtime (depends on `lisp-vm`, `lisp-std`) |
-| 3 | `elisp` | [Cargo.toml](../crates/elisp/Cargo.toml) | `[[bin]]` (`elisp`) | Standalone general-purpose CLI, package manager & TTY REPL (depends on `lisp`) |
+| Channel / Crate | Manifest / Location | Type | Role |
+| --- | --- | --- | --- |
+| `lisp-vm` | [Cargo.toml](../crates/lisp-vm/Cargo.toml) | Rust `[lib]` (Tier 1) | Low-level Elisp-compatible VM, GC, bytecode engine & `isolate_vm` |
+| `lisp-std` | [Cargo.toml](../crates/lisp-std/Cargo.toml) | Rust `[lib]` (Tier 1) | 100% pure-Rust (`#![forbid(unsafe_code)]`) standard library batteries |
+| `femacs` | [Cargo.toml](../cli/Cargo.toml) | Rust `[[bin]]` (Tier 1) | macOS Fe editor CLI launchers (`femacs`, `fe`) |
+| `lisp` | [Cargo.toml](../crates/lisp/Cargo.toml) | Rust `[lib]` (Tier 2) | High-level embeddable No-GIL Lisp runtime (depends on `lisp-vm`, `lisp-std`) |
+| `elisp` | [Cargo.toml](../crates/elisp/Cargo.toml) | Rust `[[bin]]` (Tier 3) | Standalone general-purpose CLI, package manager & TTY REPL (depends on `lisp`) |
+| Prebuilt archives | GitHub Release (`SHA256SUMS.txt`) | `.tar.gz` (`elisp`, `femacs`, `fe`) | `aarch64-apple-darwin`, `x86_64-apple-darwin`, `aarch64-unknown-linux-gnu`, `x86_64-unknown-linux-gnu` |
+| `femacs` (npm) | [packaging/npm/femacs/](../packaging/npm/femacs/package.json) | Eliscript `.eli` -> ESM wrapper | Zero runtime deps; bundles in `prepack`, downloads SHA-256 verified release archives lazily |
+| `liuchong/tap/femacs` | [packaging/homebrew/femacs.rb](../packaging/homebrew/femacs.rb) | Homebrew Formula | Installs `elisp`, `femacs`, `fe` via `liuchong/homebrew-tap` |
+| `install.sh` | [docs/install.sh](../docs/install.sh) | POSIX shell (`femacs.com/install.sh`) | One-line download & SHA-256 verified install into `~/.local/bin` |
 
-### `v0.0.1` Baseline Note
+### `v0.0.1` Bootstrap Note
 
-- `femacs 0.0.1` was published to crates.io earlier (`cli/`) and is unified into `v0.0.1` (GitHub Release + tag `v0.0.1`) using `--skip-already-published`, without re-uploading `femacs 0.0.1`.
-- Starting with the next release (`v0.0.2+`), `xtask release bump` and `xtask release publish` update and publish **all 5 crates simultaneously** in a single unified flow.
+- `femacs 0.0.1` was published to crates.io earlier (`cli/`) and unified into `v0.0.1` using `--skip-already-published`.
+- Tag `v0.0.1` stays pinned at its original release commit (`874a28d0`); the `x86_64` prebuilt archives attached to `v0.0.1` include the portable non-aarch64 fallback in `NEAR_STACK_TOP!` from `CLN320`.
+- Starting with `v0.0.2+`, a single tag drives `xtask release` across all 5 crates, prebuilt archives, npm `femacs`, `liuchong/homebrew-tap`, and `docs/install.sh` together.
 
 ## 2. Prerequisites
 
 1. Clean `master` working tree (`git status --short` empty before final publish).
 2. Valid GPG key configured for `git commit -S` and `git tag -s`.
-3. Valid GitHub CLI authentication (`gh auth status`) and crates.io token (`~/.cargo/credentials.toml`, never inspected or printed in logs).
-4. Independent `README.md` and `LICENSE` in every crate with **zero `../` relative links** (all cross-crate links use `https://crates.io/crates/...` or `https://docs.rs/...`).
-5. Website under `docs/` (`docs/index.html` + `docs/pages/` with browser-compiled Eliscript `site.eli` and zero committed `.js`/`.mjs` files) verified in headless Chrome.
+3. Valid GitHub CLI authentication (`gh auth status`), crates.io token, and npm login (`npm whoami`).
+4. Cross-compile toolchains installed for release archives (`rustup target add` + Zig `0.17+` for `aarch64`/`x86_64` Linux via `tools/zig-linux-linker.sh`).
+5. Independent `README.md` and `LICENSE` in every crate and in `packaging/npm/femacs/`, with **zero `../` relative links** and **zero `.js`/`.mjs` files tracked in Git** under `docs/` or `packaging/npm/femacs/`.
+6. Website under `docs/` verified in headless Chrome (`1440`, `390`, `320`px viewports, `data-eli-ready="true"`).
 
-## 3. Standardized Release Runbook
+## 3. Standardized One-Tag Release Runbook (`v0.0.2+`)
 
 Run all builds, tests, and publish commands under the host resource controller (`controlled-run`).
 
-### Step A — Inspect Current State & Bump Version (`0.0.2+`)
+### Step A — Bump All Manifests & Installers
 
 ```sh
 cargo run -p xtask -- release plan --version 0.0.2
 cargo run -p xtask -- release bump --version 0.0.2
 ```
 
-For `v0.0.1` (where all five manifests are already `0.0.1`), `plan` reports `femacs` as already `LIVE on crates.io` and the remaining four crates as pending.
+`bump` updates all 5 `Cargo.toml` manifests + sibling dependency pins, `packaging/npm/femacs/package.json`, `docs/install.sh`, and `Cargo.lock`.
 
-### Step B — Refresh Documentation & GitHub Pages
+### Step B — Cross-Compile Release Archives & Sync Distribution Manifests
 
-1. Update root `README.md`, `docs/i18n/zh-CN/README.md`, each crate's independent `README.md`, `docs/support-matrix.md`, and `docs/design/lisp-core.md`.
-2. Update `docs/index.html` and `docs/pages/{lisp,start,architecture,docs-hub}.html` (plus `docs/pages/README.md` / `site.eli` as needed). Keep Eliscript live-compiled in browser with zero `.js` files committed under `docs/`.
-3. Verify Pages locally in headless Chrome across `1440`, `390`, and `320`px viewports (`0` console/HTTP errors, `0` horizontal overflow, `data-eli-ready="true"`).
-
-### Step C — Run Release Gate & Package Verification
+Build `--release -p elisp -p femacs` for each target (`aarch64-apple-darwin`, `x86_64-apple-darwin`, `aarch64-unknown-linux-gnu`, `x86_64-unknown-linux-gnu` via `tools/zig-linux-linker.sh`), pack flat `elisp femacs fe LICENSE` into `build/release-assets/femacs-v<X.Y.Z>-<triple>.tar.gz`, write `build/release-assets/SHA256SUMS.txt`, and sync:
 
 ```sh
-cargo run -p xtask -- release check --version 0.0.1 --allow-dirty
+cargo run -p xtask -- release sync-dist --version 0.0.2 --checksums build/release-assets/SHA256SUMS.txt
 ```
 
-`xtask release check` enforces:
-- All 5 crate versions and sibling dependency pins (`lisp -> lisp-vm, lisp-std`; `elisp -> lisp`) equal `<X.Y.Z>`.
-- Required metadata (`homepage = "https://femacs.com/"`, `repository`, `readme = "README.md"`, `LICENSE`, zero `../` links inside crate READMEs).
-- Zero `.js`/`.mjs` files under `docs/`.
-- Static gates (`tools/check-own-voice.py` and `tools/check-crate-boundaries.py`).
-- Full `cargo package` verification on Tier 1 crates (`lisp-vm`, `lisp-std`, `femacs`) and multi-crate `cargo package --no-verify` across all 5 crates (`< 10 MiB` each).
+`sync-dist` deterministically regenerates `packaging/npm/femacs/manifest.json` and `packaging/homebrew/femacs.rb` from `SHA256SUMS.txt`.
 
-Also run `cargo test -p xtask --bin xtask`, the workspace test suites, and `fe-test --suite all --no-cache`, then clean `target/`, `build/*`, and `tools/__pycache__`, run all 6 static gates, and GPG-sign commit & push to `origin/master`.
+### Step C — Refresh Docs, Test Packaging & Run Release Gates
 
-### Step D — Execute Publication, Signed Tag & GitHub Release
-
-Preview first (read-only):
+1. Update `README.md`, `docs/i18n/zh-CN/README.md`, crate/npm READMEs, `docs/support-matrix.md`, and `docs/index.html` + `docs/pages/`.
+2. Verify the Eliscript npm package (`(cd packaging/npm/femacs && npm install --ignore-scripts && npm test)`).
+3. Run release check and workspace tests, then clean temporary artifacts (`target/`, `build/npm-verify/`, `packaging/npm/femacs/{node_modules,dist,.tmp,package-lock.json}`):
 
 ```sh
-cargo run -p xtask -- release publish --version 0.0.1 --skip-already-published
+cargo run -p xtask -- release check --version 0.0.2 --allow-dirty
+cargo test -p xtask --bin xtask
 ```
 
-Execute on clean `master` (pass `--skip-already-published` only for `0.0.1` where `femacs 0.0.1` is already live; omit it for `v0.0.2+`):
+`xtask release check` enforces Cargo metadata, npm `package.json`/`manifest.json`/`README.md`/`LICENSE` (0 runtime deps, 0 tracked `.js`/`.mjs`), Homebrew `ruby -c`, `sh -n docs/install.sh`, `check-own-voice.py`, `check-crate-boundaries.py`, and multi-crate `cargo package` size limits (`< 10 MiB`).
+
+Commit and GPG-sign push to `origin/master` (`[skip ci]`).
+
+### Step D — Single-Tag Multi-Channel Publish
+
+Preview (read-only):
 
 ```sh
-cargo run -p xtask -- release publish --version 0.0.1 --execute --skip-already-published
+cargo run -p xtask -- release publish --version 0.0.2 \
+  --assets-dir build/release-assets \
+  --with-npm \
+  --homebrew-tap-dir build/homebrew-tap
+```
+
+Execute on clean `master`:
+
+```sh
+cargo run -p xtask -- release publish --version 0.0.2 --execute \
+  --assets-dir build/release-assets \
+  --with-npm \
+  --homebrew-tap-dir build/homebrew-tap
 ```
 
 This single command:
-1. Confirms clean git status and manifest consistency.
-2. Publishes each pending crate in topological order (`lisp-vm` -> `lisp-std` -> `femacs` -> `lisp` -> `elisp`) and polls the crates.io sparse index (`https://index.crates.io/...`) until each tier is queryable before publishing dependents.
-3. Creates and verifies GPG-signed tag `git tag -s v<X.Y.Z>` on `HEAD` and pushes `origin v<X.Y.Z>`.
-4. Generates standardized release notes (`xtask release notes`) and runs `gh release create v<X.Y.Z> --verify-tag`.
+1. Publishes & sparse-index verifies all 5 crates in topological order (`lisp-vm` -> `lisp-std` -> `femacs` -> `lisp` -> `elisp`).
+2. Creates and verifies GPG-signed tag `v<X.Y.Z>` on `HEAD` and pushes `origin v<X.Y.Z>`.
+3. Creates GitHub Release `v<X.Y.Z>` with standardized multi-channel release notes and uploads all `.tar.gz` archives + `SHA256SUMS.txt`.
+4. Tests and publishes `femacs@<X.Y.Z>` (`packaging/npm/femacs`) to npm.
+5. Copies `packaging/homebrew/femacs.rb` to `liuchong/homebrew-tap`, GPG-sign commits, and pushes `origin/master`.
 
-## 4. Recovery Notes
+## 4. Cleanup & Recovery
 
-- If crates.io returns HTTP `429` (rate limit) mid-tier after pushing earlier crates, wait for the retry window and re-run `xtask release publish --version <X.Y.Z> --execute --skip-already-published` — already-published crates are skipped safely while pending tiers, tagging, and the GitHub Release complete idempotently.
-- Remove any temporary `target/` artifacts produced during `cargo package` / `cargo publish`, verify `build/` is empty, record the release in `maintenance/cleanup/reports/`, `maintenance/cleanup/LOG.md`, and `docs/status.md`, and GPG-sign push the final ledger commit (`[skip ci]`).
+- After publishing, remove `target/`, `build/*`, `tools/__pycache__`, and `packaging/npm/femacs/{node_modules,dist,.tmp,package-lock.json}`, re-run the static gates, record the release in `maintenance/cleanup/reports/`, `maintenance/cleanup/LOG.md`, and `docs/status.md`, and GPG-sign push `[skip ci]`.
+- If crates.io returns HTTP `429` or npm requires interactive 2FA mid-run, finish authentication/retry with `--skip-already-published` (and `--skip-tag` if `v<X.Y.Z>` is already pushed).

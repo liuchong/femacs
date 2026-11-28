@@ -1,0 +1,52 @@
+{
+  "version": "0.0.1",
+  "tag": "v0.0.1",
+  "releaseBaseUrl": "https://github.com/liuchong/femacs/releases/download/v0.0.1",
+  "binaries": ["elisp", "femacs", "fe"],
+  "targets": {
+    "darwin-arm64": {
+      "triple": "aarch64-apple-darwin",
+      "archive": "femacs-v0.0.1-aarch64-apple-darwin.tar.gz",
+      "format": "tar.gz",
+      "sha256": "f42a8fddfe5fbd81b90c5146c7824cdd27c7b4af41f8f389ce4103d214d37700",
+      "bins": {
+        "elisp": "elisp",
+        "femacs": "femacs",
+        "fe": "fe"
+      }
+    },
+    "darwin-x64": {
+      "triple": "x86_64-apple-darwin",
+      "archive": "femacs-v0.0.1-x86_64-apple-darwin.tar.gz",
+      "format": "tar.gz",
+      "sha256": "d341fdca2c411fc1583243ba965d3f360fb74ebdbf25860a5fd7fa843da0c6b0",
+      "bins": {
+        "elisp": "elisp",
+        "femacs": "femacs",
+        "fe": "fe"
+      }
+    },
+    "linux-arm64": {
+      "triple": "aarch64-unknown-linux-gnu",
+      "archive": "femacs-v0.0.1-aarch64-unknown-linux-gnu.tar.gz",
+      "format": "tar.gz",
+      "sha256": "b2d6965e261d13bc0030d5c8c923b8361888caf231b154c4cb897d141aa579f6",
+      "bins": {
+        "elisp": "elisp",
+        "femacs": "femacs",
+        "fe": "fe"
+      }
+    },
+    "linux-x64": {
+      "triple": "x86_64-unknown-linux-gnu",
+      "archive": "femacs-v0.0.1-x86_64-unknown-linux-gnu.tar.gz",
+      "format": "tar.gz",
+      "sha256": "2678a3a76bb4dfe96e4be9a86094d1223e6f09003b7dc54e95ba8bfe97311bca",
+      "bins": {
+        "elisp": "elisp",
+        "femacs": "femacs",
+        "fe": "fe"
+      }
+    }
+  }
+}

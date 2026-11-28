@@ -1,4 +1,4 @@
-//! Unit tests for the unified 5-crate `xtask release` workflow.
+//! Unit tests for the unified multi-channel `xtask release` workflow.
 #![forbid(unsafe_code)]
 
 use super::*;
@@ -82,10 +82,61 @@ toml = { version = "0.8", optional = true }
 }
 
 #[test]
-fn release_notes_include_all_five_crates_and_windows_disclosure() {
+fn bump_npm_and_install_sh_preserve_structure() {
+    let pkg = "{\n  \"name\": \"femacs\",\n  \"version\": \"0.0.1\"\n}\n";
+    let bumped_pkg = bump_npm_package_json(pkg, "0.0.2").expect("npm bump");
+    let parsed: Value = serde_json::from_str(&bumped_pkg).expect("valid json");
+    assert_eq!(parsed.get("version").and_then(Value::as_str), Some("0.0.2"));
+
+    let sh = "#!/bin/sh\nFEMACS_VERSION=\"${FEMACS_VERSION:-0.0.1}\"\necho ok\n";
+    let bumped_sh = bump_install_sh(sh, "0.0.2").expect("sh bump");
+    assert!(bumped_sh.contains("FEMACS_VERSION=\"${FEMACS_VERSION:-0.0.2}\""));
+}
+
+#[test]
+fn parse_checksums_and_sync_dist_roundtrip() {
+    let sums_raw = "\
+2678a3a76bb4dfe96e4be9a86094d1223e6f09003b7dc54e95ba8bfe97311bca  femacs-v0.0.2-x86_64-unknown-linux-gnu.tar.gz\n\
+b2d6965e261d13bc0030d5c8c923b8361888caf231b154c4cb897d141aa579f6  femacs-v0.0.2-aarch64-unknown-linux-gnu.tar.gz\n\
+d341fdca2c411fc1583243ba965d3f360fb74ebdbf25860a5fd7fa843da0c6b0  femacs-v0.0.2-x86_64-apple-darwin.tar.gz\n\
+f42a8fddfe5fbd81b90c5146c7824cdd27c7b4af41f8f389ce4103d214d37700  femacs-v0.0.2-aarch64-apple-darwin.tar.gz\n";
+
+    let checksums = parse_checksums(sums_raw).expect("parse checksums");
+    assert_eq!(checksums.len(), 4);
+
+    let man_text = render_npm_manifest_json("0.0.2", &checksums).expect("manifest");
+    let man: Value = serde_json::from_str(&man_text).expect("valid manifest json");
+    assert_eq!(man.get("version").and_then(Value::as_str), Some("0.0.2"));
+    assert_eq!(man.get("tag").and_then(Value::as_str), Some("v0.0.2"));
+    let targets = man.get("targets").and_then(Value::as_object).expect("targets");
+    assert_eq!(targets.len(), 4);
+    assert_eq!(
+        targets["darwin-x64"]["sha256"].as_str(),
+        Some("d341fdca2c411fc1583243ba965d3f360fb74ebdbf25860a5fd7fa843da0c6b0")
+    );
+
+    let formula = render_homebrew_formula("0.0.2", &checksums).expect("formula");
+    assert!(formula.contains("version \"0.0.2\""));
+    assert!(formula.contains("femacs-v0.0.2-aarch64-apple-darwin.tar.gz"));
+    assert!(formula.contains("femacs-v0.0.2-x86_64-apple-darwin.tar.gz"));
+    assert!(formula.contains("femacs-v0.0.2-aarch64-unknown-linux-gnu.tar.gz"));
+    assert!(formula.contains("femacs-v0.0.2-x86_64-unknown-linux-gnu.tar.gz"));
+}
+
+#[test]
+fn release_notes_include_all_channels_and_windows_disclosure() {
     let notes = render_release_notes("0.0.1", &[String::from("femacs")]);
-    for name in ["elisp", "lisp", "lisp-std", "lisp-vm", "femacs"] {
-        assert!(notes.contains(name), "missing crate {name} in release notes");
+    for name in [
+        "elisp",
+        "lisp",
+        "lisp-std",
+        "lisp-vm",
+        "femacs",
+        "brew install liuchong/tap/femacs",
+        "npm install -g femacs",
+        "https://femacs.com/install.sh",
+    ] {
+        assert!(notes.contains(name), "missing `{name}` in release notes");
     }
     assert!(notes.contains("published earlier; unified into `v0.0.1`"));
     assert!(notes.contains("Cross-compile architecture verified ONLY"));

@@ -275,12 +275,19 @@ macro_rules! stack_bottom { () => { (*(*current_thread.as_mut_ptr ())).m_stack_b
 macro_rules! NEAR_STACK_TOP { ($addr:expr) => {
   {
     let _ = $addr;
-    // SAFETY: on the frozen target x29 is the frame pointer; reading it touches no memory.
-    unsafe {
-      let fp: *const c_void;
-      core::arch::asm! ("mov {}, x29", out (reg) fp,
-                        options (nomem, nostack, preserves_flags));
-      fp
+    #[cfg(target_arch = "aarch64")]
+    {
+      // SAFETY: on aarch64 x29 is the frame pointer; reading it touches no memory.
+      unsafe {
+        let fp: *const c_void;
+        core::arch::asm! ("mov {}, x29", out (reg) fp,
+                          options (nomem, nostack, preserves_flags));
+        fp
+      }
+    }
+    #[cfg(not(target_arch = "aarch64"))]
+    {
+      ($addr) as *const c_void
     }
   }
 } }
