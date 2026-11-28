@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en" data-site-lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Standalone Lisp · FEmacs</title>
+  <meta name="description" content="Standalone zero-C-dependency, No-GIL Elisp-compatible CLI (elisp) and embeddable Rust runtime (lisp, lisp-std, lisp-vm) v0.0.1.">
+  <link rel="canonical" href="https://femacs.com/pages/lisp.html">
+  <link rel="icon" type="image/png" href="assets/fe-logo.png">
+  <link rel="stylesheet" href="assets/site.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "eliscript/platform/browser": "https://unpkg.com/eliscript@0.1.4/platform/browser.mjs",
+        "eliscript/": "https://unpkg.com/eliscript@0.1.4/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to content</a>
+  <header class="site-header">
+    <div class="shell site-header-inner">
+      <a class="brand" href="../index.html" aria-label="Fe home">
+        <img width="36" height="29" src="assets/fe-logo.png" alt="">
+        <span>FEmacs</span>
+      </a>
+      <nav class="site-nav" aria-label="Main navigation">
+        <a href="../index.html">Overview</a>
+        <a href="../pages/lisp.html" aria-current="page">Lisp &amp; CLI</a>
+        <a href="../pages/start.html">Build</a>
+        <a href="../pages/architecture.html">Architecture</a>
+        <a href="../pages/docs-hub.html">Docs</a>
+      </nav>
+      <div class="header-actions">
+        <button type="button" class="language-button" lang="zh-CN" data-lang-switch data-eli-control disabled>中文摘要</button>
+        <a class="source-link" href="https://github.com/liuchong/femacs">GitHub <span aria-hidden="true">↗</span></a>
+      </div>
+    </div>
+  </header>
+  <main class="shell" id="main-content">
+    <header class="page-intro">
+      <p class="eyebrow">Standalone Lisp · v0.0.1</p>
+      <h1><span data-lang-en lang="en">Zero-C, No-GIL <em>Elisp.</em></span><span data-lang-zh lang="zh-CN">零 C 依赖、<br>无 GIL 的 <em>Elisp</em> 运行时。</span></h1>
+      <p class="lede" data-lang-en lang="en">Run scripts, interactive TTY sessions, and parallel Rust-backed stdlib tasks with <code>elisp</code>, or embed the Lisp engine directly in Rust via <code>lisp</code>.</p>
+      <p class="lede" data-lang-zh lang="zh-CN">使用 <code>elisp</code> 直接运行脚本、交互式 TTY REPL 与纯 Rust 标准库任务，或通过 <code>lisp</code> 将多核无 GIL Lisp 运行时嵌入你的 Rust 应用。</p>
+    </header>
+
+    <nav class="section-links" aria-label="On this page">
+      <a href="#quickstart-heading">Quickstart</a>
+      <a href="#crates-heading">Four crates</a>
+      <a href="#stdlib-heading">Pure-Rust std/*</a>
+      <a href="#platforms-heading">Platform support</a>
+    </nav>
+
+    <section class="section reading" id="quickstart-heading" aria-labelledby="quickstart-title">
+      <h2 id="quickstart-title">Install CLI or embed in Rust</h2>
+      <div data-workflow-group>
+        <div class="control-row tab-row" role="tablist" aria-label="Standalone Lisp usage examples" data-eli-tools hidden>
+          <button type="button" id="tab-cli" role="tab" aria-selected="true" aria-controls="panel-cli" data-workflow-tab="cli">elisp CLI</button>
+          <button type="button" id="tab-embed" role="tab" aria-selected="false" aria-controls="panel-embed" data-workflow-tab="embed">Embed in Rust</button>
+          <button type="button" id="tab-features" role="tab" aria-selected="false" aria-controls="panel-features" data-workflow-tab="features">Feature flags</button>
+        </div>
+
+        <article class="command-panel" id="panel-cli" role="tabpanel" aria-labelledby="tab-cli" data-workflow-panel="cli">
+          <div class="command-heading">
+            <div><h3>Install and run the standalone binary</h3><p>Silent cold boot by default with background atomic <code>.pdmp</code> warm caching.</p></div>
+            <button type="button" class="copy-button" data-copy-target="#code-elisp-cli" data-eli-control disabled>Copy</button>
+          </div>
+          <pre tabindex="0"><code id="code-elisp-cli">cargo install elisp
+elisp eval '(+ 20 22)'
+elisp repl
+elisp --concurrency=no-gil eval '(progn (require (quote std/json)) (std-json-stringify (list (cons "ok" t))))'
+elisp init my-app &amp;&amp; cd my-app &amp;&amp; elisp run</code></pre>
+        </article>
+
+        <article class="command-panel" id="panel-embed" role="tabpanel" aria-labelledby="tab-embed" data-workflow-panel="embed">
+          <div class="command-heading">
+            <div><h3>Embed <code>lisp</code> in your Rust application</h3><p><code>Engine</code> is <code>Send</code> in <code>NoGil</code> mode and supports safe host closures plus binary <code>Value::Bytes</code>.</p></div>
+            <button type="button" class="copy-button" data-copy-target="#code-lisp-embed" data-eli-control disabled>Copy</button>
+          </div>
+          <pre tabindex="0"><code id="code-lisp-embed">// Cargo.toml: lisp = "0.0.1"
+use lisp::prelude::*;
+
+fn main() -&gt; Result&lt;(), Error&gt; {
+    let mut engine = Engine::init(EngineConfig::cold_stdlib())?;
+    let val = engine.eval(r#"(progn (require 'std/json) (std-json-stringify '((ok . t))))"#)?;
+    assert_eq!(val.as_str(), Some("[[\"ok\",true]]"));
+    Ok(())
+}</code></pre>
+        </article>
+
+        <article class="command-panel" id="panel-features" role="tabpanel" aria-labelledby="tab-features" data-workflow-panel="features">
+          <div class="command-heading">
+            <div><h3>Tailor capabilities via Cargo features</h3><p>Opt out of network/DB batteries or keep only pure-Rust process/RPC helpers.</p></div>
+            <button type="button" class="copy-button" data-copy-target="#code-lisp-features" data-eli-control disabled>Copy</button>
+          </div>
+          <pre tabindex="0"><code id="code-lisp-features"># Full embedder runtime (default = ["vm", "std"])
+lisp = "0.0.1"
+
+# Lightweight VM sandbox without HTTP/TLS/redb
+lisp = { version = "0.0.1", default-features = false, features = ["vm"] }
+
+# Binary CLI without rustyline or std/* batteries
+cargo install elisp --no-default-features --features repl-tty</code></pre>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="crates-heading" aria-labelledby="crates-title">
+      <h2 id="crates-title">Four cleanly layered crates</h2>
+      <div class="crate-grid">
+        <article class="doc-card">
+          <h3><a href="https://crates.io/crates/elisp">elisp <span>↗</span></a></h3>
+          <p><code>[[bin]]</code> standalone CLI, script/shebang runner, <code>rustyline</code> TTY REPL (<code>elisp&gt; </code>), <code>init</code>/<code>pkg</code> dependency manager, compiler, ERT test runner, and JSON-RPC worker. Defaults: <code>["repl-tty", "std"]</code>.</p>
+        </article>
+        <article class="doc-card">
+          <h3><a href="https://crates.io/crates/lisp">lisp <span>↗</span></a></h3>
+          <p><code>[lib]</code> high-level embeddable runtime exporting <code>lisp::prelude::*</code>, <code>lisp::vm</code>, and <code>lisp::stdlib</code>. Orthogonal <code>vm</code>, <code>std</code>, and <code>pkg</code> features plus <code>default-features = false</code> zero-VM process/RPC utilities.</p>
+        </article>
+        <article class="doc-card">
+          <h3><a href="https://crates.io/crates/lisp-std">lisp-std <span>↗</span></a></h3>
+          <p><code>[lib]</code> 100% pure-Rust (<code>#![forbid(unsafe_code)]</code>, zero <code>cc</code> or C <code>-sys</code> crates) standard library batteries for HTTP/TLS, ACID KV &amp; SQL, codecs, archives, crypto, time, FS/glob, and regex.</p>
+        </article>
+        <article class="doc-card">
+          <h3><a href="https://crates.io/crates/lisp-vm">lisp-vm <span>↗</span></a></h3>
+          <p><code>[lib]</code> low-level headless VM, garbage collector, bytecode engine, <code>HostExtFn</code> host callbacks, <code>.pdmp</code> dump/restore, and opt-in <code>isolate_vm</code> per-isolate thread isolation.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section reading" id="stdlib-heading" aria-labelledby="stdlib-title">
+      <h2 id="stdlib-title">Pure-Rust <code>stdlib/std/*</code> modules</h2>
+      <p>Every standalone battery avoids C compiler toolchains and OpenSSL/SQLite dynamic libraries, linking only standard OS runtime libraries.</p>
+      <div class="table-wrap">
+        <table class="spec-table">
+          <thead>
+            <tr><th>Group</th><th>Modules</th><th>Backing Pure-Rust Implementation</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>Concurrency</strong></td><td><code>std/task</code>, <code>std/chan</code>, <code>std/sync</code></td><td>OS-thread isolates, worker pools, MPMC channels, atomics, mutexes, shared maps</td></tr>
+            <tr><td><strong>Web &amp; Data</strong></td><td><code>std/http</code>, <code>std/kv</code>, <code>std/db</code></td><td><code>ureq</code> + <code>rustls</code> + <code>rustls-rustcrypto</code>, HTTP/1.1 TCP server, <code>redb</code> ACID KV &amp; SQL</td></tr>
+            <tr><td><strong>Formats</strong></td><td><code>std/json</code>, <code>toml</code>, <code>csv</code>, <code>yaml</code>, <code>url</code>, <code>base64</code></td><td>Structured codecs, URL builder/parser, standard &amp; URL-safe Base64</td></tr>
+            <tr><td><strong>Archives &amp; Crypto</strong></td><td><code>std/archive</code>, <code>std/crypto</code>, <code>std/time</code></td><td><code>flate2</code> rust_backend, <code>tar</code>, <code>zip</code>, CSPRNG/SHA/HMAC/UUID, <code>jiff</code> timezones</td></tr>
+            <tr><td><strong>System &amp; CLI</strong></td><td><code>std/fs</code>, <code>path</code>, <code>regex</code>, <code>proc</code>, <code>env</code>, <code>cli</code>, <code>log</code></td><td><code>walkdir</code>, <code>globset</code>, linear-time regex, bounded subprocesses, declarative CLI/logging</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section reading" id="platforms-heading" aria-labelledby="platforms-title">
+      <h2 id="platforms-title">Platform verification boundaries</h2>
+      <p>Standalone crates report exact tested targets without claiming runtime coverage on untested hosts.</p>
+      <div class="table-wrap">
+        <table class="spec-table">
+          <thead>
+            <tr><th>Target</th><th>Status</th><th>Verification Scope</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>macOS (<code>aarch64-apple-darwin</code>)</strong></td><td>Verified (real host)</td><td>Full feature matrix, unit/integration tests, TTY REPL, <code>otool -L</code> (<code>libiconv.2</code> &amp; <code>libSystem.B</code> only), isolated 4-crate rebuild, <code>fe-test</code></td></tr>
+            <tr><td><strong>Linux (<code>aarch64</code> / <code>x86_64</code>)</strong></td><td>Verified (Debian 12 VM + x86_64 check)</td><td>Real Debian 12 <code>aarch64</code> Lima VM runtime, glibc-only <code>ldd</code>, <code>.pdmp</code> warm cache, 4-worker <code>NoGil</code> speedup, <code>init</code>/<code>pkg</code>; clean <code>x86_64</code> cross-check</td></tr>
+            <tr><td><strong>Windows (<code>x86_64-pc-windows-msvc</code> / <code>gnu</code>)</strong></td><td><strong>Cross-compile ONLY</strong></td><td>Architecture verified via clean <code>cargo check</code> (<code>windows-sys</code> Job Objects, Toolhelp32, TCP loopback RPC); <strong>no physical Windows host runtime verification</strong></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+  <footer class="site-footer">
+    <div class="shell footer-inner">
+      <a class="footer-brand" href="../index.html">FEmacs</a>
+      <a href="https://github.com/liuchong/femacs/blob/master/LICENSE">GPL-3.0-or-later</a>
+      <a href="https://github.com/liuchong/femacs/releases/tag/v0.0.1">Releases (v0.0.1)</a>
+      <a href="https://crates.io/crates/elisp">elisp</a>
+      <a href="https://crates.io/crates/lisp">lisp</a>
+      <a href="https://crates.io/crates/femacs">femacs</a>
+      <a href="https://github.com/liuchong/femacs/blob/master/docs/i18n/zh-CN/README.md" lang="zh-CN">中文 README</a>
+      <span class="site-runtime" data-eli-status data-eli-ready="false" role="status" data-eli-status-text>Eliscript 0.1.4</span>
+    </div>
+  </footer>
+  <script type="text/eliscript" src="site.eli"></script>
+  <script type="module">
+    try {
+      const base = "https://unpkg.com/eliscript@0.1.4";
+      const { mountEliscriptScripts } = await import(`${base}/dist/browser/host.mjs`);
+      await mountEliscriptScripts(document);
+    } catch (error) {
+      document.querySelector("[data-eli-status-text]").textContent = "Static view · interactive tools unavailable";
+      console.error("Eliscript site initialization failed", error);
+    }
+  </script>
+</body>
+</html>

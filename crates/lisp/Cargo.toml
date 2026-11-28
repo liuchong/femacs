@@ -6,9 +6,10 @@ rust-version = "1.85"
 license.workspace = true
 description = "Standalone pure-Rust, No-GIL, Elisp-compatible embeddable Lisp runtime and standard library"
 repository = "https://github.com/liuchong/femacs"
+homepage = "https://femacs.com/"
 readme = "README.md"
 keywords = ["lisp", "elisp", "language", "scripting", "interpreter"]
-categories = ["compilers", "development-tools", "embedded"]
+categories = ["compilers", "concurrency", "development-tools"]
 
 [lib]
 path = "src/lib.rs"

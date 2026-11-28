@@ -1,9 +1,13 @@
 # elisp
 
+[![crates.io](https://img.shields.io/crates/v/elisp?logo=rust&label=crates.io)](https://crates.io/crates/elisp)
+[![License: GPL-3.0-or-later](https://img.shields.io/badge/license-GPL--3.0--or--later-blue)](https://github.com/liuchong/femacs/blob/master/LICENSE)
+[![Project website](https://img.shields.io/badge/docs-femacs.com-blue)](https://femacs.com/pages/lisp.html)
+
 A standalone, zero-C-dependency, general-purpose Elisp-compatible Lisp CLI, script runner, package manager, and interactive TTY REPL (`0.0.1`).
 
-> Want to embed this Lisp runtime inside a Rust application (`cargo add lisp`)? See the library crate [`lisp`](../lisp/README.md).
-> Under the hood, `elisp` combines [`lisp`](../lisp/README.md), [`lisp-std`](../lisp-std/README.md), and [`lisp-vm`](../lisp-vm/README.md) with a pure-Rust `rustyline` TTY frontend into one self-contained executable.
+> Want to embed this Lisp runtime inside a Rust application (`cargo add lisp`)? See the library crate [`lisp`](https://crates.io/crates/lisp) ([docs.rs](https://docs.rs/lisp)).
+> Under the hood, `elisp` combines [`lisp`](https://crates.io/crates/lisp), [`lisp-std`](https://crates.io/crates/lisp-std), and [`lisp-vm`](https://crates.io/crates/lisp-vm) with a pure-Rust `rustyline` TTY frontend into one self-contained executable.
 
 ## Highlights
 
@@ -16,15 +20,18 @@ A standalone, zero-C-dependency, general-purpose Elisp-compatible Lisp CLI, scri
 
 ## Installation
 
-After crates.io publication:
+Install from [crates.io](https://crates.io/crates/elisp):
 
 ```sh
 cargo install elisp
 ```
 
-Minimal install without TTY line editing (`cargo install elisp --no-default-features --features std`) or without `std/*` network/DB batteries (`--no-default-features --features repl-tty`) is also supported via feature flags (`default = ["repl-tty", "std"]`).
+Optional feature combinations (`default = ["repl-tty", "std"]`):
 
-From source in this repository:
+- Minimal binary without TTY line editing: `cargo install elisp --no-default-features --features std`
+- Lightweight binary without `std/*` network/DB batteries: `cargo install elisp --no-default-features --features repl-tty`
+
+From source in the repository:
 
 ```sh
 cargo build --release -p elisp
@@ -100,8 +107,15 @@ elisp --rpc http --rpc-addr 127.0.0.1:8080
 | macOS (`aarch64-apple-darwin`) | Real host | Verified | CLI integration (`eval`, `run`/shebang, `compile --strict`, `test`, `cache`, `exec`, `--rpc-addr`, `init`/`pkg`), PTY REPL, release `otool -L` (OS libs only), `cargo package` isolated rebuild, `fe-test` |
 | Linux (`aarch64-unknown-linux-gnu`) | Ephemeral Debian 12 VM | Verified | CLI/integration, release `ldd` (glibc + OS libs only), `.pdmp` warm cache, PTY REPL, 4-worker `NoGil` speedup, `init`/`pkg` workflow |
 | Linux (`x86_64-unknown-linux-gnu`) | Cross-compile | Verified | Clean `cargo check` |
-| Windows (`x86_64-pc-windows-msvc`, `x86_64-pc-windows-gnu`) | Cross-compile ONLY | Architecture Verified (No Windows Host Runtime) | Pure-Rust `windows-sys` Job Objects, Toolhelp32 process snapshots, `--rpc-addr` TCP loopback, and `LOCALAPPDATA` cache root pass `cargo check` (`default` & `--no-default-features`) with 0 warnings; **no physical Windows host runtime verification has been performed** |
+| Windows (`x86_64-pc-windows-msvc`, `x86_64-pc-windows-gnu`) | **Cross-compile ONLY** | Architecture Verified (No Windows Host Runtime) | Pure-Rust `windows-sys` Job Objects, Toolhelp32 process snapshots, `--rpc-addr` TCP loopback, and `LOCALAPPDATA` cache root pass `cargo check` (`default` & `--no-default-features`) with 0 warnings; **no physical Windows host runtime verification has been performed** |
+
+## Related Crates
+
+- [`lisp`](https://crates.io/crates/lisp) ([docs.rs](https://docs.rs/lisp)) — Embeddable Rust library (`Engine`, `Value`, `prelude`, `std/*`)
+- [`lisp-std`](https://crates.io/crates/lisp-std) ([docs.rs](https://docs.rs/lisp-std)) — Pure-Rust standard library batteries
+- [`lisp-vm`](https://crates.io/crates/lisp-vm) ([docs.rs](https://docs.rs/lisp-vm)) — Low-level VM and bytecode runtime
+- [Project documentation](https://femacs.com/)
 
 ## License
 
-Licensed under `GPL-3.0-or-later`. See [LICENSE](LICENSE).
+Licensed under `GPL-3.0-or-later`. See [LICENSE](https://github.com/liuchong/femacs/blob/master/LICENSE).

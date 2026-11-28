@@ -1,9 +1,14 @@
 # lisp
 
+[![crates.io](https://img.shields.io/crates/v/lisp?logo=rust&label=crates.io)](https://crates.io/crates/lisp)
+[![docs.rs](https://img.shields.io/docsrs/lisp)](https://docs.rs/lisp)
+[![License: GPL-3.0-or-later](https://img.shields.io/badge/license-GPL--3.0--or--later-blue)](https://github.com/liuchong/femacs/blob/master/LICENSE)
+[![Project website](https://img.shields.io/badge/docs-femacs.com-blue)](https://femacs.com/pages/lisp.html)
+
 Pure-Rust, No-GIL, Elisp-compatible embeddable Lisp runtime and standard library (`0.0.1`).
 
-> Looking for the standalone CLI and interactive REPL (`cargo install elisp`)? See [`elisp`](../elisp/README.md).
-> Architecture overview: `lisp` combines the low-level VM ([`lisp-vm`](../lisp-vm/README.md)), bundled core standard library, No-GIL multi-core runtime, and pure-Rust standard library batteries ([`lisp-std`](../lisp-std/README.md)) behind a `#![forbid(unsafe_code)]` Rust API.
+> Looking for the standalone CLI and interactive REPL (`cargo install elisp`)? See [`elisp`](https://crates.io/crates/elisp).
+> Architecture overview: `lisp` combines the low-level VM ([`lisp-vm`](https://crates.io/crates/lisp-vm)), bundled core standard library, No-GIL multi-core runtime, and pure-Rust standard library batteries ([`lisp-std`](https://crates.io/crates/lisp-std)) behind a `#![forbid(unsafe_code)]` Rust API.
 
 ## Highlights
 
@@ -20,15 +25,14 @@ Pure-Rust, No-GIL, Elisp-compatible embeddable Lisp runtime and standard library
 | `default = ["vm", "std"]` (`cargo add lisp`) | `Engine`/`Value`/`Error`, `prelude`, bundled stdlib, No-GIL VM (`vm`), and all pure-Rust `std/*` batteries (`stdlib`) | General Rust applications embedding full-featured programmable Lisp |
 | `default-features = false, features = ["vm"]` | `Engine`/`Value`/`Error`, bundled core stdlib, and `std/{task,chan,sync}` without HTTP/TLS/`redb`/archive dependencies | Lightweight or network/DB-free sandboxes and rule engines |
 | `features = ["pkg"]` | Adds `lisp.toml` / atomic `lisp.lock` / `.lisp-packages/` dependency management (`lisp::pkg`) | Embedders driving project-scoped package resolution |
-| `default-features = false` | Zero-VM `Value`, `Error`, `exec` process supervisor, cross-platform JSON-RPC `rpc`, and cache path utilities | Build/test tooling (`xtask`) sharing process supervision without linking the VM |
+| `default-features = false` | Zero-VM `Value`, `Error`, `exec` process supervisor, cross-platform JSON-RPC `rpc`, and cache path utilities | Build/test tooling sharing process supervision without linking the VM |
 
 `lisp` re-exports `lisp::prelude::*`, `lisp::vm` (`lisp_vm`), and `#[cfg(feature = "std")] lisp::stdlib` (`lisp_std`).
 
 ## Rust Embedding Quickstart
 
-```toml
-[dependencies]
-lisp = "0.0.1"
+```sh
+cargo add lisp
 ```
 
 ```rust
@@ -61,6 +65,7 @@ fn main() -> Result<(), Error> {
 ```
 
 Key public types in `lisp`:
+
 - `Engine` (`new`, `minimal`, `init`, `eval`, `eval_printed`, `eval_silent`, `call`, `register_fn`, `complete_symbols`, `run_script`, `compile_files`, `run_ert_files`, `dump_image`, `gc`, `booted_from_dump`, `concurrency`)
 - `EngineConfig` (`minimal`, `cold_stdlib`, `with_program_name`, `with_cache_dir`, `with_load_path`, `with_bootstrap`, `with_quiet_bootstrap`, `with_verbose`, `with_concurrency`)
 - `Value` (`Nil`, `Bool`, `Int`, `Float`, `Symbol`, `String`, `Bytes`, `List`, `Vector`, `Map`, `Opaque`), `Error`, `BootstrapMode`, `ConcurrencyMode`
@@ -72,6 +77,12 @@ Key public types in `lisp`:
 - `LISP_VERBOSE`: Set to `1` to print bootstrap load diagnostics
 - `LISP_NO_AUTO_WARM`: Set to `1` to disable automatic background `.pdmp` warming
 
+## Sibling Crates
+
+- [`elisp`](https://crates.io/crates/elisp) — Standalone general-purpose Elisp-compatible CLI and interactive TTY REPL
+- [`lisp-vm`](https://crates.io/crates/lisp-vm) ([docs.rs](https://docs.rs/lisp-vm)) — Low-level VM, GC, bytecode engine, and `.pdmp` dump runtime
+- [`lisp-std`](https://crates.io/crates/lisp-std) ([docs.rs](https://docs.rs/lisp-std)) — 100% pure-Rust `#![forbid(unsafe_code)]` standard library modules
+
 ## Platform Support Matrix
 
 | Target | Architecture | Status | Verification Scope |
@@ -79,8 +90,8 @@ Key public types in `lisp`:
 | macOS (`aarch64-apple-darwin`) | Real host | Verified | Full `cargo test` (`--all-features`, `--no-default-features --features vm`, `--no-default-features`), `engine_integration`, `std_batteries_integration`, `isolate_vm`, release `otool -L`, `cargo package` isolated rebuild |
 | Linux (`aarch64-unknown-linux-gnu`) | Ephemeral Debian 12 VM | Verified | Unit, integration, release `ldd` (glibc + OS libs only), `.pdmp` warm cache, `NoGil` 4-worker speedup |
 | Linux (`x86_64-unknown-linux-gnu`) | Cross-compile | Verified | Clean `cargo check` |
-| Windows (`x86_64-pc-windows-msvc`, `x86_64-pc-windows-gnu`) | Cross-compile ONLY | Architecture Verified (No Windows Host Runtime) | Pure-Rust `windows-sys` Job Objects, Toolhelp32 process snapshots, memory accounting, `RpcTransport` TCP loopback, and `LOCALAPPDATA` cache root pass `cargo check` across all targets with 0 warnings; **no physical Windows host runtime verification has been performed** |
+| Windows (`x86_64-pc-windows-msvc`, `x86_64-pc-windows-gnu`) | **Cross-compile ONLY** | Architecture Verified (No Windows Host Runtime) | Pure-Rust `windows-sys` Job Objects, Toolhelp32 process snapshots, memory accounting, `RpcTransport` TCP loopback, and `LOCALAPPDATA` cache root pass `cargo check` across all targets with 0 warnings; **no physical Windows host runtime verification has been performed** |
 
 ## License
 
-Licensed under `GPL-3.0-or-later`. See [LICENSE](LICENSE).
+Licensed under `GPL-3.0-or-later`. See [LICENSE](https://github.com/liuchong/femacs/blob/master/LICENSE).

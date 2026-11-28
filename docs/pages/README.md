@@ -1,10 +1,11 @@
 # FEmacs website
 
 The site uses `docs/index.html` as its entry and `docs/pages/` for its topic
-pages, artwork, CSS and Eliscript. It follows the browser's color scheme and
+pages (`lisp.html`, `start.html`, `architecture.html`, `docs-hub.html`), artwork,
+CSS, and Eliscript source (`site.eli`). It follows the browser's color scheme and
 keeps commands and documentation readable on narrow screens.
 
-The published Eliscript **0.1.3** browser host compiles and runs `site.eli`
+The published Eliscript **0.1.4** browser host compiles and runs `site.eli`
 in the browser. Eliscript owns the language-summary switch, accessible command
 tabs and copy controls, and documentation search. Headings, commands and links
 remain readable when the compiler is unavailable. The language toggle switches

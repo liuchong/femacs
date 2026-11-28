@@ -12,8 +12,8 @@
   <script type="importmap">
     {
       "imports": {
-        "eliscript/platform/browser": "https://unpkg.com/eliscript@0.1.3/platform/browser.mjs",
-        "eliscript/": "https://unpkg.com/eliscript@0.1.3/"
+        "eliscript/platform/browser": "https://unpkg.com/eliscript@0.1.4/platform/browser.mjs",
+        "eliscript/": "https://unpkg.com/eliscript@0.1.4/"
       }
     }
   </script>
@@ -28,6 +28,7 @@
       </a>
       <nav class="site-nav" aria-label="Main navigation">
         <a href="../index.html">Overview</a>
+        <a href="../pages/lisp.html">Lisp &amp; CLI</a>
         <a href="../pages/start.html">Build</a>
         <a href="../pages/architecture.html" aria-current="page">Architecture</a>
         <a href="../pages/docs-hub.html">Docs</a>
@@ -46,7 +47,7 @@
       <p class="lede" data-lang-zh lang="zh-CN">从 Lisp 求值到 Cocoa 原生窗口，了解 Fe 的运行时分层。</p>
     </header>
 
-    <nav class="section-links" aria-label="On this page"><a href="#bootstrap-arch-heading">Bootstrap</a><a href="#vm-arch-heading">Evaluator and VM</a><a href="#gc-arch-heading">Garbage collection</a><a href="#native-ui">Native UI</a></nav>
+    <nav class="section-links" aria-label="On this page"><a href="#bootstrap-arch-heading">Bootstrap</a><a href="#crate-layers-heading">Four-crate layering</a><a href="#vm-arch-heading">Evaluator and VM</a><a href="#gc-arch-heading">Garbage collection</a><a href="#native-ui">Native UI</a></nav>
     <section class="section reading" id="bootstrap-arch-heading">
       <h2>From source to a running editor</h2>
       <ol class="flow">
@@ -55,6 +56,11 @@
         <li><strong>Load the portable dump</strong><span>The terminal and Cocoa products load the dump and their own resource layout at startup.</span></li>
       </ol>
       <a class="text-link" href="https://github.com/liuchong/femacs/blob/master/docs/repository-bootstrap.md">Read the bootstrap design <span aria-hidden="true">↗</span></a>
+    </section>
+    <section class="section reading" id="crate-layers-heading">
+      <h2>Four-crate workspace layering</h2>
+      <p>Standalone Lisp crates stay strictly isolated from editor binaries: <code>lisp-vm</code> owns the bytecode VM and opt-in <code>isolate_vm</code> per-thread storage; <code>lisp-std</code> provides 100% pure-Rust (<code>#![forbid(unsafe_code)]</code>) HTTP/TLS/SQL/codec modules; <code>lisp</code> unifies <code>Engine</code>, No-GIL pools, warm <code>.pdmp</code> caches, and package management; and <code>elisp</code> packages the CLI and TTY REPL. Editor targets disable standalone batteries.</p>
+      <p><a class="text-link" href="lisp.html">Explore Standalone Lisp crates <span aria-hidden="true">→</span></a> · <a class="text-link" href="https://github.com/liuchong/femacs/blob/master/docs/design/lisp-core.md">Read the standalone Lisp design <span aria-hidden="true">↗</span></a></p>
     </section>
     <section class="section reading" id="vm-arch-heading">
       <h2>Evaluator and bytecode VM</h2>
@@ -76,15 +82,18 @@
     <div class="shell footer-inner">
       <a class="footer-brand" href="../index.html">FEmacs</a>
       <a href="https://github.com/liuchong/femacs/blob/master/LICENSE">GPL-3.0-or-later</a>
-      <a href="https://crates.io/crates/femacs">crates.io</a>
+      <a href="https://github.com/liuchong/femacs/releases/tag/v0.0.1">Releases (v0.0.1)</a>
+      <a href="https://crates.io/crates/elisp">elisp</a>
+      <a href="https://crates.io/crates/lisp">lisp</a>
+      <a href="https://crates.io/crates/femacs">femacs</a>
       <a href="https://github.com/liuchong/femacs/blob/master/docs/i18n/zh-CN/README.md" lang="zh-CN">中文 README</a>
-      <span class="site-runtime" data-eli-status data-eli-ready="false" role="status" data-eli-status-text>Eliscript 0.1.3</span>
+      <span class="site-runtime" data-eli-status data-eli-ready="false" role="status" data-eli-status-text>Eliscript 0.1.4</span>
     </div>
   </footer>
   <script type="text/eliscript" src="site.eli"></script>
   <script type="module">
     try {
-      const base = "https://unpkg.com/eliscript@0.1.3";
+      const base = "https://unpkg.com/eliscript@0.1.4";
       const { mountEliscriptScripts } = await import(`${base}/dist/browser/host.mjs`);
       await mountEliscriptScripts(document);
     } catch (error) {

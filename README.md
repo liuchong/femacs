@@ -6,7 +6,11 @@
 
 An editor project that rewrites and accelerates Emacs in Rust.
 
-[![Launcher version on crates.io](https://img.shields.io/crates/v/femacs?logo=rust&label=crates.io)](https://crates.io/crates/femacs)
+[![Launcher version on crates.io](https://img.shields.io/crates/v/femacs?logo=rust&label=femacs)](https://crates.io/crates/femacs)
+[![elisp CLI on crates.io](https://img.shields.io/crates/v/elisp?logo=rust&label=elisp)](https://crates.io/crates/elisp)
+[![lisp crate on crates.io](https://img.shields.io/crates/v/lisp?logo=rust&label=lisp)](https://crates.io/crates/lisp)
+[![lisp-std crate on crates.io](https://img.shields.io/crates/v/lisp-std?logo=rust&label=lisp-std)](https://crates.io/crates/lisp-std)
+[![lisp-vm crate on crates.io](https://img.shields.io/crates/v/lisp-vm?logo=rust&label=lisp-vm)](https://crates.io/crates/lisp-vm)
 [![License: GPL-3.0-or-later](https://img.shields.io/badge/license-GPL--3.0--or--later-blue)](LICENSE)
 [![Project documentation](https://img.shields.io/badge/docs-femacs.com-blue)](https://femacs.com/)
 
@@ -31,6 +35,42 @@ again in Rust is exactly what this project is about.
 
 The translated Rust core and native Swift Cocoa frontend run on Apple Silicon macOS.
 Functional acceptance is separate from the original performance target; no speedup is claimed.
+
+The standalone, zero-C-dependency general-purpose Lisp runtime and CLI (`v0.0.1`) is published
+as four clean crates ([`elisp`](crates/elisp/README.md), [`lisp`](crates/lisp/README.md),
+[`lisp-std`](crates/lisp-std/README.md), and [`lisp-vm`](crates/lisp-vm/README.md)).
+
+## Standalone Lisp runtime & CLI (`elisp` / `lisp`)
+
+Beyond the editor itself, `femacs` ships a standalone, zero-`cc`/zero-C-library, No-GIL
+multi-core Elisp-compatible Lisp runtime across four crates:
+
+- **[`elisp`](crates/elisp/README.md)** (`[[bin]]`, `v0.0.1`): Standalone CLI, script runner, interactive TTY REPL (`elisp> `), `init`/`pkg` project manager, bytecode compiler, ERT test runner, and JSON-RPC worker (`cargo install elisp`).
+- **[`lisp`](crates/lisp/README.md)** (`[lib]`, `v0.0.1`): One-stop Rust embedder library (`default = ["vm", "std"]`, orthogonal `vm` / `std` / `pkg`, `default-features = false` zero-VM reuse) exporting `lisp::prelude::*`, `lisp::vm`, and `lisp::stdlib`.
+- **[`lisp-std`](crates/lisp-std/README.md)** (`[lib]`, `v0.0.1`): 100% pure-Rust (`#![forbid(unsafe_code)]`) standard library batteries (`22` `std/*` modules: HTTPS/HTTP client & server, `redb` ACID KV & SQL engine, JSON/TOML/CSV/YAML/Base64/URL, tar/zip/gzip/zlib, CSPRNG/SHA/HMAC/UUID, `jiff` time, walkdir/glob FS, regex, bounded proc, CLI, logging).
+- **[`lisp-vm`](crates/lisp-vm/README.md)** (`[lib]`, `v0.0.1`): Low-level headless VM, GC, bytecode engine, `HostExtFn` callbacks, `.pdmp` dump/restore, and opt-in `isolate_vm` multi-core isolation.
+
+```sh
+# Install the standalone CLI & REPL
+cargo install elisp
+elisp eval '(+ 20 22)'
+elisp repl
+```
+
+```rust
+// Or embed in Rust (`cargo add lisp`)
+use lisp::prelude::*;
+
+let mut engine = Engine::init(EngineConfig::cold_stdlib())?;
+let val = engine.eval(r#"(progn (require 'std/json) (std-json-stringify (list (cons "ok" t))))"#)?;
+assert_eq!(val.as_str(), Some("[[\"ok\",true]]"));
+```
+
+Runtime platform scope for the standalone crates (`v0.0.1`): verified on macOS (`aarch64`) and
+Linux (`aarch64` Debian 12 Lima VM; `x86_64` cross-checked); Windows (`x86_64-pc-windows-msvc` /
+`x86_64-pc-windows-gnu`) is **cross-compile architecture verified ONLY** with **no physical
+Windows host runtime verification**. See [crates/lisp/README.md](crates/lisp/README.md) and
+[docs/support-matrix.md](docs/support-matrix.md).
 
 ## Build and try
 
@@ -95,7 +135,8 @@ Differential ERT remains an optional audit: `check-ert.py` is strict by default 
 
 ## Source layout
 
-`src/`, `lib/`, `lib-src/`, `platform/` and `xtask/` are at the repository root.
+`src/`, `lib/`, `lib-src/`, `platform/`, `cli/`, `packaging/`, and `xtask/` live at the repository root alongside workspace crates under `crates/`:
+`crates/lisp-vm`, `crates/lisp-std`, `crates/lisp`, `crates/elisp`, `crates/femacs-host`, `crates/femacs-tools`, and `crates/http-host`.
 `lisp/`, `leim/`, `admin/` and `etc/` contain the committed raw inputs and generators;
 `doc/` is the copied manual source and `docs/` is project documentation.
 `build-support/` contains maintained target/recipe descriptions. `build/`, `target/`,
@@ -103,8 +144,10 @@ Differential ERT remains an optional audit: `check-ert.py` is strict by default 
 
 ## Documentation
 
-- [Project website](docs/index.html) — overview, macOS build guide, runtime architecture and documentation index.
-
+- [Project website](https://femacs.com/) ([source](docs/index.html) · [Standalone Lisp page](https://femacs.com/pages/lisp.html)) — overview, standalone `elisp` / `lisp` guide, macOS build guide, architecture, and documentation hub.
+- [Standalone Lisp & `elisp` architecture](docs/design/lisp-core.md) — 4-crate design, `isolate_vm` No-GIL model, pure-Rust `lisp-std`, and release checklist.
+- [Unified 5-crate release process](docs/release-process.md) — `xtask release` programmatic workflow covering `lisp-vm`, `lisp-std`, `femacs`, `lisp`, and `elisp` (counting previously published `femacs 0.0.1` into `v0.0.1`).
+- [Support matrix](docs/support-matrix.md) — verified runtime and cross-compile boundaries across platforms.
 - [docs/i18n](docs/i18n/README.md) — language index. Translated documents live under
   `docs/i18n/<locale>/`, mirroring the paths of their English originals.
 

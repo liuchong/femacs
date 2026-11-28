@@ -12,8 +12,8 @@
   <script type="importmap">
     {
       "imports": {
-        "eliscript/platform/browser": "https://unpkg.com/eliscript@0.1.3/platform/browser.mjs",
-        "eliscript/": "https://unpkg.com/eliscript@0.1.3/"
+        "eliscript/platform/browser": "https://unpkg.com/eliscript@0.1.4/platform/browser.mjs",
+        "eliscript/": "https://unpkg.com/eliscript@0.1.4/"
       }
     }
   </script>
@@ -28,6 +28,7 @@
       </a>
       <nav class="site-nav" aria-label="Main navigation">
         <a href="../index.html">Overview</a>
+        <a href="../pages/lisp.html">Lisp &amp; CLI</a>
         <a href="../pages/start.html" aria-current="page">Build</a>
         <a href="../pages/architecture.html">Architecture</a>
         <a href="../pages/docs-hub.html">Docs</a>
@@ -118,6 +119,20 @@ fe -R -nw notes.org</code></pre>
       </article>
       <p>From a source checkout, use <code>cargo install --locked --path cli</code> instead. See the <a href="https://github.com/liuchong/femacs/blob/master/cli/README.md">command-line launcher guide</a>.</p>
     </section>
+    <section class="section reading" id="standalone-elisp" aria-labelledby="standalone-elisp-title">
+      <h2 id="standalone-elisp-title">Install standalone <code>elisp</code> CLI (v0.0.1)</h2>
+      <p>To run scripts, use an interactive REPL, or embed No-GIL Lisp in Rust without building the Cocoa editor, install <a href="https://crates.io/crates/elisp"><code>elisp</code></a> or add <a href="https://crates.io/crates/lisp"><code>lisp</code></a> from crates.io.</p>
+      <article class="command-panel">
+        <div class="command-heading">
+          <h3>Standalone Lisp CLI</h3>
+          <button type="button" class="copy-button" data-copy-target="#code-standalone-elisp" data-eli-control disabled>Copy</button>
+        </div>
+        <pre tabindex="0"><code id="code-standalone-elisp">cargo install elisp
+elisp eval '(+ 20 22)'
+elisp repl</code></pre>
+      </article>
+      <p>See the <a href="lisp.html">Standalone Lisp &amp; CLI guide</a> for feature flags, pure-Rust <code>std/*</code> modules, and embedding examples.</p>
+    </section>
     <section class="section reading" id="tryout-heading" aria-labelledby="tryout-title">
       <h2 id="tryout-title">Bundle and test</h2>
       <p>See the <a href="https://github.com/liuchong/femacs/blob/master/packaging/README.md">packaging guide</a> for a movable app and local disk image. Local trial packages are ad hoc signed. See the <a href="https://github.com/liuchong/femacs/blob/master/docs/testing-strategy.md">testing guide</a> for when to run Cocoa, input method and compatibility checks.</p>
@@ -127,15 +142,18 @@ fe -R -nw notes.org</code></pre>
     <div class="shell footer-inner">
       <a class="footer-brand" href="../index.html">FEmacs</a>
       <a href="https://github.com/liuchong/femacs/blob/master/LICENSE">GPL-3.0-or-later</a>
-      <a href="https://crates.io/crates/femacs">crates.io</a>
+      <a href="https://github.com/liuchong/femacs/releases/tag/v0.0.1">Releases (v0.0.1)</a>
+      <a href="https://crates.io/crates/elisp">elisp</a>
+      <a href="https://crates.io/crates/lisp">lisp</a>
+      <a href="https://crates.io/crates/femacs">femacs</a>
       <a href="https://github.com/liuchong/femacs/blob/master/docs/i18n/zh-CN/README.md" lang="zh-CN">中文 README</a>
-      <span class="site-runtime" data-eli-status data-eli-ready="false" role="status" data-eli-status-text>Eliscript 0.1.3</span>
+      <span class="site-runtime" data-eli-status data-eli-ready="false" role="status" data-eli-status-text>Eliscript 0.1.4</span>
     </div>
   </footer>
   <script type="text/eliscript" src="site.eli"></script>
   <script type="module">
     try {
-      const base = "https://unpkg.com/eliscript@0.1.3";
+      const base = "https://unpkg.com/eliscript@0.1.4";
       const { mountEliscriptScripts } = await import(`${base}/dist/browser/host.mjs`);
       await mountEliscriptScripts(document);
     } catch (error) {

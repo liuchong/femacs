@@ -6,6 +6,7 @@ rust-version = "1.85"
 license.workspace = true
 description = "Standalone general-purpose Lisp virtual machine and bytecode runtime"
 repository = "https://github.com/liuchong/femacs"
+homepage = "https://femacs.com/"
 readme = "README.md"
 keywords = ["lisp", "vm", "bytecode", "interpreter", "runtime"]
 categories = ["compilers", "development-tools"]

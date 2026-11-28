@@ -26,6 +26,7 @@ mod standalone;
 mod manuals;
 mod probes;
 mod product_sources;
+mod release;
 mod runtime;
 mod android;
 pub(crate) mod tooling;
@@ -112,6 +113,7 @@ fn main() {
         "build-lisp" => standalone::build_lisp(&args[1..]),
         "link-lisp-inner" => cargo_build::link_lisp_bin_inner(),
         "runtime-build" => runtime::command(&args[1..]),
+        "release" => release::command(&args[1..]),
         "build-manuals" => manuals::command(&args[1..]),
         "audit-probe" => probes::command(&args[1..]),
         "android" => android::command(&args[1..]),
@@ -166,7 +168,7 @@ fn main() {
         }
         _ => {
             println!(
-                "usage: xtask <build-terminal|build-lisp [--out DIR]|build-macos|runtime-build --product terminal|cocoa --variant baseline|native|collector|native-collector --out build/runtime/<name> [--observer] [--test-hooks] [--backend-prefix <prefix>]|test-exec <supervise|mem-tree|digest>|generate-resources --program <owned-program>|link-owned|gen-config|layout-asserts|layout-check|\
+                "usage: xtask <build-terminal|build-lisp [--out DIR]|build-macos|runtime-build --product terminal|cocoa --variant baseline|native|collector|native-collector --out build/runtime/<name> [--observer] [--test-hooks] [--backend-prefix <prefix>]|release <plan|bump|check|notes|publish> --version <X.Y.Z>|test-exec <supervise|mem-tree|digest>|generate-resources --program <owned-program>|link-owned|gen-config|layout-asserts|layout-check|\
                  check-units [list]|gate-fast|gate-probes|gate-probe-programs|gate-load [--report]|\
                  link-program <tool>|dump|gate-full>"
             );

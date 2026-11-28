@@ -4,16 +4,16 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
-  <title>FEmacs — A Lisp editor recast in Rust</title>
-  <meta name="description" content="Fe is a Lisp-extensible editor with a Rust core, a native Swift Cocoa app and a separate terminal build for Apple silicon macOS.">
+  <title>FEmacs — A Lisp runtime &amp; editor recast in Rust</title>
+  <meta name="description" content="Fe is a Lisp-extensible editor and standalone pure-Rust, No-GIL Elisp-compatible Lisp runtime (elisp, lisp, lisp-std, lisp-vm) recast in Rust.">
   <link rel="canonical" href="https://femacs.com/">
   <link rel="icon" type="image/png" href="pages/assets/fe-logo.png">
   <link rel="stylesheet" href="pages/assets/site.css">
   <script type="importmap">
     {
       "imports": {
-        "eliscript/platform/browser": "https://unpkg.com/eliscript@0.1.3/platform/browser.mjs",
-        "eliscript/": "https://unpkg.com/eliscript@0.1.3/"
+        "eliscript/platform/browser": "https://unpkg.com/eliscript@0.1.4/platform/browser.mjs",
+        "eliscript/": "https://unpkg.com/eliscript@0.1.4/"
       }
     }
   </script>
@@ -28,6 +28,7 @@
       </a>
       <nav class="site-nav" aria-label="Main navigation">
         <a href="index.html" aria-current="page">Overview</a>
+        <a href="pages/lisp.html">Lisp &amp; CLI</a>
         <a href="pages/start.html">Build</a>
         <a href="pages/architecture.html">Architecture</a>
         <a href="pages/docs-hub.html">Docs</a>
@@ -41,15 +42,15 @@
   <main class="shell" id="main-content">
     <section class="hero" aria-labelledby="hero-heading">
       <div class="hero-copy">
-        <p class="eyebrow">A Lisp editor for Apple silicon · <a href="https://crates.io/crates/femacs/0.0.1">CLI v0.0.1</a></p>
-        <h1 id="hero-heading"><span data-lang-en lang="en">A Lisp editor<br>recast in <em>Rust.</em></span><span data-lang-zh lang="zh-CN">用 <em>Rust</em> 重铸<br>Lisp 编辑器。</span></h1>
-        <p class="lede" data-lang-en lang="en">Fe brings a Rust core and a native Swift Cocoa interface to Apple silicon. Use your Lisp libraries and configuration at the terminal or in a Mac window.</p>
-        <p class="lede" data-lang-zh lang="zh-CN">Fe 为 Apple 芯片 Mac 提供 Rust 内核和原生 Swift Cocoa 界面。在终端或图形窗口中，继续使用熟悉的 Lisp 库和编辑器配置。</p>
+        <p class="eyebrow"><a href="https://github.com/liuchong/femacs/releases/tag/v0.0.1">v0.0.1 Release</a> · <a href="https://crates.io/crates/elisp">elisp</a> · <a href="https://crates.io/crates/lisp">lisp</a> · <a href="https://crates.io/crates/femacs">femacs</a></p>
+        <h1 id="hero-heading"><span data-lang-en lang="en">A Lisp runtime &amp; editor<br>recast in <em>Rust.</em></span><span data-lang-zh lang="zh-CN">用 <em>Rust</em> 重铸<br>Lisp 运行时与编辑器。</span></h1>
+        <p class="lede" data-lang-en lang="en">Fe pairs a native Rust/Swift Cocoa editor with a standalone, zero-C-dependency, No-GIL Elisp-compatible runtime published as <code>elisp</code>, <code>lisp</code>, <code>lisp-std</code>, and <code>lisp-vm</code>.</p>
+        <p class="lede" data-lang-zh lang="zh-CN">Fe 将原生 Rust/Swift Cocoa 编辑器与独立、零 C 编译依赖、无 GIL 多核的 Elisp 兼容运行时结合在一起，发布为 <code>elisp</code>、<code>lisp</code>、<code>lisp-std</code> 与 <code>lisp-vm</code>。</p>
         <div class="hero-actions">
-          <a class="primary-button" href="pages/start.html"><span data-lang-en lang="en">Build &amp; try</span><span data-lang-zh lang="zh-CN">构建与试用</span><span aria-hidden="true">→</span></a>
-          <a class="secondary-button" href="pages/architecture.html">Explore the internals</a>
+          <a class="primary-button" href="pages/lisp.html"><span data-lang-en lang="en">Standalone Lisp (elisp)</span><span data-lang-zh lang="zh-CN">独立 Lisp (elisp)</span><span aria-hidden="true">→</span></a>
+          <a class="secondary-button" href="pages/start.html"><span data-lang-en lang="en">Build Fe</span><span data-lang-zh lang="zh-CN">构建与安装</span></a>
         </div>
-        <p class="system-note"><span class="indicator" aria-hidden="true"></span> Apple silicon macOS · Cocoa and terminal</p>
+        <p class="system-note"><span class="indicator" aria-hidden="true"></span> Standalone Lisp CLI &amp; library · Apple silicon macOS editor</p>
       </div>
       <figure class="editor" aria-label="Illustrated FEmacs buffer with a Lisp example">
         <div class="editor-header"><span class="window-controls" aria-hidden="true"><i></i><i></i><i></i></span><span>scratch.el</span></div>
@@ -59,25 +60,25 @@
           </div>
           <div class="editor-code">
             <ol aria-hidden="true"><li>1</li><li>2</li><li>3</li><li>4</li></ol>
-            <pre><code><span class="syntax-comment">;; Extend your editor in Lisp.</span>
-(<span class="syntax-keyword">defun</span> <span class="syntax-name">fe-hello</span> ()
-  (interactive)
-  (message <span class="syntax-string">"Hello from Fe"</span>))</code></pre>
+            <pre><code><span class="syntax-comment">;; Run standalone No-GIL Lisp with pure-Rust std/*.</span>
+(<span class="syntax-keyword">require</span> <span class="syntax-name">'std/task</span>)
+(<span class="syntax-keyword">std-task-parallel-map</span>
+  (<span class="syntax-keyword">lambda</span> (x) (* x x)) <span class="syntax-string">'(1 2 3 4)</span> 4)</code></pre>
           </div>
         </div>
-        <div class="mode-line"><span>--:-- &nbsp; scratch.el</span><span>Lisp &nbsp; 4:28</span></div>
-        <figcaption class="minibuffer"><span>M-x</span> fe-hello <span class="cursor" aria-hidden="true"></span></figcaption>
+        <div class="mode-line"><span>--:-- &nbsp; scratch.el</span><span>Lisp · NoGil</span></div>
+        <figcaption class="minibuffer"><span>$</span> cargo install elisp &amp;&amp; elisp repl <span class="cursor" aria-hidden="true"></span></figcaption>
       </figure>
     </section>
 
     <section class="section" id="why-fe-heading" aria-labelledby="why-fe-title">
-      <div class="section-heading"><h2 id="why-fe-title">From Lisp to the native editor</h2></div>
+      <div class="section-heading"><h2 id="why-fe-title">From standalone Lisp to the native editor</h2></div>
       <div class="feature-grid">
         <article class="feature">
-          <p class="term"><span aria-hidden="true">(</span>lisp<span aria-hidden="true">)</span></p>
-          <h3>Use the Lisp you know</h3>
-          <p>The Rust evaluator and bytecode VM run existing Lisp libraries. Check the compatibility record for the versions and workflows that were tested.</p>
-          <a href="pages/docs-hub.html#compatibility">Compatibility notes <span aria-hidden="true">→</span></a>
+          <p class="term"><span aria-hidden="true">(</span>elisp<span aria-hidden="true">)</span></p>
+          <h3>Standalone CLI &amp; Rust library</h3>
+          <p>Install <code>elisp</code> for scripting, a TTY REPL, and <code>init</code>/<code>pkg</code> project workflows, or add <code>lisp</code> for an embeddable No-GIL runtime with 22 pure-Rust <code>std/*</code> modules.</p>
+          <a href="pages/lisp.html">Lisp &amp; CLI guide <span aria-hidden="true">→</span></a>
         </article>
         <article class="feature">
           <p class="term"><span aria-hidden="true">⌘</span> cocoa</p>
@@ -86,32 +87,35 @@
           <a href="pages/start.html#build-steps-heading">Build from source <span aria-hidden="true">→</span></a>
         </article>
         <article class="feature">
-          <p class="term"><span aria-hidden="true">::</span> runtime</p>
-          <h3>Inspect the core in Rust</h3>
-          <p>Follow a Lisp call through the evaluator, bytecode interpreter and collector. See which optimizations ship by default and which require an optional build.</p>
+          <p class="term"><span aria-hidden="true">::</span> layers</p>
+          <h3>Clean four-crate architecture</h3>
+          <p><code>lisp-vm</code> and 100% pure-Rust <code>lisp-std</code> stay cleanly layered beneath <code>lisp</code> and <code>elisp</code>, leaving editor binaries free of HTTP, TLS, or DB dependencies.</p>
           <a href="pages/architecture.html">Runtime architecture <span aria-hidden="true">→</span></a>
         </article>
       </div>
     </section>
 
     <section id="modernization-heading" class="section status-section" aria-labelledby="status-title">
-      <div><h2 id="status-title">Current status</h2><p data-lang-en lang="en">The seven-item modernization stage closed on November 20, 2026, with terminal and Cocoa trial builds. The acceptance record documents compatibility, measurements and the optional native and young-generation collector variants.</p><p data-lang-zh lang="zh-CN">七项现代化工作已于 2026 年 11 月 20 日结项，提供终端和 Cocoa 本地试用构建。验收记录包含兼容范围、实测数据，以及可选的原生编译与年轻代回收器。</p></div>
-      <a class="secondary-button" href="https://github.com/liuchong/femacs/blob/master/docs/current-state.md">Read the acceptance notes <span aria-hidden="true">↗</span></a>
+      <div><h2 id="status-title">Current status</h2><p data-lang-en lang="en">Standalone Lisp crates <code>lisp-vm</code>, <code>lisp-std</code>, <code>lisp</code>, and <code>elisp</code> (v0.0.1) accompany the Apple silicon terminal and Cocoa trial builds from the November 20, 2026 modernization milestone. macOS and Debian 12 aarch64 VM runtimes are verified; Windows is cross-compile architecture verified only.</p><p data-lang-zh lang="zh-CN">独立 Lisp 运行时四件套 <code>lisp-vm</code>、<code>lisp-std</code>、<code>lisp</code>、<code>elisp</code>（v0.0.1）与 2026 年 11 月 20 日结项的 Apple Silicon 终端及 Cocoa 试用构建现已同步发布。已在 macOS 真机与 Debian 12 aarch64 虚拟机完成运行态验证；Windows 仅完成交叉编译架构验证。</p></div>
+      <a class="secondary-button" href="https://github.com/liuchong/femacs/releases/tag/v0.0.1">v0.0.1 release notes <span aria-hidden="true">↗</span></a>
     </section>
   </main>
   <footer class="site-footer">
     <div class="shell footer-inner">
       <a class="footer-brand" href="index.html">FEmacs</a>
       <a href="https://github.com/liuchong/femacs/blob/master/LICENSE">GPL-3.0-or-later</a>
-      <a href="https://crates.io/crates/femacs">crates.io</a>
+      <a href="https://github.com/liuchong/femacs/releases/tag/v0.0.1">Releases (v0.0.1)</a>
+      <a href="https://crates.io/crates/elisp">elisp</a>
+      <a href="https://crates.io/crates/lisp">lisp</a>
+      <a href="https://crates.io/crates/femacs">femacs</a>
       <a href="https://github.com/liuchong/femacs/blob/master/docs/i18n/zh-CN/README.md" lang="zh-CN">中文 README</a>
-      <span class="site-runtime" data-eli-status data-eli-ready="false" role="status" data-eli-status-text>Eliscript 0.1.3</span>
+      <span class="site-runtime" data-eli-status data-eli-ready="false" role="status" data-eli-status-text>Eliscript 0.1.4</span>
     </div>
   </footer>
   <script type="text/eliscript" src="pages/site.eli"></script>
   <script type="module">
     try {
-      const base = "https://unpkg.com/eliscript@0.1.3";
+      const base = "https://unpkg.com/eliscript@0.1.4";
       const { mountEliscriptScripts } = await import(`${base}/dist/browser/host.mjs`);
       await mountEliscriptScripts(document);
     } catch (error) {

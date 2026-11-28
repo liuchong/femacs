@@ -81,17 +81,19 @@ The repository cleanly separates the standalone general-purpose Lisp language cr
 - **Phase 1–6 (Complete)**: `HostFnRegistry` + `Value::Bytes`, `NoGil` `isolate_vm`, 100% pure-Rust `crates/lisp-std` + `init`/`pkg`, Linux real Debian 12 VM verification, Windows `windows-sys` cross-compile backend, and zero-warning packaging polish.
 - **4-Crate Consolidation (`CLN318`)**: Converted `crates/lisp-core` into pure embeddable library `crates/lisp` (with `vm`, `std`, `pkg` features and unified `LISP_*` env vars), extracted standalone CLI binary crate `crates/elisp`, decoupled `femacs-host`/`xtask`, updated crate-boundary and unsafe-boundary gates across all 4 packages, and verified isolated 4-crate packaging.
 
-## 6. Publish Order & Release Checklist
+## 6. Release Status & Verification Checklist (`v0.0.1`)
 
-### Publish Order (3-Tier Topological)
-1. `lisp-vm` (`crates/lisp-vm`) & `lisp-std` (`crates/lisp-std`) — zero workspace crate dependencies; pass standalone `cargo package` / `cargo publish --dry-run` directly.
-2. `lisp` (`crates/lisp`) — depends on `lisp-vm` and `lisp-std`; publish after step 1.
-3. `elisp` (`crates/elisp`) — depends on `lisp` (aggregating all three lower crates); publish after step 2.
+See [docs/release-process.md](../release-process.md) for the full programmatic 5-crate release workflow (`cargo run -p xtask -- release`, counting already-published `femacs 0.0.1` into `v0.0.1` and synchronizing future 5-crate releases).
 
-### Pre-Publish Verification Commands
-- `cargo package -p lisp-vm && cargo package -p lisp-std && cargo package -p lisp-vm -p lisp-std -p lisp -p elisp --no-verify` (check archive size `< 10 MiB`, `LICENSE`/`README.md` included, `0` path escapes, and isolated extraction `release` rebuild of `elisp` passing `--version`, `--help`, `eval`, and `std/*`).
-- `python3 tools/check-crate-boundaries.py` and `python3 tools/check-own-voice.py`.
-- `cargo publish --dry-run` in topological order (`lisp-vm`, `lisp-std`, `lisp`, `elisp`).
+### Topological Publish Order (`0.0.1`)
+1. `lisp-vm` (`crates/lisp-vm`), `lisp-std` (`crates/lisp-std`), & `femacs` (`cli/`, skipped via `--skip-already-published` when `0.0.1` is already live) — zero workspace crate dependencies (`homepage = "https://femacs.com/"`).
+2. `lisp` (`crates/lisp`) — depends on `lisp-vm` and `lisp-std` (`categories = ["compilers", "concurrency", "development-tools"]`).
+3. `elisp` (`crates/elisp`) — depends on `lisp` (aggregating all three lower crates into standalone binary `elisp`).
+
+### Release Verification Gates
+- `cargo package -p lisp-vm && cargo package -p lisp-std && cargo package -p lisp-vm -p lisp-std -p lisp -p elisp --no-verify` (archive size `< 10 MiB`, `LICENSE` + independent `README.md` without `../` links, `0` path escapes, and isolated extraction `release` rebuild of `elisp` passing `--version`, `--help`, `eval`, and `std/*`).
+- `python3 tools/check-crate-boundaries.py`, `python3 tools/check-own-voice.py`, and `fe-test --suite all --no-cache`.
+- GPG-signed tag `v0.0.1` (`git tag -s v0.0.1`) and GitHub Release publishing the `0.0.1` crates.io & platform verification notes.
 
 ### Platform Support Disclosure
 - **macOS (`aarch64-apple-darwin`)**: Full real-host verified (`cargo test`, `isolate_vm`, release `otool -L` OS-libs-only, `cargo package` isolated rebuild, and `fe-test`).

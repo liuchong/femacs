@@ -12,8 +12,8 @@
   <script type="importmap">
     {
       "imports": {
-        "eliscript/platform/browser": "https://unpkg.com/eliscript@0.1.3/platform/browser.mjs",
-        "eliscript/": "https://unpkg.com/eliscript@0.1.3/"
+        "eliscript/platform/browser": "https://unpkg.com/eliscript@0.1.4/platform/browser.mjs",
+        "eliscript/": "https://unpkg.com/eliscript@0.1.4/"
       }
     }
   </script>
@@ -28,6 +28,7 @@
       </a>
       <nav class="site-nav" aria-label="Main navigation">
         <a href="../index.html">Overview</a>
+        <a href="../pages/lisp.html">Lisp &amp; CLI</a>
         <a href="../pages/start.html">Build</a>
         <a href="../pages/architecture.html">Architecture</a>
         <a href="../pages/docs-hub.html" aria-current="page">Docs</a>
@@ -56,19 +57,24 @@
           <button type="button" aria-pressed="false" data-doc-category="runtime">Runtime</button>
           <button type="button" aria-pressed="false" data-doc-category="verify">Verification</button>
         </div>
-        <p class="results" role="status" data-doc-count>10 documents</p>
+        <p class="results" role="status" data-doc-count>15 documents</p>
       </div>
       <p data-doc-empty hidden>No documents match. Try a different term or topic.</p>
       <div class="docs-grid">
+        <article class="doc-card" data-doc-item data-doc-category-tag="build" data-doc-keywords="elisp lisp cargo install repl cli stdlib 独立"><h3 ><a href="lisp.html">Standalone Lisp &amp; elisp CLI <span aria-hidden="true">→</span></a></h3><p>Install <code>elisp</code>, embed <code>lisp</code> in Rust, configure features, and inspect pure-Rust <code>std/*</code> modules.</p></article>
         <article class="doc-card" data-doc-item data-doc-category-tag="build" data-doc-keywords="install setup macOS cargo commands 终端 构建"><h3><a href="start.html">Build &amp; run <span aria-hidden="true">→</span></a></h3><p>The terminal and Cocoa build commands, SDK setup and local verification.</p></article>
+        <article class="doc-card" data-doc-item data-doc-category-tag="build" data-doc-keywords="release xtask publish crates.io tag github v0.0.1 发布流程"><h3><a href="https://github.com/liuchong/femacs/blob/master/docs/release-process.md">Unified release process <span aria-hidden="true">↗</span></a></h3><p>Programmatic 5-crate release workflow (<code>xtask release</code>) across <code>elisp</code>, <code>lisp</code>, <code>lisp-std</code>, <code>lisp-vm</code>, and <code>femacs</code>.</p></article>
         <article class="doc-card" data-doc-item data-doc-category-tag="build" data-doc-keywords="tree-sitter sdk dump 自举"><h3><a href="https://github.com/liuchong/femacs/blob/master/docs/repository-bootstrap.md">Repository bootstrap <span aria-hidden="true">↗</span></a></h3><p>Pinned dependencies, generated resources and clean builds.</p></article>
         <article class="doc-card" data-doc-item data-doc-category-tag="build" data-doc-keywords="dock icon dmg bundle Xcode 打包 图标"><h3><a href="https://github.com/liuchong/femacs/blob/master/packaging/README.md">macOS packaging <span aria-hidden="true">↗</span></a></h3><p>Build the app bundle and disk image. See how the appearance-specific icon is built.</p></article>
-        <article class="doc-card" data-doc-item data-doc-category-tag="runtime" data-doc-keywords="vm runtime bytecode Rust Cocoa 内核"><h3><a href="architecture.html">Runtime architecture <span aria-hidden="true">→</span></a></h3><p>Source-to-dump pipeline, Lisp evaluator and platform display.</p></article>
+        <article class="doc-card" data-doc-item data-doc-category-tag="runtime" data-doc-keywords="vm runtime bytecode Rust Cocoa 内核"><h3><a href="architecture.html">Runtime architecture <span aria-hidden="true">→</span></a></h3><p>Source-to-dump pipeline, four-crate layering, Lisp evaluator and platform display.</p></article>
+        <article class="doc-card" data-doc-item data-doc-category-tag="runtime" data-doc-keywords="lisp-vm lisp-std lisp elisp nogil isolate 独立 运行时"><h3><a href="https://github.com/liuchong/femacs/blob/master/docs/design/lisp-core.md">Standalone Lisp architecture <span aria-hidden="true">↗</span></a></h3><p>Four-crate design, <code>isolate_vm</code> No-GIL concurrency, pure-Rust stdlib, and release checklist.</p></article>
         <article class="doc-card" data-doc-item data-doc-category-tag="runtime" data-doc-keywords="performance GC native AOT 性能 回收"><h3><a href="https://github.com/liuchong/femacs/blob/master/docs/runtime-modernization.md">Runtime modernization <span aria-hidden="true">↗</span></a></h3><p>Interpreter, native compiler and collector designs and decisions.</p></article>
         <article class="doc-card" data-doc-item data-doc-category-tag="runtime" data-doc-keywords="garbage collection barrier GC 回收"><h3><a href="https://github.com/liuchong/femacs/blob/master/docs/gc-young-cadence.md">Young GC design <span aria-hidden="true">↗</span></a></h3><p>Safe points, allocation cadence and the candidate's correctness checks.</p></article>
+        <article class="doc-card" data-doc-item data-doc-category-tag="verify" data-doc-keywords="release v0.0.1 crates.io github changelog 发布"><h3><a href="https://github.com/liuchong/femacs/releases/tag/v0.0.1">v0.0.1 release &amp; crates <span aria-hidden="true">↗</span></a></h3><p>Published crates, release notes, and platform verification boundaries for <code>v0.0.1</code>.</p></article>
         <article class="doc-card" data-doc-item data-doc-category-tag="verify" data-doc-keywords="status acceptance performance 状态"><h3><a href="https://github.com/liuchong/femacs/blob/master/docs/current-state.md">Current status <span aria-hidden="true">↗</span></a></h3><p>Latest editor state, accepted macOS trial builds and links to the evidence.</p></article>
         <article class="doc-card" data-doc-item data-doc-category-tag="verify" data-doc-keywords="testing ERT assessment 审计 测试"><h3><a href="https://github.com/liuchong/femacs/blob/master/docs/testing-strategy.md">Testing strategy <span aria-hidden="true">↗</span></a></h3><p>Choose a local, functional or differential acceptance run.</p></article>
-        <article class="doc-card" id=compatibility data-doc-item data-doc-category-tag="verify" data-doc-keywords="compatibility device platform Lisp Android Apple 兼容"><h3><a href="https://github.com/liuchong/femacs/blob/master/docs/support-matrix.md">Compatibility and platform support <span aria-hidden="true">↗</span></a></h3><p>Supported targets and published platform boundaries.</p></article>
+        <article class="doc-card" data-doc-item data-doc-category-tag="verify" data-doc-keywords="fe-test lisp test runner cache static 测试框架"><h3><a href="https://github.com/liuchong/femacs/blob/master/docs/design/test-framework.md">Native test framework (fe-test) <span aria-hidden="true">↗</span></a></h3><p>Pure Elisp test scheduler, cache, static gates, and process resource control.</p></article>
+        <article class="doc-card" id=compatibility data-doc-item data-doc-category-tag="verify" data-doc-keywords="compatibility device platform Lisp Android Apple Linux Windows 兼容"><h3><a href="https://github.com/liuchong/femacs/blob/master/docs/support-matrix.md">Compatibility and platform support <span aria-hidden="true">↗</span></a></h3><p>Supported targets and published platform boundaries.</p></article>
         <article class="doc-card" data-doc-item data-doc-category-tag="verify" data-doc-keywords="eglot Lisp compatibility Finder IME 输入法"><h3><a href="https://github.com/liuchong/femacs/blob/master/maintenance/releases/2026-11-20-stage1-ga1-ga2-ga3-closure.md">Compatibility acceptance <span aria-hidden="true">↗</span></a></h3><p>The terminal and Cocoa acceptance record and the stable Lisp test results.</p></article>
       </div>
     </section>
@@ -77,15 +83,18 @@
     <div class="shell footer-inner">
       <a class="footer-brand" href="../index.html">FEmacs</a>
       <a href="https://github.com/liuchong/femacs/blob/master/LICENSE">GPL-3.0-or-later</a>
-      <a href="https://crates.io/crates/femacs">crates.io</a>
+      <a href="https://github.com/liuchong/femacs/releases/tag/v0.0.1">Releases (v0.0.1)</a>
+      <a href="https://crates.io/crates/elisp">elisp</a>
+      <a href="https://crates.io/crates/lisp">lisp</a>
+      <a href="https://crates.io/crates/femacs">femacs</a>
       <a href="https://github.com/liuchong/femacs/blob/master/docs/i18n/zh-CN/README.md" lang="zh-CN">中文 README</a>
-      <span class="site-runtime" data-eli-status data-eli-ready="false" role="status" data-eli-status-text>Eliscript 0.1.3</span>
+      <span class="site-runtime" data-eli-status data-eli-ready="false" role="status" data-eli-status-text>Eliscript 0.1.4</span>
     </div>
   </footer>
   <script type="text/eliscript" src="site.eli"></script>
   <script type="module">
     try {
-      const base = "https://unpkg.com/eliscript@0.1.3";
+      const base = "https://unpkg.com/eliscript@0.1.4";
       const { mountEliscriptScripts } = await import(`${base}/dist/browser/host.mjs`);
       await mountEliscriptScripts(document);
     } catch (error) {

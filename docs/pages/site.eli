@@ -1,7 +1,7 @@
 ;; Interactive documentation site script for Fe (femacs).
 ;;
 ;; Maintained as Eliscript source in `docs/pages/site.eli` and compiled in the
-;; browser at runtime by the published `eliscript@0.1.3` browser SDK.
+;; browser at runtime by the published `eliscript@0.1.4` browser SDK.
 
 (module fe.docs.site
   (import "eliscript/platform/browser"
@@ -256,7 +256,7 @@
             (set-attr pill "data-eli-ready" "true")))
     (each (nodes "[data-eli-status-text]")
           (lambda (label)
-            (set-text label "Eliscript 0.1.3 · live"))))
+            (set-text label "Eliscript 0.1.4 · live"))))
 
   (defun start ()
     (bind-workflow-tabs)

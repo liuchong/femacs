@@ -14,3 +14,14 @@ G4 construction scope is defined in [tooling-modernization.md](tooling-moderniza
 | Performance/native/collector candidates | G5 measurements precede G6/G7 source-bound designs and real VM candidates | G4 does not introduce a VM, dispatch, JIT or collector algorithm change. Old negative experiments remain evidence. |
 
 Android device modes create a fresh run-owned AVD, adb server and explicit serial. Inspection/dump requires an explicit receiver and is read-only. No user AVD replacement, global server reset, root, uninstall or shared diagnostic deletion is part of the new lifecycle. A structurally valid signed APK is not device acceptance; a diagnostic or old image is not readiness.
+
+## Standalone Lisp runtime & CLI (`elisp`, `lisp`, `lisp-std`, `lisp-vm` `v0.0.1`)
+
+The standalone general-purpose Lisp crates ([design spec](design/lisp-core.md)) are built without `cc`, CMake, or external C `-sys` libraries and carry the following verification boundaries at `v0.0.1`:
+
+| Surface | Status | Evidence boundary |
+| --- | --- | --- |
+| macOS (`aarch64-apple-darwin`) | Verified (real host) | Zero-warning 14-target build/check matrix, `lisp-vm` (`12/12` + `17/17` `isolate_vm`), `lisp-std` (`8/8`), `lisp` (`23/23` + `22/22` `vm` + `20/20` zero-VM + `engine_integration` + `std_batteries_integration`), `elisp` (`4/4` + `cli_integration`), `fe-test` (`--suite self` `9/9`, `--suite all --no-cache` `39/39`), `otool -L` (`/usr/lib/libiconv.2.dylib` & `/usr/lib/libSystem.B.dylib` only), and 4-crate `cargo package` isolated extraction rebuild (`elisp 0.0.1`). |
+| Linux (`aarch64-unknown-linux-gnu`) | Verified (ephemeral Debian 12 Lima VM) | Real-VM unit & integration suites (`lisp-vm`, `lisp-std`, `lisp`), release `ldd` (glibc + system libs only), cold/warm `.pdmp` caching, PTY REPL, 4-worker `NoGil` parallel speedup (`2.59x`), and `init`/`pkg` workflow (prior to final `lisp-core` -> `lisp` + `elisp` crate split, sharing identical VM & OS layer). |
+| Linux (`x86_64-unknown-linux-gnu`) | Cross-compile verified | Clean `cargo check` across workspace standalone crates. |
+| Windows (`x86_64-pc-windows-msvc`, `x86_64-pc-windows-gnu`) | **Cross-compile ONLY** | Architecture verified (`windows-sys` Job Objects, Toolhelp32 process snapshots, `--rpc-addr` TCP loopback, `LOCALAPPDATA` cache root, LLP64/UCRT VM layouts) via clean `cargo check` across default & minimal feature flags; **no physical Windows host runtime verification has been performed**. |

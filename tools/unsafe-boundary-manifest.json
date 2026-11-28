@@ -191,6 +191,8 @@
     "xtask/src/probes.rs",
     "xtask/src/probes_tests.rs",
     "xtask/src/product_sources.rs",
+    "xtask/src/release.rs",
+    "xtask/src/release_tests.rs",
     "xtask/src/runtime.rs",
     "xtask/src/runtime_backend.rs",
     "xtask/src/runtime_tests.rs",

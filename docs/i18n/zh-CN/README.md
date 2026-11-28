@@ -6,7 +6,11 @@
 
 用 Rust 重写并加速 Emacs 的编辑器项目。
 
-[![crates.io 命令行入口版本](https://img.shields.io/crates/v/femacs?logo=rust&label=crates.io)](https://crates.io/crates/femacs)
+[![crates.io femacs](https://img.shields.io/crates/v/femacs?logo=rust&label=femacs)](https://crates.io/crates/femacs)
+[![crates.io elisp](https://img.shields.io/crates/v/elisp?logo=rust&label=elisp)](https://crates.io/crates/elisp)
+[![crates.io lisp](https://img.shields.io/crates/v/lisp?logo=rust&label=lisp)](https://crates.io/crates/lisp)
+[![crates.io lisp-std](https://img.shields.io/crates/v/lisp-std?logo=rust&label=lisp-std)](https://crates.io/crates/lisp-std)
+[![crates.io lisp-vm](https://img.shields.io/crates/v/lisp-vm?logo=rust&label=lisp-vm)](https://crates.io/crates/lisp-vm)
 [![许可证：GPL-3.0-or-later](https://img.shields.io/badge/license-GPL--3.0--or--later-blue)](../../../LICENSE)
 [![项目文档](https://img.shields.io/badge/docs-femacs.com-blue)](https://femacs.com/)
 
@@ -25,6 +29,26 @@
 ## 现状
 
 Rust 内核及原生 Swift macOS 界面已有可运行实现；功能验收与性能目标分开，不声称性能已达标。
+
+同时，项目已将零 C 编译依赖、No-GIL 多核并行的独立通用 Lisp 运行时与命令行拆分为四个独立 Crate（`v0.0.1`）发布：[`elisp`](../../../crates/elisp/README.md)、[`lisp`](../../../crates/lisp/README.md)、[`lisp-std`](../../../crates/lisp-std/README.md) 与 [`lisp-vm`](../../../crates/lisp-vm/README.md)。
+
+## 独立通用 Lisp 运行时与命令行（`elisp` / `lisp`）
+
+- **[`elisp`](../../../crates/elisp/README.md)**（`[[bin]]`，`0.0.1`）：独立 CLI、脚本运行器、交互式 TTY REPL（`elisp> ` 提示符）、`init`/`pkg` 项目包管理、字节码编译与 ERT 测试入口（`cargo install elisp`）。
+- **[`lisp`](../../../crates/lisp/README.md)**（`[lib]`，`0.0.1`）：面向 Rust 应用的一站式可嵌入库（`default = ["vm", "std"]`，正交 feature `vm` / `std` / `pkg`，支持 `default-features = false`），导出 `lisp::prelude::*`、`lisp::vm` 与 `lisp::stdlib`。
+- **[`lisp-std`](../../../crates/lisp-std/README.md)**（`[lib]`，`0.0.1`）：100% 纯 Rust（`#![forbid(unsafe_code)]`，零 `cc` / C `-sys` 依赖）通用标准库电池（22 个 `std/*` 模块：HTTPS/HTTP 客户端与服务端、`redb` ACID KV 与事务 SQL 引擎、JSON/TOML/CSV/YAML/Base64/URL、tar/zip/gzip/zlib、密码学/UUID、时间、`walkdir`/glob 文件、正则、受限子进程、CLI、结构化日志）。
+- **[`lisp-vm`](../../../crates/lisp-vm/README.md)**（`[lib]`，`0.0.1`）：无头 Lisp 虚拟机、GC、字节码引擎、`HostExtFn` 回调、`.pdmp` 热启动镜像及可选 `isolate_vm` 多核隔离。
+
+```sh
+# 安装独立命令行工具与 REPL
+cargo install elisp
+elisp eval '(+ 20 22)'
+elisp repl
+```
+
+平台验证边界（`v0.0.1`）：已在 Apple Silicon macOS 真机与 Linux（Debian 12 `aarch64` 虚拟机，`x86_64` 交叉编译）验证；Windows（`x86_64-pc-windows-msvc` / `x86_64-pc-windows-gnu`）**仅完成交叉编译架构验证，未在物理 Windows 主机上执行运行态测试**。详见 [支持矩阵](../../support-matrix.md)。
+
+## 构建与试用 Fe 编辑器
 
 在 Apple Silicon macOS 安装 Xcode 命令行工具、Python 3、rustup 和 GNU awk（`brew install gawk`）后，在仓库根目录执行：
 
@@ -46,10 +70,17 @@ dist/macos/Femacs.app/Contents/MacOS/Femacs -Q
 
 两条命令都需要 Cocoa 应用。应用若在常用的 Applications 目录之外，用 `FEMACS_APP` 指定应用包路径。详见[命令行入口说明](../../../cli/README.md)。
 
+## 源码布局
+
+`src/`、`lib/`、`lib-src/`、`platform/`、`cli/`、`packaging/` 与 `xtask/` 位于仓库根目录，独立/分层 Crate 位于 `crates/`（`lisp-vm`、`lisp-std`、`lisp`、`elisp`、`femacs-host`、`femacs-tools`、`http-host`）；`lisp/`、`leim/`、`admin/`、`etc/` 保留原始数据与生成器；`docs/` 为项目文档与网站源码。
+
 ## 文档
 
-- [docs/i18n](../../i18n/README.md)（语言索引）：其他语言的译文统一放在 `docs/i18n/<locale>/`
-  下，路径与英文原文一一对应。
+- [项目主页（femacs.com）](https://femacs.com/)（[源码](../../index.html) · [独立 Lisp 专页](https://femacs.com/pages/lisp.html)）
+- [独立 Lisp 运行时架构设计](../../design/lisp-core.md)
+- [五包统一发布流程（`xtask release`）](../../release-process.md) — 覆盖 `lisp-vm`、`lisp-std`、`femacs`、`lisp`、`elisp` 的程序化发布（已发布的 `femacs 0.0.1` 一并计入 `v0.0.1`，后续统一一次性发版）
+- [平台支持与验证边界矩阵](../../support-matrix.md)
+- [docs/i18n](../../i18n/README.md)（语言索引）：其他语言的译文统一放在 `docs/i18n/<locale>/` 下，路径与英文原文一一对应。
 
 ## 许可证
 

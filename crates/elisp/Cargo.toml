@@ -6,6 +6,7 @@ rust-version = "1.85"
 license.workspace = true
 description = "Standalone general-purpose Elisp-compatible CLI and interactive REPL"
 repository = "https://github.com/liuchong/femacs"
+homepage = "https://femacs.com/"
 readme = "README.md"
 keywords = ["elisp", "lisp", "cli", "repl", "scripting"]
 categories = ["command-line-utilities", "compilers", "development-tools"]
